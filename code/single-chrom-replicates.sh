@@ -10,8 +10,8 @@ export outPath=/Users/jeff/workspace/selection-against-introgression/results/sin
 mkdir -p ${outPath}
 
 # modify number after seq to run different number of replicates
-# modify number after parallel to allow for x number of jobs to run at once
-seq 10 | parallel -q -j 10 \
+# modify number after parallel to allow for x number of jobs to run at once if multiple corers are available
+seq 2 10 | parallel -q -j 1 \
         slim \
         -l \
             -d seed={} \
@@ -20,5 +20,7 @@ seq 10 | parallel -q -j 10 \
             -d rates=${rates} \
             -d ends=${ends} \
             -d "outPath='${outPath}'" \
-            code/single-chrom.slim
+            code/single-chrom.slim &&
+            find ${outPath} -name "*.trees" | xargs -I{} python code/ancestry.py {} >> ${outPath}/ancestry-results.txt
+
 
