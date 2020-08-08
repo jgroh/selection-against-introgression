@@ -1,0 +1,1 @@
+scheme01    c(baseRate/10,baseRate*10)  c(499,999)

@@ -1,0 +1,84 @@
+// template script for varying recombination rate
+
+initialize() {
+	
+	initializeTreeSeq();
+	defineConstant("L", 1000);
+	defineConstant("s", 0.4);
+	defineConstant("N1", 10000); // recipient population size
+	defineConstant("N2", 1000); // donor population size
+	defineConstant("genomeSize",1e9);
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0);
+	m1.convertToSubstitution = F;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, L-1);
+	
+	if (exists("slimgui")) {
+		defineConstant("seed", 1);
+		defineConstant("baseRate", 1e-8);
+		rates = c(baseRate/10, baseRate*10);
+		ends = c(499,999);
+		defineConstant("scheme", "scheme01/");
+		defineConstant("outPath",
+			"/Users/jeff/workspace/selection-against-introgression/results/single-chrom/" + scheme);
+	}
+	
+	// if running on command line: scheme, baseRate, rates, and ends need to be defined 
+	
+	setSeed(seed);
+	
+	effectiveRates = (genomeSize/L)*rates;
+	initializeRecombinationRate(effectiveRates, ends);
+
+}
+
+1 {sim.addSubpop("p1", N1);
+	sim.addSubpop("p2", N2);
+	
+	// add deleterious mutations (sel. coefficient is zero bc fitness calculated l8r)
+	p2.genomes.addNewMutation(m1, 0, 0:(L-1));
+	
+	// migration
+	p1.setMigrationRates(p2, 0.5);
+
+}
+
+
+//calculate fitness
+1: late() {
+	inds = p1.individuals;
+	introgressed = inds.countOfMutationsOfType(m1);
+	inds.fitnessScaling = 1.0 - (introgressed/(2*L))*s;
+
+}
+
+
+2 {p2.setSubpopulationSize(0);}
+
+
+// output
+
+5 late() {
+	sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen005.trees"); }
+
+10 late() {
+	sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen010.trees"); }
+
+50 late() {
+	sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen050.trees"); }
+
+100 late() {
+	sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen100.trees"); }
+
+500 late() {
+	sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen500.trees"); }
+
+
+
+
+
+
+
+
+
