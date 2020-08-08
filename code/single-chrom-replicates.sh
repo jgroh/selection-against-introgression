@@ -11,7 +11,7 @@ mkdir -p ${outPath}
 
 # modify number after seq to run different number of replicates
 # modify number after parallel to allow for x number of jobs to run at once
-seq 2 | parallel -q -j 2 \
+seq 10 | parallel -q -j 10 \
         slim \
         -l \
             -d seed={} \
