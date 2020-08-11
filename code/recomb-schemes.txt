@@ -1,1 +1,3 @@
 scheme01    c(baseRate/10,baseRate*10)  c(499,999)
+scheme02    c(baseRate/10,baseRate*10,baseRate/10,baseRate*10)  c(249,499,749,999)
+scheme03    c(baseRate/10,baseRate/5,baseRate*5,baseRate*10)    c(249,499,749,999)
