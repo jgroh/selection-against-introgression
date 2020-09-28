@@ -6,11 +6,13 @@ library(tidyselect)
 args <- commandArgs(trailingOnly = TRUE)
 scheme <- args[1]
 filename <- paste0("results/single-chrom/", scheme, "/ancestry-results.txt")
-
 a <- read.table(filename, row.names = 1)
-#a <- read.table("results/single-chrom/scheme01/ancestry-results.txt", row.names = 1)
+
+#a <- read.table("workspace/selection-against-introgression/results/single-chrom/scheme01/ancestry-results.txt", row.names = 1)
+#scheme <- "scheme01"
+
 a <- as.data.frame(t(a))
-a$pos <- seq(1,1000)
+a$pos <- seq(1,100)
 
 
 # plot frequency trajectory directly
@@ -25,10 +27,10 @@ b <- a %>%
 b %>%
   ggplot(aes(pos, freq, colour=rep.id)) +
   #geom_point() +
-  geom_smooth(method = "loess", span = .1, se = FALSE) +
-  facet_grid(gen~.)
+  geom_smooth(aes(group = rep.id), method = "loess", span = .1, se = FALSE, size = .5) +
+  facet_grid(gen~., scales = "free_y")
 
-ggsave(paste0("results/plots/", scheme, "-freq-trajectory.pdf"))
+ggsave(paste0("/Users/jeff/workspace/selection-against-introgression/results/plots/", scheme, "-freq-trajectory.pdf"))
 
 
 
@@ -36,8 +38,8 @@ ggsave(paste0("results/plots/", scheme, "-freq-trajectory.pdf"))
 
 ## calculate differentials 
 
-gens <- c("gen005","gen010","gen050","gen100","gen500")
-for(i in 1:10) {
+gens <- c("gen002", "gen005","gen010","gen050","gen100","gen500")
+for(i in 1:20) {
   # loop over replicates
   
   for(j in 0:(length(gens)-1)) {
@@ -47,8 +49,8 @@ for(i in 1:10) {
     freq2 <- a[paste0("replicate-", i, "-", gens[j+1])]
     
     if (j == 0) {
-      freq1 <- rep(0.2, 1000)
-      n <- paste0("r", i, "_", gens[j+1], "-", "gen000")
+      freq1 <- rep(0.2, 100)
+      n <- paste0("r", i, "_", gens[j+1], "-", "gen001")
     
     } else {
       freq1 <- a[paste0("replicate-", i, "-", gens[j])]
@@ -73,9 +75,9 @@ d <- a %>%
 d %>%
   ggplot(aes(pos, delta.freq, colour=rep.id)) +
   #geom_point() +
-  geom_smooth(method = "loess", span = .1, se = FALSE) +
-  facet_grid(step.num~.)
+  geom_smooth(method = "loess", span = .1, se = FALSE, size = .5) +
+  facet_grid(step.num~., scales = "free_y")
 
-ggsave(paste0("results/plots/", scheme, "delta-freq-trajectory.pdf"))
+ggsave(paste0("/Users/jeff/workspace/selection-against-introgression/results/plots/", scheme, "-delta-freq-trajectory.pdf"))
 
   

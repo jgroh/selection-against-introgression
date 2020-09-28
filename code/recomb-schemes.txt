@@ -1,3 +1,5 @@
-scheme01    c(baseRate/10,baseRate*10)  c(499,999)
-scheme02    c(baseRate/10,baseRate*10,baseRate/10,baseRate*10)  c(249,499,749,999)
-scheme03    c(baseRate/10,baseRate/5,baseRate*5,baseRate*10)    c(249,499,749,999)
+scheme01    c(baseRate/10,baseRate)  c(49,99)
+scheme02    c(baseRate/100,baseRate,baseRate/100,baseRate)  c(24,49,74,99)
+scheme03    c(baseRate/10,baseRate*10,baseRate*10,baseRate/10)  c(24,49,74,99)
+scheme04    c(baseRate*10,baseRate/10,baseRate/10,baseRate*10)  c(24,49,74,99)
+scheme05    baseRate*rep(c(rep(10,5),rep(1,5)),5)*rep(c(2,1),25)  seq(1,99,by=2)

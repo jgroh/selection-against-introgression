@@ -3,11 +3,11 @@
 initialize() {
 	
 	initializeTreeSeq();
-	defineConstant("L", 1000);
+	defineConstant("L", 128);
 	defineConstant("s", 0.4);
 	defineConstant("N1", 10000); // recipient population size
 	defineConstant("N2", 1000); // donor population size
-	defineConstant("genomeSize",1e9);
+	defineConstant("genomeSize",1e8);
 	initializeMutationRate(0);
 	initializeMutationType("m1", 0.5, "f", 0);
 	m1.convertToSubstitution = F;
@@ -40,17 +40,23 @@ initialize() {
 	p2.genomes.addNewMutation(m1, 0, 0:(L-1));
 	
 	// migration
-	p1.setMigrationRates(p2, 0.5);
+	p1.setMigrationRates(p2, 0.2);
+
+    catn('startread');
+    catn('replicate' + seed);
 
 }
 
 
 //calculate fitness
-1: late() {
+1:500 late() {
 	inds = p1.individuals;
 	introgressed = inds.countOfMutationsOfType(m1);
+    //catn(mean(introgressed/(2*L)));
 	inds.fitnessScaling = 1.0 - (introgressed/(2*L))*s;
-
+// print ancestry per time 	
+	pos = p1.genomes.positionsOfMutationsOfType(m1);
+	catn(sum(pos < 32)/(32*2*N1) + "," + sum(pos >= 32 & pos < 64)/(32*2*N1) + "," + sum(pos >= 64 & pos < 96)/(32*2*N1) + "," + sum(pos >= 96)/(32*2*N1));
 }
 
 
@@ -58,6 +64,9 @@ initialize() {
 
 
 // output
+
+2 late() {
+   sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen002.trees"); }
 
 5 late() {
 	sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen005.trees"); }
