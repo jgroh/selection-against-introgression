@@ -72,7 +72,7 @@ initialize() {
 
 
 //calculate fitness
-1:10 late() {
+1:1000 late() {
 	inds = p1.individuals;
 	introgressed = inds.countOfMutationsOfType(m1);
 	//catn(mean(introgressed/(2*L)));
@@ -99,14 +99,17 @@ initialize() {
 10 late() {
 	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen010.trees"); }
 
-//50 late() {
-//	sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen050.trees"); }
+50 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen050.trees"); }
 
-//100 late() {
-//	sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen100.trees"); }
+100 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen100.trees"); }
 
-//500 late() {
-//	sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen500.trees"); }
+500 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen500.trees"); }
+
+1000 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen1000.trees"); }
 
 
 

@@ -12,10 +12,6 @@ rule simulation:
 	input:
 	output:
 		expand("results/multi-scale/replicate{{rep}}_{gen}.trees", rep=reps, gen=gens)
-		#gen010 = sim_result + "_gen010.trees",
-#		gen050 = sim_results_pattern + "_gen050.trees",
-#		gen100 = sim_results_pattern + "_gen100.trees",
-#		gen500 = sim_results_pattern + "_gen500.trees"
 	shell:
 		"slim -d seed={wildcards.rep} code/multi-scale.slim"
 
