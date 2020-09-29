@@ -3,7 +3,7 @@
 initialize() {
 	
 	initializeTreeSeq();
-	defineConstant("L", 1024); //8 chromosomes each with 128 deleterious loci
+	defineConstant("L", 1024); //16 chromosomes each with 64 deleterious loci
 	defineConstant("s", 0.4);
 	defineConstant("N1", 10000); // recipient population size
 	defineConstant("N2", 1000); // donor population size
@@ -16,18 +16,18 @@ initialize() {
 	defineConstant("baseRate", 1e-8);
 	
 	// create recombination rate vector
-	twoChromRates = c(c(baseRate*c(0.1,0.1,1,1)*c(10,1,10,5),0.5),c(baseRate*c(0.01,0.01,0.1,0.1)*c(10,1,10,5),0.5));
-	allChromRates = rep(twoChromRates,4);
+	twoChromRates = c(c(baseRate*c(1,1,5,5)*c(1,10,5,10),0.5),c(baseRate*c(0.1,0.1,0.5,0.5)*c(1,10,5,10),0.5));
+	allChromRates = rep(twoChromRates,8);
 	allChromRates = allChromRates[0:(length(allChromRates)-2)];
 	
 	// create breakpoint vector
-	breaks =  c((1:4*32)-1,128);
-	for(i in 1:7)
-		breaks =  c(breaks, c((1:4*32)-1,128)+128*i);
-	breaks = breaks[0:(length(breaks)-2)];
+	breaks =  c((1:4*16)-1,64);
+	for(i in 1:15)
+		breaks =  c(breaks, c((1:4*16)-1,64)+64*i);
+	breaks = breaks[0:(length(breaks)-2)]; //minus 2 bc we don't need 0.5 recomb at end
 	
 	defineConstant("outPath",
-		"/Users/jeff/workspace/selection-against-introgression/results/multi-scale/");
+		"results/multi-scale/");
 	
 	
 	// if running on command line, seed needs to be passed in as command line parameter
@@ -72,7 +72,7 @@ initialize() {
 
 
 //calculate fitness
-1:500 late() {
+1:10 late() {
 	inds = p1.individuals;
 	introgressed = inds.countOfMutationsOfType(m1);
 	//catn(mean(introgressed/(2*L)));
@@ -91,22 +91,22 @@ initialize() {
 // output
 
 2 late() {
-	sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen002.trees"); }
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen002.trees"); }
 
 5 late() {
-	sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen005.trees"); }
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen005.trees"); }
 
 10 late() {
-	sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen010.trees"); }
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen010.trees"); }
 
-50 late() {
-	sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen050.trees"); }
+//50 late() {
+//	sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen050.trees"); }
 
-100 late() {
-	sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen100.trees"); }
+//100 late() {
+//	sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen100.trees"); }
 
-500 late() {
-	sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen500.trees"); }
+//500 late() {
+//	sim.treeSeqOutput(outPath + "/replicate-" + seed + "-gen500.trees"); }
 
 
 

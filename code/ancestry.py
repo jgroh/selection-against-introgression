@@ -1,4 +1,3 @@
-#!/Users/jeff/opt/anaconda3/bin/python
 import msprime, pyslim
 import numpy as np
 import pandas as pd
@@ -11,7 +10,7 @@ ts = pyslim.load(sys.argv[1]).simplify()
 #breaks = np.zeros(ts.num_trees + 1)
 #ancestry = np.zeros(ts.num_trees + 1)
 ancestry_all_seq = np.zeros(int(ts.sequence_length))
-for tree in ts.trees(sample_counts=True):
+for tree in ts.trees():
     subpop_sum, subpop_weights = 0, 0
     for root in tree.roots:
         leaves_count = tree.num_samples(root) - 1 # the root is a sample 
