@@ -16,8 +16,10 @@ initialize() {
 	defineConstant("baseRate", 1e-8);
 	
 	// create recombination rate vector
-	twoChromRates = c(c(baseRate*c(1,1,5,5)*c(1,10,5,10),0.5),c(baseRate*c(0.1,0.1,0.5,0.5)*c(1,10,5,10),0.5));
-	allChromRates = rep(twoChromRates,8);
+	fourChromRates = c(c(baseRate*c(0.1,0.1,0.5,0.5)*c(1,5,5,10),0.5),c(baseRate*c(0.25,0.25,0.75,0.75)*c(1,5,5,10),0.5),c(baseRate*c(1,1,2.5,2.5)*c(1,5,5,10),0.5),c(baseRate*c(2.5,2.5,5,5)*c(1,5,5,10),0.5));
+	fourChromRates2 = c(c(baseRate*c(0.1,0.1,0.5,0.5)*c(1,5,5,10),0.5),c(baseRate*c(0.25,0.25,0.75,0.75)*c(1,5,5,10),0.5),c(baseRate*c(1,1,1.5,1.5)*c(1,5,5,10),0.5),c(baseRate*c(1.5,1.5,2,2)*c(1,5,5,10),0.5));
+	
+	allChromRates = rep(c(fourChromRates,fourChromRates2),2);
 	allChromRates = allChromRates[0:(length(allChromRates)-2)];
 	
 	// create breakpoint vector
@@ -63,7 +65,7 @@ initialize() {
 	p2.genomes.addNewMutation(m1, 0, 0:(L-1));
 	
 	// migration
-	p1.setMigrationRates(p2, 0.2);
+	p1.setMigrationRates(p2, 0.5);
 	
 	catn('startread');
 	catn('replicate' + seed);
@@ -91,31 +93,25 @@ initialize() {
 // output
 
 2 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen002.trees"); }
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0002.trees"); }
 
 5 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen005.trees"); }
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0005.trees"); }
 
 10 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen010.trees"); }
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0010.trees"); }
 
 50 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen050.trees"); }
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0050.trees"); }
 
 100 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen100.trees"); }
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0100.trees"); }
 
 500 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen500.trees"); }
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0500.trees"); }
+
+750 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0750.trees"); }
 
 1000 late() {
 	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen1000.trees"); }
-
-
-
-
-
-
-
-
-

@@ -1,7 +1,6 @@
 import numpy as np
 reps = np.arange(20)
-gens = ["gen002","gen005", "gen010", "gen050", "gen100", "gen500", "gen750", "gen1000"]
-
+gens = ["gen0002","gen0005", "gen0010", "gen0050", "gen0100", "gen0500", "gen0750", "gen1000"]
 
 
 rule all:
@@ -11,7 +10,7 @@ rule all:
 rule simulation:
 	input:
 	output:
-		expand("results/multi-scale/replicate{{rep}}_{gen}.trees", rep=reps, gen=gens)
+		expand("results/multi-scale/replicate{{rep}}_{gen}.trees", gen=gens)
 	shell:
 		"slim -d seed={wildcards.rep} code/multi-scale.slim"
 
