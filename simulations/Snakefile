@@ -1,31 +1,31 @@
 import numpy as np
 reps = np.arange(20)
 gens = ["gen0002","gen0005", "gen0010", "gen0050", "gen0100", "gen0500", "gen0750", "gen1000"]
-
+sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb"]
 
 rule all:
 	input:
-		"results/multi-scale/ancestry_master.txt"
+		expand("results/{sim}/ancestry_master.txt", sim=sims)
 
 rule simulation:
 	input:
 	output:
-		expand("results/multi-scale/replicate{{rep}}_{gen}.trees", gen=gens)
+		expand("results/{{sim}}/replicate{{rep}}_{gen}.trees", gen=gens)
 	shell:
-		"slim -d seed={wildcards.rep} code/multi-scale.slim"
+		"slim -d seed={wildcards.rep} code/{wildcards.sim}.slim"
 
 rule ancestry_calc:
 	input:
-		"results/multi-scale/{rep_gen}.trees"
+		"results/{sim}/{rep_gen}.trees"
 	output:
-		"results/multi-scale/{rep_gen}_ancestry.txt"
+		"results/{sim}/{rep_gen}_ancestry.txt"
 	shell:
 		"python code/ancestry.py {input} > {output}"
 
 rule aggregate:
 	input:
-		expand("results/multi-scale/replicate{rep}_{gen}_ancestry.txt", rep=reps, gen=gens)
+		expand("results/{{sim}}/replicate{rep}_{gen}_ancestry.txt", rep=reps, gen=gens)
 	output:
-		"results/multi-scale/ancestry_master.txt"
+		"results/{sim}/ancestry_master.txt"
 	shell:
-		"cat {input} > {output}"
+		"cat {input} > results/{wildcards.sim}/ancestry_master.txt"

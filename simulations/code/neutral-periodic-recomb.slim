@@ -1,0 +1,92 @@
+// template script for varying recombination rate
+
+initialize() {
+	
+	initializeTreeSeq();
+	defineConstant("L", 1024); 
+	defineConstant("s", 0.4);
+	defineConstant("N1", 10000); // recipient population size
+	defineConstant("N2", 1000); // donor population size
+	defineConstant("genomeSize",1e9);
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0);
+	m1.convertToSubstitution = F;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, L-1);
+	defineConstant("baseRate", 1e-8);
+	
+	setSeed(seed);
+
+	defineConstant("outPath","results/neutral-periodic-var/");
+
+	// create recombination rate vector. 
+	x=1:1024;
+	signal = rep(0,1024);
+	for(i in 1:10) // add sin waves with period varying by powers of 2
+		signal = signal + sin(x*2*PI/2^i); 
+	signal = signal - min(signal); //rescale so minimum value is zero
+	
+	b = baseRate/mean(exp(signal)); //rescale to mean value
+	r = b*exp(signal);	//calculate recombination rates per bp
+	
+	initializeRecombinationRate((genomeSize/L)*r);
+
+}
+
+1 {sim.addSubpop("p1", N1);
+	sim.addSubpop("p2", N2);
+	
+	// add deleterious mutations (sel. coefficient is zero bc fitness calculated l8r)
+	p2.genomes.addNewMutation(m1, 0, 0:(L-1));
+	
+	// migration
+	p1.setMigrationRates(p2, 0.5);
+	
+	//catn('startread');
+	//catn('replicate' + seed);
+
+}
+
+
+//calculate fitness
+//1:1000 late() {
+	//inds = p1.individuals;
+	//introgressed = inds.countOfMutationsOfType(m1);
+	//catn(mean(introgressed/(2*L)));
+	//inds.fitnessScaling = 1.0 - (introgressed/(2*L))*s;
+	
+	// print ancestry per time 	
+	//pos = p1.genomes.positionsOfMutationsOfType(m1);
+	//catn(sum(pos < 32)/(32*2*N1) + "," + sum(pos >= 32 & pos < 64)/(32*2*N1) + "," + sum(pos >= 64 & pos < 96)/(32*2*N1) + "," + sum(pos >= 96)/(32*2*N1));
+
+//}
+
+
+2 {p2.setSubpopulationSize(0);}
+
+
+// output
+
+2 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0002.trees"); }
+
+5 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0005.trees"); }
+
+10 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0010.trees"); }
+
+50 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0050.trees"); }
+
+100 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0100.trees"); }
+
+500 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0500.trees"); }
+
+750 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0750.trees"); }
+
+1000 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen1000.trees"); }
