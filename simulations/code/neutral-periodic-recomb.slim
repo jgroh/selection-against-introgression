@@ -17,7 +17,7 @@ initialize() {
 	
 	setSeed(seed);
 
-	defineConstant("outPath","results/neutral-periodic-var/");
+	defineConstant("outPath","results/neutral-periodic-recomb/");
 
 	// create recombination rate vector. 
 	x=1:1024;
@@ -29,7 +29,7 @@ initialize() {
 	b = baseRate/mean(exp(signal)); //rescale to mean value
 	r = b*exp(signal);	//calculate recombination rates per bp
 	
-	initializeRecombinationRate((genomeSize/L)*r);
+	initializeRecombinationRate((genomeSize/L)*r,0:(L-1));
 
 }
 
