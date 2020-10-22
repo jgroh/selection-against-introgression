@@ -1,6 +1,6 @@
 import numpy as np
 reps = np.arange(20)
-gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0050","0100","0250","0500","0750","1000"]
+gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0050","0100","0250","0500","0750","1000"]]
 sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb"]
 
 rule all:
@@ -29,3 +29,4 @@ rule aggregate:
 		"results/{sim}/ancestry_master.txt"
 	shell:
 		"cat {input} > results/{wildcards.sim}/ancestry_master.txt"
+
