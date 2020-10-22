@@ -1,6 +1,6 @@
 import numpy as np
 reps = np.arange(20)
-gens = ["gen0002","gen0005", "gen0010", "gen0050", "gen0100", "gen0500", "gen0750", "gen1000"]
+gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0050","0100","0250","0500","0750","1000"]
 sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb"]
 
 rule all:
@@ -20,7 +20,7 @@ rule ancestry_calc:
 	output:
 		"results/{sim}/{rep_gen}_ancestry.txt"
 	shell:
-		"python code/ancestry.py {input} > {output}"
+		"python code/derived-allele-freq.py {input} > {output}"
 
 rule aggregate:
 	input:

@@ -5,7 +5,7 @@ initialize() {
 	initializeTreeSeq();
 	defineConstant("L", 1024);
 	defineConstant("s", 0.4);
-	defineConstant("N1", 10000); // recipient population size
+	defineConstant("N1", 1000); // recipient population size
 	defineConstant("N2", 1000); // donor population size
 	defineConstant("genomeSize",1e9);
 	initializeMutationRate(0);
@@ -33,12 +33,9 @@ initialize() {
 	
 	// migration
 	p1.setMigrationRates(p2, 0.5);
-	
-	//catn('startread');
-	//catn('replicate' + seed);
-
 }
 
+1 late() {p2.setSubpopulationSize(0);}
 
 //calculate fitness
 1:1000 late() {
@@ -46,39 +43,32 @@ initialize() {
 	introgressed = inds.countOfMutationsOfType(m1);
 	//catn(mean(introgressed/(2*L)));
 	inds.fitnessScaling = 1.0 - (introgressed/(2*L))*s;
-	
-	// print ancestry per time 	
-	//pos = p1.genomes.positionsOfMutationsOfType(m1);
-	//catn(sum(pos < 32)/(32*2*N1) + "," + sum(pos >= 32 & pos < 64)/(32*2*N1) + "," + sum(pos >= 64 & pos < 96)/(32*2*N1) + "," + sum(pos >= 96)/(32*2*N1));
-
 }
-
-
-2 {p2.setSubpopulationSize(0);}
-
 
 // output
 
+
+1 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0001.trees"); }
 2 late() {
 	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0002.trees"); }
-
+3 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0003.trees"); }
+4 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0004.trees"); }
 5 late() {
 	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0005.trees"); }
-
 10 late() {
 	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0010.trees"); }
-
 50 late() {
 	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0050.trees"); }
-
 100 late() {
 	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0100.trees"); }
-
+250 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0250.trees"); }
 500 late() {
 	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0500.trees"); }
-
 750 late() {
 	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0750.trees"); }
-
 1000 late() {
 	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen1000.trees"); }
