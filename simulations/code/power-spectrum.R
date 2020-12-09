@@ -9,21 +9,17 @@ library(cubature)
 ###############################################################
 ## Infinite population approximation for expectation
 ###############################################################
-M <- 20000
 f <- function(x) {
   (1/M)*(
     a*exp(-r*t*(1e9/1024)*abs(x[2]-x[1])) + 
       (a^2)*(1-exp(-r*t*(1e9/1024)*abs(x[2]-x[1])))
-  ) + 
-    ((M-1)/M)*a^2
+  ) + ((M-1)/M)*a^2
 }
 
 ###############################################################
 ## General expectation formula
 ###############################################################
 g <- function(x) {
-  M <- 20000
-  r <- 1e-8
   u <- M*r*(1e9/1024)*abs(x[2]-x[1])
   e <- exp(-(t/M)*(1+u))
   
@@ -288,49 +284,87 @@ frq_ps %>%
 #################################################
 genlist <- list()
 gen <- c("0003","0010","0050","0100","0500","1000")
+r <- 1e-8
+a <- 0.5
 for(i in 1:6){
-  
   t <- as.numeric(gen[i])
-  genvec_approx <- vector()
-  genvec_exact <- vector()
+
+  # loop over different scales and population sizes
   
-  for(j in 1:10){
-    
-    part1 <- adaptIntegrate(f, lowerLimit = c(0,0), 
-                            upperLimit = c(2^(j-1),2^(j-1)))
-    part2 <- adaptIntegrate(f, lowerLimit = c(0,2^(j-1)),
-                            upperLimit = c(2^(j-1),(2^j)))
-    genvec_approx[j] <- ((part1$integral - part2$integral)/(2^(2*j-1)))
-    
-    part3 <- adaptIntegrate(g, lowerLimit = c(0,0), 
-                            upperLimit = c(2^(j-1),2^(j-1)))
-    part4 <- adaptIntegrate(g, lowerLimit = c(0,2^(j-1)),
-                            upperLimit = c(2^(j-1),(2^j)))
-    genvec_exact[j] <- ((part3$integral - part4$integral)/(2^(2*j-1)))
-    
+  popsize <- c(100, 1000, 10000, 100000)
+  formula <- c("approx", "exact")
+  scale <- 1:10
+  di <- expand.grid(popsize=popsize,scale=scale, formula=formula,stringsAsFactors = F)
+  di$variance <- vector(length = nrow(di))
+  di$gen <- rep(t, nrow(di))
+  
+  for(q in 1:nrow(di)){
+    j <- di[q,]$scale
+    fr <- di[q,]$formula
+    M <- di[q,]$popsize
+    # note in the approximate formula, M is the sample size, though the pop. size is actually infinite. 
+    # for the exact formula, assume the sample size = the population size
+
+    if(fr == "approx"){
+      part1 <- adaptIntegrate(f, lowerLimit = c(0,0), 
+                              upperLimit = c(2^(j-1),2^(j-1)))
+      part2 <- adaptIntegrate(f, lowerLimit = c(0,2^(j-1)),
+                              upperLimit = c(2^(j-1),(2^j)))
+    } else {
+      part1 <- adaptIntegrate(g, lowerLimit = c(0,0), 
+                              upperLimit = c(2^(j-1),2^(j-1)))
+      part2 <- adaptIntegrate(g, lowerLimit = c(0,2^(j-1)),
+                              upperLimit = c(2^(j-1),(2^j)))
+    }
+    di$variance[q] <- ((part1$integral - part2$integral)/(2^(2*j-1)))
   }
-  genvec_approx <- genvec_approx/sum(genvec_approx)
-  genvec_exact <- genvec_exact/sum(genvec_exact)
-  
-  genlist[[i]] <- cbind(genvec_approx, genvec_exact)
+    genlist[[i]] <- di
 }
-names(genlist) <- gen
+  #names(genlist) <- gen
 
-df <- do.call(cbind.data.frame, genlist)
-df$scale <- as.character(rev( round(( (1e9/1024)*(1024/(2^(1:10))) ) /1e6)))
+#names(genlist) <- paste0("gen_",gen)
 
-df2 <- df %>% gather(key = gen_formula,
-                     value = variance, -c(scale)) %>% 
-  separate(col = gen_formula, into = c("gen", "formula"), sep = ".genvec_")
-df2
+
+df <- do.call(rbind.data.frame, genlist)
+#df$scale <- as.character(rev( round(( (1e9/1024)*(1024/(2^(1:10))) ) /1e6)))
+df <- df %>% group_by(popsize,formula,gen) %>% 
+  mutate(varsum=sum(variance)) %>% 
+  group_by(scale, add = TRUE) %>% 
+  mutate(per= variance/varsum)
+
 
 # order scale and generation as factors
-df2$scale <- as.factor(df2$scale)
-df2$scale <- factor(df2$scale, levels = as.character(rev( round(( (1e9/1024)*(1024/(2^(1:10))) ) /1e6))))
-df2$gen <- as.factor(df2$gen)
-df2$gen <- factor(df2$gen, levels = gen)
-df2
-pl <- ggplot(df2, aes(x = scale, y =variance, group = formula, color = formula)) + 
+# df$scale <- as.factor(df$scale)
+# df$scale <- factor(df$scale, levels = as.character(rev( round(( (1e9/1024)*(1024/(2^(1:10))) ) /1e6))))
+# df$gen <- as.factor(df$gen)
+# df$gen <- factor(df$gen, levels = gen)
+# df
+
+
+# Examine effect of sampling on variance
+df %>% 
+  filter(formula == "approx") %>% 
+  ggplot(aes(x=scale,y=variance,group=as.factor(popsize), color=as.factor(popsize))) + 
+  geom_point() + geom_line() + facet_wrap(~gen) + labs(color = "Sample size\n(diploid)")
+
+
+# Effect of population size on variance
+df %>% 
+  filter(formula == "exact") %>% 
+  ggplot(aes(x=scale,y=variance,group=as.factor(popsize), color=as.factor(popsize))) + 
+  geom_point() + geom_line() + facet_wrap(~gen) + labs(color = "Sample size\n(diploid)")
+
+
+df %>% 
+  filter(formula == "approx") %>% 
+  ggplot(aes(x=scale,y=prop,group=as.factor(popsize), color=as.factor(popsize))) + 
+  geom_point() + geom_line() + facet_wrap(~gen) + labs(color = "Sample size\n(diploid)")
+
+
+
+
+
+pl <- ggplot(df, aes(x = scale, y =variance, group = formula, color = formula)) + 
   geom_point() + geom_line() + facet_wrap(~gen) + ylab("Proportion of variance") + xlab("Scale (Mb)")
 pl
 
