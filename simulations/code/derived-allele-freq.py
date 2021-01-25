@@ -16,9 +16,11 @@ def allele_frequencies(ts, sample_sets=None):
 
 # Load the .trees file
 ts = pyslim.load(sys.argv[1]).simplify()
+allset = [ts.samples(p) for p in range(ts.num_populations)]
+popset = [allset[0]]
 
 # calculate allele frequency for segregating sites and appropriate positions
-val = allele_frequencies(ts).tolist()
+val = allele_frequencies(ts, sample_sets=popset).tolist()
 val = [item for sublist in val for item in sublist]
 pos = [int(s.position) for s in ts.sites()] # sites of mutations, should be in same order as reported by the allele frequency calc
 freq = [0]*int(ts.sequence_length) # list that will hold allele frequencies

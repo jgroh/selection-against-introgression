@@ -1,6 +1,6 @@
 import numpy as np
-reps = np.arange(20)
-gens = ["gen0002","gen0005", "gen0010", "gen0050", "gen0100", "gen0500", "gen0750", "gen1000"]
+reps = [0]#np.arange(20)
+gens = ["gen0002","gen0005", "gen0010"]#, "gen0050", "gen0100", "gen0500", "gen0750", "gen1000"]
 sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb"]
 
 rule all:

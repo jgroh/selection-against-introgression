@@ -6,48 +6,90 @@ library(stringr)
 library(cubature)
 
 
-###############################################################
-## Infinite population approximation for expectation
-###############################################################
-f <- function(x) {
-  (1/M)*(
-    a*exp(-r*t*(1e9/1024)*abs(x[2]-x[1])) + 
-      (a^2)*(1-exp(-r*t*(1e9/1024)*abs(x[2]-x[1])))
-  ) + ((M-1)/M)*a^2
+#trace(integral3, edit = T)
+
+# Expected wavelet variance: approximate integrand ------------------------------------------
+# assumes infinite population
+wav_var_approx <- function(x, expected.crossovers.per.unit.dist, n.sample, alpha) {
+  u <- expected.crossovers.per.unit.dist
+  (1/n.sample)*(
+    alpha*exp(-t*u*abs(x[2]-x[1])) + 
+      (alpha^2)*(1-exp(-t*u*abs(x[2]-x[1])))
+  ) + ((n.sample-1)/n.sample)*alpha^2
 }
 
-###############################################################
-## General expectation formula
-###############################################################
-g <- function(x) {
-  u <- M*r*(1e9/1024)*abs(x[2]-x[1])
-  e <- exp(-(t/M)*(1+u))
-  
-  (1/M)*(
-   a*(1+u*e)/(1+u) + a^2*(u*(1-e))/(1+u)
+# Expected wavelet variance: exact  integrand ------------------------------------------
+
+wav_var_exact <- function(x, expected.crossovers.per.unit.dist, n.pop, n.sample, alpha) {
+  u <- expected.crossovers.per.unit.dist
+
+  v <- n.pop*u*abs(x[2]-x[1])
+  w <- exp(-(t/n.pop)*(1+v))
+  (
+  (1/n.sample)*(
+   alpha*(1+v*w)/(1+v) + alpha^2*(v*(1-w))/(1+v)
     )
    + 
-    ((M-1)/M)*(
-      a*(1-e)/(1+u) + a^2*(u+e)/(1+u)
-    )
+    ((n.sample-1)/n.sample)*(
+      alpha*(1-w)/(1+v) + alpha^2*(v+w)/(1+v)) 
+  )
+}
+
+# Continuous Haar wavelet function -----------------------------------------------
+haarCts <- function(x, j){
+  (x <= 0)*0 + (x > 0 & x <= 2^(j-1))*2^(-j/2) + (x > 2^(j-1) & x <= 2^j)*(-2^(-j/2))
+}
+
+# Expected wavelet variance: single sweep ----------------------------------------------
+# assumes infinite population. x[1] and x[2] x[3] are positions of l1,l2,ls
+
+wav_var_sweep <- function(x, j, r, n.sample, alpha, s, t) {
+  
+  #frequency of resident allele through time
+  p <- (1-alpha)*exp(s*t/2) / ( alpha + (1-alpha)*exp(s*t/2) )
+  q <- 1-p
+  
+  # recomb. probabilities
+  f_prime <- function(a, b){
+    exp(-r*abs(a-b) * 2*log(alpha + (1-alpha)*exp(s*t/2)) / s )
+  }
+  g_prime <- function(a,b){ 1 - f_prime(a,b) }
+  f <- function(a,b){ exp(-t*r*abs(a-b)) }
+  g <- function(a,b){1-f(a,b)}
+  
+  # integrand - nonzero only for l2 > l1, will multiply by two later
+  if(x[2] > x[1]){
+    if(x[3] <= x[1]){
+      cov_ii <-  q*(f_prime(x[2],x[3]) + alpha*(g_prime(x[1],x[3])*f(x[1],x[2]) + 
+                                                  f_prime(x[1],x[3])*g(x[1],x[2]) +
+                                                  alpha*g_prime(x[1],x[3])*g(x[1],x[2]))) +
+        p*(alpha*g_prime(x[1],x[3])*(f(x[1],x[2]) + alpha*g(x[1],x[2])))
+    } else if(x[3] > x[1] && x[3] <= x[2]){
+      cov_ii <-  q*(f_prime(x[1],x[3]) + alpha*g_prime(x[1],x[3]))*(f_prime(x[2],x[3]) + alpha*g_prime(x[2],x[3]))
+      + p*alpha^2*g_prime(x[1],x[3])*g_prime(x[2],x[3])
+    } else if(x[3] > x[2]){
+      cov_ii <-  q*(f_prime(x[1],x[3]) + alpha*(g_prime(x[2],x[3])*f(x[1],x[2]) + 
+                                                  f_prime(x[2],x[3])*g(x[1],x[2]) +
+                                                  alpha*g_prime(x[2],x[3])*g(x[1],x[2]))) +
+        p*(alpha*g_prime(x[2],x[3])*(f(x[1],x[2]) + alpha*g(x[1],x[2])))
+    } else{cov_ii <- 0}
+  } else{cov_ii <- 0}
+  haarCts(x[1], j=j)*haarCts(x[2],j=j)*(1/n.sample)*cov_ii
 }
 
 
-###############################################################
-## Power spectrum of introgressed allele frequency through time
-###############################################################
+# Power spectrum function ----------------------------------------------------------------
 ps <- function(x, xvar){
   w <- wd(x[[xvar]], family = "DaubExPhase", filter.number = 1)
   temp <- vector(length = w$nlevels);
+  x.var <- mean((x[[xvar]] - mean(x[[xvar]]))^2)
   for(i in 1:w$nlevels){
-    temp[i] <- (sum((accessD(w,level=(w$nlevels - i)))^2)/length(x$avg.frq))/x.var
+    temp[i] <- (sum((accessD(w,level=(w$nlevels - i)))^2)/length(x[[xvar]]))/x.var
   }
   return(temp)
 }
 
-####################################################################
-# compute correlation of wavelet coefficients at a single time point
-####################################################################
+# Wavelet correlation function ----------------------------------------------------------------
 
 wavelet_correlation <- function(data, yvar, xvar, fam = "DaubExPhase", filt = 1, detail = TRUE){
   
@@ -91,27 +133,7 @@ wavelet_correlation <- function(data, yvar, xvar, fam = "DaubExPhase", filt = 1,
     alpha.y[[i]] <- (sum(y.i.d^2)/length(y)) /y.variance
     
     weight[[i]] <- sqrt(alpha.x[[i]]*alpha.y[[i]])
-    
-    # calculate weight
-    # fit linear model with intercept forced through origin, obtain r squared
-    #s.lm <- summary(lm(y.i.d ~ x.i.d -1))
-    #prp.expl[[i]] <- s.lm$adj.r.squared
-    #p[[i]] <- cor(x.i.d, y.i.d)
-    
     p[[i]] <- (x.i.d %*% y.i.d)/sqrt(sum(x.i.d^2)*sum(y.i.d^2))
-    
-    # } else{
-    #   cor.list.detail[[i]] <- NA
-    #   cor.list.smooth[[i]] <- NA
-    #   alpha.x[[i]] <- x.variance
-    #   alpha.y[[i]] <- y.variance
-    #   s.lm <- summary(lm(y ~ x - 1))
-    #   weight[[i]] <- s.lm$r.squared
-    #   
-    # }
-    
-    #alpha.x.s[[i]] <- (sum(x.i.s^2)/length(x))/x.variance
-    #alpha.y.s[[i]] <- (sum(y.i.s^2)/length(y))/y.variance
     
   }
   
@@ -127,10 +149,8 @@ wavelet_correlation <- function(data, yvar, xvar, fam = "DaubExPhase", filt = 1,
   return(c(unlist(cor.list.detail), unlist(cor.list.smooth), unlist(alpha.x), unlist(alpha.y), total.cor = total.cor, unlist(weight), unlist(p)))
 }
 
-####################################################################
-# function to get value of ancestry at evenly spaced intervals in genetic distance
-# and calculate recombination rate
-####################################################################
+# Interpolate ancestry and recombination rate -------------------------------------------------------------------
+
 getAncestry <- function(data, newPos){
   anc_pred <- vector() # will hold new values for ancestry
   rec <- vector() # will hold values for recombination 
@@ -153,14 +173,14 @@ getAncestry <- function(data, newPos){
     } 
     mingreater.index <- which(data$pos_gen == mingreater)[1]
     
-    # recombination given by genetic distance between surrounding basepairs
+    # recombination measured by genetic distance between surrounding basepairs
     rec[i] <- abs(mingreater - maxless)
     
     # get two surrounding ancestry values for nearest bp's with known genetic distance
     # and then take weighted average weighting by proximity
     
     if ( mingreater == max(data$pos_gen) | maxless == 0 ){
-      # if the new genetic position is below the minimum or is the maximum
+      # if the new genetic position is below the minimum present in the data or is the maximum
       
       if( mingreater == max(data$pos_gen)){
         # if the new genetic position is the maximum, just use same ancestry value
@@ -191,9 +211,9 @@ getAncestry <- function(data, newPos){
     return(ret)
 }
 
-####################################################################
-# read and format input data
-####################################################################
+
+# Read and format input data ----------------------------------------------------------------------------------------
+
 
 file1 <- "simulations/results/neutral-const-recomb/ancestry_master.txt"
 file2 <- "simulations/results/neutral-periodic-recomb/ancestry_master.txt"
@@ -211,9 +231,6 @@ a3 <- read.table(file3, row.names = 1)
 rownames(a3) <- paste0("sel-const-recomb_", rownames(a3))
 
 a4 <- read.table(file4, row.names = 1)
-
-
-
 rownames(a4) <- paste0("sel-periodic-recomb_", rownames(a4))
 
 
@@ -223,8 +240,6 @@ all.sim <- rbind.data.frame(a1,a2,a3,a4)
 # reformat data for calculation and plotting
 a <- as.data.frame(t(all.sim))
 a$pos_absolute <- 1:1024
-# a$pos_on_chrom <- rep(1:64, 16)
-# a$chrom <- rep(1:16, each=64)
 
 # create vector that describes recombination landscape (only applies to sims 3, 4)
 x <- 1:1024
@@ -242,46 +257,42 @@ lines(r)
 
 a$recomb <- r
 
-# add genetic distance
+# add genetic distance corresponding to variable recombination rate (expected number of crossovers, binomial n*p)
 a$pos_gen <- cumsum((1e9/1024)*r)
 
-
+# tidy data
 b  <-  a %>%
   gather(key = sim_rep_gen,
          value = freq, -c(pos_absolute,recomb,pos_gen)) %>% 
   separate(sim_rep_gen, c("sim_rep.id", "gen"), sep = "_gen") %>% 
   separate(sim_rep.id, c("sim", "rep.id"), sep = "_replicate")
 
-
-
-# calcualte average introgressed frequency per simulation per generation
+# average introgressed frequency per simulation,generation over replicates
 d  <- b %>% 
    group_by(sim,pos_absolute,gen,recomb,pos_gen) %>% 
    dplyr::summarise(avg.frq = mean(freq))
 
 
-########################################
-# visualize allele frequency data
-########################################
 
+# visualize allele frequency data: physical scale ----------------------------------------------------------------------------------------
 
 # plot average frequency over time
 d %>% 
-  filter(!gen %in% c( "0004", "50", "0250", "0500", "0750")) %>%
-  filter(str_detect(sim, "sel-periodic")) %>% 
-  ggplot(aes(x=pos_absolute, y=avg.frq)) +
+  #filter(!gen %in% c( "0004", "50", "0250", "0500", "0750")) %>%
+  #filter(str_detect(sim, "sel-periodic")) %>% 
+  ggplot(aes(x=pos_absolute, y=avg.frq, group=sim,color=sim)) +
   geom_point() + 
   facet_wrap(~gen, scales = "free_y") + xlab("Position") + ylab("Avg. introgressed ancestry proportion")
 
 # examine effect of distance to center
 d %>% 
   filter(sim == "sel-const-recomb") %>% 
+  ggplot(aes(x = pos_absolute, y = avg.frq)) +
   geom_point() + 
-  geom_smooth(method = "loess", color = "black") + 
+  geom_smooth(method = "loess") + 
   facet_wrap(~gen, scales = "free_y")
 
-
-
+# calc correlation in different generations
 cor_text = d %>% 
   filter(str_detect(sim, "sel-periodic")) %>% 
   group_by(sim,gen) %>% 
@@ -289,7 +300,7 @@ cor_text = d %>%
   #p.value = round(cor.test(freq,recomb)$p.value, 6)) %>% 
   mutate(text = paste0("r = ", correlation)) #, "\n", "P = ", p.value))
 
-
+# snapshot of correlation generation 1000
 p <- d %>%
   filter(str_detect(sim, "sel-periodic")) %>% 
   filter(gen == "1000") %>%
@@ -303,14 +314,14 @@ p <- d %>%
   ylab("Avg. introgressed ancestry proportion") + xlab("Crossover rate / bp")
 
 p 
+
 #p + geom_text(cor_text,
 #              mapping = aes(x = Inf, y = Inf, label = text),
 #              hjust=1,vjust=1)
 
 
-########################################
-# plot on genetic scale
-########################################
+# visualize allele frequency data: genetic scale ----------------------------------------------------------------------------------------
+
 
 # visualize relationship between physical position and genetic position
 plot(a$pos_gen ~ a$pos_absolute, xlab = "physical position (~Mb)", ylab = "genetic position (M)")
@@ -318,6 +329,7 @@ plot(a$pos_gen ~ a$pos_absolute, xlab = "physical position (~Mb)", ylab = "genet
 plot(a$pos_absolute ~ a$pos_gen)
 plot(rep(1, length(a$pos_gen)) ~ a$pos_gen)
 
+# Highest density of data points for genetic distance where recombination is low
 dens <- density(a$pos_gen, bw = "SJ")
 plot(dens$y ~ dens$x, pch = 16)
 
@@ -340,14 +352,29 @@ d %>%
 
 
 # compute ancestry and recombination values for evenly space intervals in genetic distance
+# how to decide minimum distance between points?
 newPos <- seq(min(d$pos_gen), max(d$pos_gen), length.out = length(a$pos_gen))
-g <- d %>% 
+
+# what is the unit of distance between sites in Morgans?
+unit <- newPos[2] - newPos[1]
+
+gn <- d %>% 
   filter(str_detect(sim, "periodic-recomb")) %>% 
   ddply(.(sim,gen), getAncestry, newPos = newPos) %>% 
   gather(key = gen_pos_even, value = temp_val, -c(sim,gen), convert = TRUE) %>% 
   separate(col = temp_val, into = c("anc", "rec"), sep = ":", convert = TRUE) 
 
-g %>% 
+#examine interpolation: neutral case 
+gn %>% 
+  filter(sim == "neutral-periodic-recomb", gen == "1000") %>% 
+  ggplot(aes(gen_pos_even, anc)) + 
+  geom_point() + 
+  labs(x = "Genetic position (M)",
+       y = "Ancestry proportion (interpolated)",
+       title = "Generation 1000")
+
+# selection case
+gn %>% 
   filter(sim == "sel-periodic-recomb", gen == "0100") %>% 
   ggplot(aes(gen_pos_even, anc)) + 
   geom_point() + 
@@ -355,7 +382,7 @@ g %>%
   ylab("Ancestry proportion (interpolated)")
 
 # plot recombination rate on genetic scale
-g %>% 
+gn %>% 
   filter(gen == "0100") %>% 
   ggplot(aes(gen_pos_even,rec)) +
   geom_line() + 
@@ -364,13 +391,13 @@ g %>%
 
 
 # calculate correlation between recombination and ancestry
-gcor_text = g %>%
+gcor_text = gn %>%
   group_by(sim,gen) %>% 
   dplyr::summarise(correlation = round(cor.test(anc,rec)$estimate, 3) ) %>% 
   mutate(text = paste0("r = ", correlation))
 
 
-h <- g %>%
+h <- gn %>%
   filter(sim == "sel-periodic-recomb") %>% 
   ggplot(aes(rec,anc)) +
   geom_point() +
@@ -385,9 +412,7 @@ h + geom_text(filter(gcor_text, sim == "sel-periodic-recomb"),
               hjust=1,vjust=1, col = "red")
 
 
-########################################
-# calculate and visualize power spectrum
-########################################
+# Power spectrum: physical scale  ----------------------------------------------------------------------------------------
 
 # calculate power spectrum per simulation, generation
 frq_ps <- ddply(d, .(sim,gen), ps, xvar = "avg.frq")
@@ -412,52 +437,372 @@ frq_ps %>%
   theme(axis.text.x = element_text(angle = 90)) + 
   labs(x = "Scale (Mb)")
 
-#################################################
-## plot expectation vs simulated data
-#################################################
+
+# Power spectrum: genetic scale  ----------------------------------------------------------------------------------------
+
+frq_ps_g <- ddply(gn, .(sim,gen), ps, xvar = "anc")
+colnames(frq_ps_g)[-c(1:2)] <- rev(round( (10/2^(1:10))*100 )) # measuring in centimorgans
+# reformat 
+frq_ps_g <- frq_ps_g %>% 
+  gather(key = scale, value = ps, -c(sim,gen))
+# order scale as factor for plotting
+frq_ps_g$scale <- factor(frq_ps_g$scale, levels = as.character(rev(round( (10/2^(1:10))*100 ))))
+
+# plot power spectrum of interpolated ancestry 
+frq_ps_g %>% 
+  filter(! gen %in% c("0001", "0002")) %>% 
+  #  filter(str_detect(sim, "sel")) %>% 
+  ggplot(aes(x = as.factor(scale), y = ps, group = sim, color = sim, pch = sim)) + 
+  geom_line(position=position_dodge(w=0.1)) +
+  geom_point() +
+  facet_wrap(~gen) + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  labs(x = "Scale (cM)")
+
+
+
+# compute expected wavelet variance over a range of parameters: physical scale ---------------------------------------------------------------------------------
+
 genlist <- list()
-gen <- c("0003","0010","0050","0100","0500","1000")
-r <- 1e-8
-a <- 0.5
+gen <- c("0003","0010","0050","0250","0500","1000")
+
+# loop over generations 
 for(i in 1:6){
   t <- as.numeric(gen[i])
 
-  # loop over different scales and population sizes
+  # loop over different population size, sample size, scale
   
-  popsize <- c(100, 1000, 10000, 100000)
-  formula <- c("approx", "exact")
+  n.sample <- 2*c(0.5, 10, 100, 1000, 10000, 100000)
+  n.pop <- 2*c(100, 1000, 10000, 100000, Inf)
   scale <- 1:10
-  di <- expand.grid(popsize=popsize,scale=scale, formula=formula,stringsAsFactors = F)
-  di$variance <- vector(length = nrow(di))
-  di$gen <- rep(t, nrow(di))
   
-  for(q in 1:nrow(di)){
-    j <- di[q,]$scale
-    fr <- di[q,]$formula
-    M <- di[q,]$popsize
-    # note in the approximate formula, M is the sample size, though the pop. size is actually infinite. 
-    # for the exact formula, assume the sample size = the population size
+  # make grid of parameters over which we evaluate the function
+  grd <- expand.grid(n.sample=n.sample, n.pop=n.pop, scale=scale, stringsAsFactors = F)
+  grd <- grd[grd$n.pop >= grd$n.sample,] # we only want evaluation where the sample is less than or equal to the population size
+  
+  grd$gen <- rep(t, nrow(grd)) # rep since we are inside the loop for a specific generation
+  
+  grd$variance <- vector(length = nrow(grd)) # this is the vector we fill in the calculation
 
-    if(fr == "approx"){
-      part1 <- adaptIntegrate(f, lowerLimit = c(0,0), 
+  for(q in 1:nrow(grd)){
+    j <- grd[q,]$scale
+    n.sample <- grd[q,]$n.sample
+    n.pop <- grd[q,]$n.pop
+
+    if(n.pop == Inf){ # use infinite population approximation
+      part1 <- adaptIntegrate(wav_var_approx, n.sample = n.sample, expected.crossovers.per.unit.dist=(1e9/1024)*1e-8, alpha=0.5, lowerLimit = c(0,0), 
                               upperLimit = c(2^(j-1),2^(j-1)))
-      part2 <- adaptIntegrate(f, lowerLimit = c(0,2^(j-1)),
+      part2 <- adaptIntegrate(wav_var_approx, n.sample = n.sample, expected.crossovers.per.unit.dist=(1e9/1024)*1e-8, alpha=0.5, lowerLimit = c(0,2^(j-1)),
                               upperLimit = c(2^(j-1),(2^j)))
-    } else {
-      part1 <- adaptIntegrate(g, lowerLimit = c(0,0), 
+    } else { # use exact formula
+      part1 <- adaptIntegrate(wav_var_exact, n.sample = n.sample, n.pop = n.pop, expected.crossovers.per.unit.dist=(1e9/1024)*1e-8, alpha=0.5, lowerLimit = c(0,0), 
                               upperLimit = c(2^(j-1),2^(j-1)))
-      part2 <- adaptIntegrate(g, lowerLimit = c(0,2^(j-1)),
+      part2 <- adaptIntegrate(wav_var_exact, n.sample = n.sample, n.pop = n.pop, expected.crossovers.per.unit.dist=(1e9/1024)*1e-8, alpha=0.5, lowerLimit = c(0,2^(j-1)),
                               upperLimit = c(2^(j-1),(2^j)))
     }
-    di$variance[q] <- ((part1$integral - part2$integral)/(2^(2*j-1)))
+    grd$variance[q] <- ((part1$integral - part2$integral)/(2^(2*j-1)))
   }
-    genlist[[i]] <- di
+    genlist[[i]] <- grd
 }
-  #names(genlist) <- gen
 
-#names(genlist) <- paste0("gen_",gen)
+df <- do.call(rbind.data.frame, genlist)
+#df$scale <- as.character(rev( round(( (1e9/1024)*(1024/(2^(1:10))) ) /1e6)))
+
+#test_data <- filter(df, n.sample == 2000, n.pop == 2000, gen == 1000)
+#sum(test_data$variance)
+
+# compute proportion of variance by scale 
+df <- df %>% group_by(n.sample,n.pop, gen) %>% 
+  mutate(varsum=sum(variance)) %>% 
+  mutate(prop.var = variance/varsum)
+
+
+# Visualize effects of population and sample on expected wavelet variance -----------------------------------
+
+# for plotting
+df$scale <- factor(df$scale)
+scale.labs <- as.character(rev( round(( (1e9/1024)*(1024/(2^(1:10))) ) /1e6)))
+
+# Examine effect of sampling on variance. 
+df %>% 
+  filter(n.pop == Inf) %>% 
+  ggplot(aes(x=scale,y=variance,group=as.factor(n.sample), color=as.factor(n.sample))) + 
+  geom_point() + geom_line() + facet_wrap(~gen) + 
+  scale_x_discrete(labels = scale.labs) + 
+  labs(color = "Sample size", x = "Scale (Mb)", title = "Infinite population")
+
+# Examine effect of sampling on *proportion* of variance. 
+df %>% 
+  filter(n.pop == Inf) %>% 
+  ggplot(aes(x=scale,y=prop.var, group=n.sample, color=as.factor(n.sample))) + 
+  scale_x_discrete(labels = scale.labs) + 
+  geom_point() + geom_line() + facet_wrap(~gen) + 
+  labs(color = "Sample size", x = "Scale (Mb)",
+       y = "Proportion of variance", title = "Infinite Population")
+
+
+# Examine effect of population size on variance. 
+df %>% 
+  filter(n.sample == 1) %>% 
+  ggplot(aes(x=scale,y=variance, group=n.pop, color=as.factor(n.pop))) + 
+  scale_x_discrete(labels = scale.labs) + 
+  geom_point() + geom_line() + facet_wrap(~gen) + 
+  labs(color = "Population", x = "Scale (Mb)",
+       y = "Variance", title = "Sample size = 1")
+
+# Examine effect of population size on *proportion* of variance. 
+df %>% 
+  filter(n.sample == 1) %>% 
+  ggplot(aes(x=scale,y=prop.var, group=n.pop, color=as.factor(n.pop))) + 
+  scale_x_discrete(labels = scale.labs) + 
+  geom_point() + geom_line() + facet_wrap(~gen) + 
+  labs(color = "Population", x = "Scale (Mb)",
+       y = "Proportion of variance", title = "Sample size = 1")
+
+
+# Effect of both population size and sample size on variance. 
+ df %>% 
+   filter(n.pop %in% c(200, Inf)) %>% 
+   ggplot(aes(x=scale,y=variance, color = as.factor(n.sample), shape = as.factor(n.pop) , group = interaction(as.factor(n.pop), as.factor(n.sample)))) +   
+   geom_point() + 
+   geom_line(aes(linetype = as.factor(n.pop))) +
+   facet_wrap(~gen) + labs(color = "Sample",
+                           x = "Scale (Mb)",
+                           shape = "Population", lty = "Population")
+ 
+ # Effect of both population size and sample size on *proportion* of variance. 
+ df %>% 
+   filter(n.pop %in% c(200, Inf)) %>% 
+   ggplot(aes(x=scale,y=prop.var, color = as.factor(n.sample), shape = as.factor(n.pop) , group = interaction(as.factor(n.pop), as.factor(n.sample)))) +   
+   geom_point() + 
+   geom_line(aes(linetype = as.factor(n.pop))) +
+   facet_wrap(~gen) + labs(color = "Sample",
+                           x = "Scale (Mb)",
+                           y = "Proportion of variance",
+                           shape = "Population", lty = "Population")
+
+
+# Compute expected wavelet variance on genetic scale ---------------------------------------------
+ 
+genlist <- list()
+gen <- c("0003","0010","0050","1000")
+ 
+# loop over generations 
+for(i in 1:4){
+   t <- as.numeric(gen[i])
+   
+   # loop over different population size, sample size, scale
+   
+   n.sample <- 2*c(0.5, 10, 100, 1000, 10000, 100000)
+   n.pop <- 2*c(100, 1000, 10000, 100000, Inf)
+   scale <- 1:10
+   
+   # make grid of parameters over which we evaluate the function
+   grd <- expand.grid(n.sample=n.sample, n.pop=n.pop, scale=scale, stringsAsFactors = F)
+   grd <- grd[grd$n.pop >= grd$n.sample,] # we only want evaluation where the sample is less than or equal to the population size
+   
+   grd$gen <- rep(t, nrow(grd)) # rep since we are inside the loop for a specific generation
+   
+   grd$variance <- vector(length = nrow(grd)) # this is the vector we fill in the calculation
+   
+   for(q in 1:nrow(grd)){
+     j <- grd[q,]$scale
+     n.sample <- grd[q,]$n.sample
+     n.pop <- grd[q,]$n.pop
+     
+     if(n.pop == Inf){ # use infinite population approximation
+       part1 <- adaptIntegrate(wav_var_approx, n.sample = n.sample, expected.crossovers.per.unit.dist=0.01, alpha=0.5, lowerLimit = c(0,0), 
+                               upperLimit = c(2^(j-1),2^(j-1)))
+       part2 <- adaptIntegrate(wav_var_approx, n.sample = n.sample, expected.crossovers.per.unit.dist=0.01, alpha=0.5, lowerLimit = c(0,2^(j-1)),
+                               upperLimit = c(2^(j-1),(2^j)))
+     } else { # use exact formula
+       part1 <- adaptIntegrate(wav_var_exact, n.sample = n.sample, n.pop = n.pop, expected.crossovers.per.unit.dist=0.01, alpha=0.5, lowerLimit = c(0,0), 
+                               upperLimit = c(2^(j-1),2^(j-1)))
+       part2 <- adaptIntegrate(wav_var_exact, n.sample = n.sample, n.pop = n.pop, expected.crossovers.per.unit.dist=0.01, alpha=0.5, lowerLimit = c(0,2^(j-1)),
+                               upperLimit = c(2^(j-1),(2^j)))
+     }
+     grd$variance[q] <- ((part1$integral - part2$integral)/(2^(2*j-1)))
+   }
+   genlist[[i]] <- grd
+}
+ 
+dfg <- do.call(rbind.data.frame, genlist)
+ #df$scale <- as.character(rev( round(( (1e9/1024)*(1024/(2^(1:10))) ) /1e6)))
+ 
+ #test_data <- filter(df, n.sample == 2000, n.pop == 2000, gen == 1000)
+ #sum(test_data$variance)
+ 
+# compute proportion of variance by scale 
+dfg <- dfg %>% group_by(n.sample,n.pop, gen) %>% 
+   mutate(varsum=sum(variance)) %>% 
+   mutate(prop.var = variance/varsum)
+ 
+ 
+# Visualize expected wavelet variance vs simulated data: genetic scale -----------------------------------
+
+# for plotting
+dfg$scale <- as.factor(dfg$scale)
+levels(dfg$scale) <-  as.character(rev(round( (10/2^(1:10))*100 )))
+
+# Examine effect of sampling on variance. 
+dfg %>% 
+  filter(n.pop == Inf) %>% 
+  ggplot(aes(x=scale,y=variance,group=as.factor(n.sample), color=as.factor(n.sample))) + 
+  geom_point() + geom_line() + facet_wrap(~gen) + 
+  labs(color = "Sample size", x = "Scale (cM)", title = "Infinite population")
+ 
+
+# reformat simulated data to combine with expectation
+frq_ps_g$group <- "sim"
+frq_ps_g$prop.var <- frq_ps_g$ps
+dfg$group <- "expectation"
+
+nm <- intersect(colnames(frq_ps_g), colnames(dfg))
+sim.dat <- filter(frq_ps_g, sim == "neutral-periodic-recomb", gen %in% c("0003","0010","0050","1000"))[,nm]
+exp.dat <-filter(dfg, n.sample == 20000, n.pop == 20000)[,nm] 
+combined.g <- rbind.data.frame(sim.dat, exp.dat)
+combined.g$gen <- as.numeric(combined.g$gen)
+
+combined.g %>% 
+  #filter(group == "expectation") %>% 
+  ggplot(aes(x = scale, y = prop.var, group = group, color = group)) + 
+  geom_point() +
+  facet_wrap(~gen) + geom_line() + 
+  labs(x = "Scale (cM)",
+       y = "Proportion of variance",
+       title = "Population = 20000, sample = 20000") +
+  scale_color_manual(values = c("red", "black"), 
+                     labels = c("Expectation",  "\nSimulated data \nw/ interpolation")) + 
+  theme(aspect.ratio = 1, axis.title = element_text(size = 14), 
+        axis.text.x = element_text(angle = 90), legend.text = element_text(size= 14), 
+        legend.key=element_blank(), legend.background = element_blank(),
+        legend.title = element_blank()) 
+
+
+
+
+# Calculate expected wavelet variance with single sweep -------------------------
+
+ 
+genlist <- list()
+gen <- c("0005", "0010", "0050", "0100", "0500", "1000")
+L <- 1024
+# loop over generations 
+for(i in 1:length(gen)){
+  t <- as.numeric(gen[i])
+  
+  # loop over different population size, sample size, scale
+  
+  n.sample <- 2*c(0.5)
+  scale <- 1:10
+  
+  # make grid of parameters over which we evaluate the function
+  grd <- expand.grid(n.sample=n.sample, scale=scale, stringsAsFactors = F)
+
+  grd$gen <- rep(t, nrow(grd)) # rep since we are inside the loop for a specific generation
+  
+  grd$variance <- vector(length = nrow(grd)) # this is the vector we fill in the calculation
+  
+  for(q in 1:nrow(grd)){
+    j <- grd[q,]$scale
+    n.sample <- grd[q,]$n.sample
+    
+    h <- hcubature(wav_var_sweep, c(0,0,0), c(3,3,3), j=j, n.sample=n.sample, alpha=0.5, s=0.01, t=t, r=0.01)
+    
+    grd$variance[q] <- h$integral/(1/2^(j-1))
+    
+  }
+  genlist[[i]] <- grd
+}
+
+
+dfs <- do.call(rbind.data.frame, genlist)
+
+# compute proportion of variance by scale 
+dfs <- dfs %>% group_by(n.sample,gen) %>% 
+  mutate(varsum=sum(variance)) %>% 
+  mutate(prop.var = variance/varsum)
+
+ 
+# for plotting
+dfs$scale <- as.factor(dfs$scale)
+levels(dfs$scale) <-  as.character(rev(round( (10/2^(1:10))*100 )))
+
+# Examine effect of sampling on variance. 
+dfs %>% 
+  ggplot(aes(x=scale,y=variance,group=as.factor(n.sample), color=as.factor(n.sample))) + 
+  geom_point() + geom_line() + facet_wrap(~gen) + 
+  labs(color = "Sample size", x = "Scale (cM)", title = "Infinite population")
+
+
+dfs %>% 
+  #filter(group == "expectation") %>% 
+  ggplot(aes(x = scale, y = variance, group = gen)) + 
+  geom_point() +
+  facet_wrap(~gen) + geom_line() + 
+  labs(x = "Scale (cM)",
+       y = "Proportion of variance",
+       title = "Population = 20000, sample = 20000") +
+  #scale_color_manual(values = c("red", "black"), 
+                     #labels = c("Expectation",  "\nSimulated data \nw/ interpolation")) + 
+  theme(aspect.ratio = 1, axis.title = element_text(size = 14), 
+        axis.text.x = element_text(angle = 90), legend.text = element_text(size= 14), 
+        legend.key=element_blank(), legend.background = element_blank(),
+        legend.title = element_blank()) 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+# compare simulated data to expectation: pysical scale (need to fix) ----------------------------
+
+sim.dat <- frq_ps %>% 
+  filter(gen %in% c("0003","0010","0050","0100","0500","1000")) %>% 
+  filter(sim == "neutral-const-recomb") %>% select(-sim) 
+
+
+names(sim.dat)[names(sim.dat) == "ps"] <- "variance"
+sim.dat$formula <- "simulation"
+
+combined <- rbind(sim.dat, df2)
+
+gen.labs <- c("Gen 3", "Gen 10", "Gen 50", "Gen 100", "Gen 500", "Gen 1000")
+names(gen.labs) <- gen
+combined %>%
+  ggplot(aes(x = as.factor(scale), y = variance, group = formula, color = formula)) + 
+  geom_line() + geom_point() + 
+  facet_wrap(~gen, labeller = labeller(gen = gen.labs)) + 
+  xlab("Scale (Mb)") + ylab("Proportion of variance") + 
+  scale_color_manual(values = c("red", "blue", "black"), labels = c("\nApprox. for large N\n", "Exact", "\nSimulation\n(2N = 20000)")) + 
+  theme(aspect.ratio = 1, axis.title = element_text(size = 14), 
+        axis.text.x = element_text(angle = 90), legend.text = element_text(size= 14), 
+        legend.key=element_blank(), legend.background = element_blank(),
+        legend.title = element_blank()) 
+
+
 # Power spectrum of ancestry on genetic scale
-
 
 # calculate per simulation, generation
 frq_ps_g <- ddply(g, .(sim,gen), ps, xvar = "anc")
@@ -481,88 +826,6 @@ frq_ps_g %>%
   facet_wrap(~gen) + 
   theme(axis.text.x = element_text(angle = 90)) + 
   labs(x = "Scale (cM)")
-
-
-df <- do.call(rbind.data.frame, genlist)
-#df$scale <- as.character(rev( round(( (1e9/1024)*(1024/(2^(1:10))) ) /1e6)))
-df <- df %>% group_by(popsize,formula,gen) %>% 
-  mutate(varsum=sum(variance)) %>% 
-  group_by(scale, add = TRUE) %>% 
-  mutate(per= variance/varsum)
-
-
-# order scale and generation as factors
-# df$scale <- as.factor(df$scale)
-# df$scale <- factor(df$scale, levels = as.character(rev( round(( (1e9/1024)*(1024/(2^(1:10))) ) /1e6))))
-# df$gen <- as.factor(df$gen)
-# df$gen <- factor(df$gen, levels = gen)
-# df
-
-
-# Examine effect of sampling on variance
-df %>% 
-  filter(formula == "approx") %>% 
-  ggplot(aes(x=scale,y=variance,group=as.factor(popsize), color=as.factor(popsize))) + 
-  geom_point() + geom_line() + facet_wrap(~gen) + labs(color = "Sample size\n(diploid)")
-
-
-# Effect of population size on variance
-df %>% 
-  filter(formula == "exact") %>% 
-  ggplot(aes(x=scale,y=variance,group=as.factor(popsize), color=as.factor(popsize))) + 
-  geom_point() + geom_line() + facet_wrap(~gen) + labs(color = "Sample size\n(diploid)")
-
-
-df %>% 
-  filter(formula == "approx") %>% 
-  ggplot(aes(x=scale,y=prop,group=as.factor(popsize), color=as.factor(popsize))) + 
-  geom_point() + geom_line() + facet_wrap(~gen) + labs(color = "Sample size\n(diploid)")
-
-
-
-
-
-pl <- ggplot(df, aes(x = scale, y =variance, group = formula, color = formula)) + 
-  geom_point() + geom_line() + facet_wrap(~gen) + ylab("Proportion of variance") + xlab("Scale (Mb)")
-pl
-
-
-sim.dat <- frq_ps %>% 
-  filter(gen %in% c("0003","0010","0050","0100","0500","1000")) %>% 
-  filter(sim == "neutral-const-recomb") %>% select(-sim) 
-names(sim.dat)[names(sim.dat) == "ps"] <- "variance"
-sim.dat$formula <- "simulation"
-
-combined <- rbind(sim.dat, df2)
-
-gen.labs <- c("Gen 3", "Gen 10", "Gen 50", "Gen 100", "Gen 500", "Gen 1000")
-names(gen.labs) <- gen
-combined %>%
-  ggplot(aes(x = as.factor(scale), y = variance, group = formula, color = formula)) + 
-  geom_line() + geom_point() + 
-  facet_wrap(~gen, labeller = labeller(gen = gen.labs)) + 
-  xlab("Scale (Mb)") + ylab("Proportion of variance") + 
-  scale_color_manual(values = c("red", "blue", "black"), labels = c("\nApprox. for large N\n", "Exact", "\nSimulation\n(2N = 20000)")) + 
-  theme(aspect.ratio = 1, axis.title = element_text(size = 14), 
-        axis.text.x = element_text(angle = 90), legend.text = element_text(size= 14), 
-        legend.key=element_blank(), legend.background = element_blank(),
-        legend.title = element_blank()) 
-
-
-val <- vector()
-y <- (1e-8)*3*(1e9/1024)
-for(j in 1:10){
-  val[j] <- -4*0.5^2*(2^j/(2^(2*j)*y) + 
-                          4*exp(-1/2*2^j*y)/(2^(2*j)*y^2) - 
-                          exp(-2^j*y)/(2^(2*j)*y^2) - 3/(2^(2*j)*y^2)) + 
-              4*0.5*(2^j/(2^(2*j)*y) + 
-               4*exp(-1/2*2^j*y)/(2^(2*j)*y^2) - 
-               exp(-2^j*y)/(2^(2*j)*y^2) - 3/(2^(2*j)*y^2))
-}
-val
-val <- val/sum(val)
-plot(val)
-
 
 ################################################################################################
 # Wavelet correlation analysis
