@@ -1,6 +1,19 @@
 library(data.table)
 a1 <- fread("datasets/Population1_TOTO/ancestry-probs-par1_TOTO_allgroups.tsv", nrows = 1)
 a2 <- fread("Population1_TOTO/ancestry-probs-par2_TOTO_allgroups.tsv", nrows = 1)
+
+# merge two files by ID and reformat
+a <- merge(a1, a2, by = "V1", suffixes = c(":gen11", ":gen22"))
+a <- melt(a, id.vars = "V1", value.name = "post.prob")
+a[, c("chr", "phys_pos", "genotype") := tstrsplit(variable, ":", fixed = TRUE)]
+a <- a[,-c("variable")]
+a <- dcast(a, ... ~ genotype, value.var = "post.prob") 
+
+# calculate missing heterozygote post. prob 
+a[, gen12 := 1 - sum(gen11, gen22), by = .(V1,chr,phys_pos)]
+
+#######
+a[, c("chr", "pos", "genotype") := tstrsplit(variable, ":", fixed = TRUE)][, -c("variable")]
 names(a1) == names(a2)
 smpl <- sample(names(a1)[-1], size = 100000, replace = F)
 a1_smpl <- a1[, ..smpl]
