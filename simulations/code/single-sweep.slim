@@ -1,0 +1,55 @@
+// selective sweep against introgressed allele at a random locus
+
+initialize() {
+	
+	initializeTreeSeq();
+	defineConstant("L", 1024); 
+	//defineConstant("s", 0.4);
+	defineConstant("N1", 10000); // recipient population size
+	defineConstant("N2", 1000); // donor population size
+	defineConstant("genomeSize",1e9);
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0);
+	initializeMutationType("m2", 0.5, "f", -0.1);
+	m1.convertToSubstitution = F;
+	m2.convertToSubstitution = F;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, L-1);
+	defineConstant("baseRate", 1e-8);
+	
+	setSeed(seed);
+
+	defineConstant("outPath","results/single-sweep/");
+
+	initializeRecombinationRate((genomeSize/L)*baseRate);
+
+}
+
+1 {sim.addSubpop("p1", N1);
+	sim.addSubpop("p2", N2);
+	
+	// add marker mutations (sel. coefficient is zero)
+	p2.genomes.addNewMutation(m1, 0, 0:(L-1));
+	p2.genomes.addNewDrawnMutation(m2, rdunif(1,0,L-1));
+	// migration / intitial admixture proportion
+	p1.setMigrationRates(p2, 0.5);
+	
+}
+
+1 late() {p2.setSubpopulationSize(0);}
+
+// output
+
+5 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0005.trees"); }
+10 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0010.trees"); }
+50 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0050.trees"); }
+100 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0100.trees"); }
+500 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0500.trees"); }
+1000 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen1000.trees"); }
+
