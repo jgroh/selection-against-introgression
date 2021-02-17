@@ -184,6 +184,12 @@ smooth.col <- grep("s",names(pop.mean.wav.var))
 pop.mean.wav.var <- pop.mean.wav.var[,-smooth.col,with=F][,lapply(.SD,wav_var)]
 setnames(pop.mean.wav.var, paste0("d",1:15), as.character(1:15))
 
+
+pop.mean.wv <- setDT(wave.variance(pop.mean.modwt, type = "nongaussian"))
+setnames(pop.mean.wv, "wavevar", "variance")
+pop.mean.wv <- pop.mean.wv[-nrow(pop.mean.wv)]
+pop.mean.wv[,"scale" := as.numeric(1:15)]
+
 pop.mean.wav.var <- melt(pop.mean.wav.var, measure.vars = as.character(1:15),
      variable.name = "scale", value.name = "variance")
 pop.mean.wav.var[,scale:=as.numeric(scale)]
@@ -193,8 +199,9 @@ ggplot(ind.wav.var, aes(x=as.numeric(scale), y=variance)) +
   geom_line(aes(group = ID, color = ID, alpha = 0.8)) +
   geom_line(data = pop.mean.wav.var, size = 1) + 
   geom_line(data = ind_mean_wav_var, color = "red", size = 1) + 
+  geom_ribbon(data = pop.mean.wv, aes(ymin=lower,ymax=upper)) +
   labs(x = "Scale log2 (N x Morgans)", y = "Wavelet variance")#   +
-  geom_line(data = pop.mean.roll.wav.var, color = "blue", size = 1)
+  geom_line(data = pop.mean.roll.wav.var, color = "blue", size = 1) 
 
 # Circular permutation of sequence within individuals ---------
 roll <- function(x){
