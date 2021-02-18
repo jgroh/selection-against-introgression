@@ -1,5 +1,13 @@
 library(cubature)
+library(waveslim)
+library(data.table)
 #library(tidyverse)
+
+# read in scale and location
+args <- commandArgs(trailingOnly = TRUE)
+gen <- as.numeric(args[1])
+j <- as.numeric(args[2])
+k <- as.numeric(args[3])
 
 # Continuous Haar wavelet function -----------------------------------------------
 haarCts <- function(x, j){
@@ -58,7 +66,7 @@ wav_var_sweep <- function(x, j, r, n.sample, alpha, s, t, N, l.s) {
 
 # integrate
 genlist <- list()
-gen <- c("0005","0010","0050","0100","0500","1000")
+gen <- "0100"#c("0005","0010","0050","0100","0500","1000")
 names(gen) <- gen
 gen <- as.list(gen)
 
@@ -68,12 +76,12 @@ compute_all_wv <- function(x){
   for(j in 1:10){
     upper <- 2^j
     vals_j <- NULL
-    for(l.s in seq(from=0,to=1024,length.out=1000)){
+    for(l.s in seq(from=0,to=1024,length.out=10)){
       # avg. over location of selected site
       h <- hcubature(wav_var_sweep,c(0,0),c(upper,upper),j=j,
                    alpha=0.5,s=0.1,t=t,r=0.01,
                    n.sample=1,N=10000,l.s=l.s,
-                   maxEval = 1e5)
+                   maxEval = 1e4)
       vals_j <- c(vals_j, h$integral*(1/2^(j-1))) # this is where mult by 2 comes in
     }
     scale_var[j] <- mean(vals_j)
@@ -83,7 +91,37 @@ compute_all_wv <- function(x){
 
 dfs <- as.data.frame(sapply(gen,compute_all_wv,USE.NAMES = T))
 dfs$scale <- 1:10
-save(dfs, file = "/Users/brogroh/selection-against-introgression/simulations/results/WV_single_sweep.RData")
+
+plot(dfs$`0100` ~ dfs$scale, pch = 19)
+
+# see if placing the wavelet changes things
+
+
+haarCts_j9 <- function(x, j=9){
+  (x <= 512)*0 + (x > 512 & x <= 512+2^(j-1))*2^(-j/2) + (x > 512+2^(j-1) & x <= 512+2^j)*(-2^(-j/2))
+}
+
+
+vals_j <- NULL
+j <- 9
+for(l.s in seq(from=0,to=1024,length.out=10)){
+  # avg. over location of selected site
+  h <- hcubature(wav_var_sweep,c(0,0),c(2^j,2^j),j=j,
+                 alpha=0.5,s=0.1,t=t,r=0.01,
+                 n.sample=1,N=10000,l.s=l.s,
+                 maxEval = 1e4)
+  vals_j <- c(vals_j, h$integral*(1/2^(j-1))) # this is where mult by 2 comes in
+}
+points(y = mean(vals_j), x=9, col = "black",pch=11)
+
+
+
+dfs <- as.data.frame(sapply(gen,compute_all_wv,USE.NAMES = T))
+dfs$scale <- 1:10
+
+plot(dfs$`0010` ~ dfs$scale, pch = 19)
+
+#save(dfs, file = "/Users/brogroh/selection-against-introgression/simulations/results/WV_single_sweep.RData")
 
 #dfs <- gather(dfs, key = "gen", value = "variance", -scale)
 #save(dfs, file = "~/workspace/selection-against-introgression/simulations/results/wav_var_single_sweep.RData")
@@ -91,3 +129,56 @@ save(dfs, file = "/Users/brogroh/selection-against-introgression/simulations/res
 #  geom_point() + geom_line() + labs(x = "Scale (log2 cM)", y = "Wavelet variance")
 
 
+# Read simulation data ----------------
+file1 <- "simulations/results/single-sweep/ancestry_master.txt"
+a <- read.table(file1, row.names = 1)
+rownames(a) <- paste0("single-sweep_", rownames(a))
+
+a <- as.data.frame(t(a))
+a$pos_absolute <- 1:1024
+a$pos_gen <- cumsum((1e9/1024)*1e-8)
+
+head(a)
+# tidy data
+b  <-  a %>%
+  gather(key = sim_rep_gen,
+         value = freq, -c(pos_absolute,pos_gen)) %>% 
+  separate(sim_rep_gen, c("sim_rep.id", "gen"), sep = "_gen") %>% 
+  separate(sim_rep.id, c("sim", "rep.id"), sep = "_replicate")
+
+# example frequency trajectory
+b %>%
+  filter(rep.id == 0) %>%
+  ggplot(aes(x=pos_absolute, y=freq)) +
+  geom_point() + facet_wrap(~gen)
+
+setDT(b)
+str(b)
+b.sub <- b[rep.id == "12" & gen == "1000",]
+b.sub
+
+b.sub %>% ggplot(aes(x = pos_absolute,y = freq)) + geom_point()
+w <- wd(b.sub$freq, filter.number = 1, family = "DaubExPhase")
+accessD(w,level = 1)
+b.sub
+b.sub.wv <- b[,dwt(freq,"haar",n.levels = 10)]
+b.sub.wv$d10
+
+b.sub.wv[,scale := 1:11]
+b.sub.wv <- b.sub.wv[scale != 11]
+b.sub.wv %>% ggplot(aes(x = scale,y = wavevar)) + geom_point()
+
+# compute modwt and wavelet variance on each replicate
+setDT(b)
+b.sub <- b[,rep.id==0]
+b[,wave.variance(modwt(freq,"haar",n.levels = 10))]
+
+wv <- b[, wave.variance(modwt(freq,"haar",n.levels = 10)), by = .(gen,rep.id)]
+wv[,scale := 1:11, by = .(gen,rep.id)] 
+# note '11' is actually s10
+wv <- wv[scale != 11]
+wv <- wv[, mean(wavevar), by=.(scale,gen)]
+
+wv %>% filter(gen == "0500") %>%
+  ggplot(aes(x = scale,y = V1, group = gen, color = gen)) +
+  geom_point()
