@@ -10,12 +10,12 @@ initialize() {
 	defineConstant("genomeSize",1e9);
 	initializeMutationRate(0);
 	initializeMutationType("m1", 0.5, "f", 0);
-	initializeMutationType("m2", 0.5, "f", -0.1);
+	initializeMutationType("m2", 0.5, "f", -0.5);
 	m1.convertToSubstitution = F;
 	m2.convertToSubstitution = F;
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, L-1);
-	defineConstant("baseRate", 1e-8);
+	defineConstant("baseRate", 1e-9);
 	
 	setSeed(seed);
 
@@ -30,7 +30,8 @@ initialize() {
 	
 	// add marker mutations (sel. coefficient is zero)
 	p2.genomes.addNewMutation(m1, 0, 0:(L-1));
-	p2.genomes.addNewDrawnMutation(m2, rdunif(1,0,L-1));
+	// add deleterious locus
+	p2.genomes.addNewDrawnMutation(m2, 0); //rdunif(1,0,L-1));
 	// migration / intitial admixture proportion
 	p1.setMigrationRates(p2, 0.5);
 	
@@ -41,15 +42,28 @@ initialize() {
 // output
 
 5 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0005.trees"); }
+	p1.outputSample(100, filePath = outPath + "/replicate" + seed + "_gen0005.txt");}
+
+
 10 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0010.trees"); }
-50 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0050.trees"); }
+	p1.outputSample(100, filePath = outPath + "/replicate" + seed + "_gen0010.txt");}
+
 100 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0100.trees"); }
+	p1.outputSample(100, filePath = outPath + "/replicate" + seed + "_gen0100.txt");}
+	
 500 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0500.trees"); }
-1000 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen1000.trees"); }
+	p1.outputSample(100, filePath = outPath + "/replicate" + seed + "_gen0500.txt");}
+	
+//5 late() {
+	//sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0005.trees"); }
+//10 late() {
+//	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0010.trees"); }
+//50 late() {
+//	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0050.trees"); }
+//100 late() {
+//	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0100.trees"); }
+//500 late() {
+//	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0500.trees"); }
+//1000 late() {
+//	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen1000.trees"); }
 
