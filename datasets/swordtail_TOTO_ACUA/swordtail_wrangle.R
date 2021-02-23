@@ -21,7 +21,7 @@ chrom1 <- gnom[, ..chrom1.cols]
 chrom1 <- melt(chrom1, id.vars = "ID", value.name = "post_prob")
 
 # separate by chromosome, position, genotype
-chrom1[, c("chr", "phys_pos", "genotype") := transpose(stri_split_fixed(variable, ":"))]
+chrom1[, c("chr", "phys_pos", "genotype") := tstrsplit(variable,":",fixed=TRUE)]
 chrom1[,variable:=NULL]
 chrom1[, phys_pos := as.integer(phys_pos)]
 
@@ -48,13 +48,13 @@ chrom1[, "pop_mean" := mean(ind_frq_interp), by = .(chr, phys_pos)]
 
 # read recomb map for chr X (will update for parallelization)
 # edited headers of these files before reading in
-r.chrom1 <- fread("datasets/swordtail_TOTO_ACUA/LD_map_xbirchmanni-COAC-10x-ScyDAA6-10-HRSCAF-60.post.txt_mod.bed")
+r.chrom1 <- fread(paste0("LD_recMap/LD_map_xbirchmanni-COAC-10x-", scaff,".post.txt_mod.bed")) 
 setnames(r.chrom1, c("chr","left_bp","right_bp","mean","V1","V2","V3"))
 
 
 # generate vector of genetic distance using recombination LD map
 # propogate mean values for intervals to all intervening bps 
-r.chrom1.vec <- r.chrom1[, .(rate = rep(mean, times = (right_bp - (left_bp) ))), by = right_bp][, -c("right_bp")]
+r.chrom1.vec <- r.chrom1[, .(rate = rep(mean, times = (right_bp - left_bp ))), by = right_bp][, -c("right_bp")]
 
 # extend per bp values to ends of chromosome
 if(min(r.chrom1$left_bp) > 1){
@@ -150,7 +150,7 @@ chrom1.interp[, pop_mean_interp := mean(ind_frq_interp),
 
 #chrom1.interp[ID == ID[1]] %>% ggplot(aes(x = gen_pos, y = 1-pop_mean_interp)) + geom_point()
 
-save(chrom1, chrom1.interp, file = paste0("ACUA_",year,"_",scaff,".RData"))
+save(chrom1, chrom1.interp, file = paste0("ACUA_",year,"/",scaff,".RData"))
 #load(file="datasets/schumer_etal_2019/TOTO_chrom1.Rdata")
 
 ## End Formatting
