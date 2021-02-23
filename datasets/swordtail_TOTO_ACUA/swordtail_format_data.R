@@ -5,7 +5,7 @@ library(waveslim)
 
 args <- commandArgs(trailingOnly = TRUE)
 year <- args[1]
-chrom <- args[2]
+scaff <- args[2]
 
 # edit for snakemake to apply to multiple pops
 par1 <- fread("datasets/schumer_etal_2019/Population1_TOTO/ancestry-probs-par1_TOTO_allgroups.tsv")
@@ -138,9 +138,9 @@ chrom1[ID == ID[1]] %>% ggplot(aes(y = 1-pop_mean, x = gen_pos)) +
 # length(unique(chrom1$phys_pos))/max(chrom1$gen_pos) #~= 0.25 
 # so we can interpolate to unit distance of N*Morgans so that we on average have 1 snp per unit distance
 
-xout.l <- ceiling(max(chrom1$gen_pos))/4 # # of interpolation points to give unit distance of N*M
+# xout.l <- ceiling(max(chrom1$gen_pos))/4 # # of interpolation points to give unit distance of N*M
 
-xout = seq(0, max(chrom1$gen_pos), length.out = xout.l)
+xout = seq(0, max(chrom1$gen_pos), by=4)
 
 # interpolate individual ancestry at genetic coordinates
 chrom1.interp <- chrom1[, approx(x = gen_pos, 
@@ -159,4 +159,5 @@ save(chrom1, chrom1.50kb, chrom1.interp, file = "datasets/schumer_etal_2019/TOTO
 load(file="datasets/schumer_etal_2019/TOTO_chrom1.Rdata")
 
 ## End Formatting
+head(chrom1.interp)
 
