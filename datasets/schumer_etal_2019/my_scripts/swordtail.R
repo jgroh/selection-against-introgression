@@ -2,6 +2,7 @@ library(data.table)
 library(tidyverse)
 library(wavethresh)
 library(waveslim)
+library(stringi)
 
 # edit for snakemake to apply to multiple pops
 par1 <- fread("datasets/schumer_etal_2019/Population1_TOTO/ancestry-probs-par1_TOTO_allgroups.tsv")
@@ -20,8 +21,9 @@ chrom1 <- gnom[, ..chrom1.cols]
 chrom1 <- melt(chrom1, id.vars = "ID", value.name = "post_prob")
 
 # separate by chromosome, position, genotype
-chrom1[, c("chr", "phys_pos", "genotype") :=
-    tstrsplit(variable, ":", fixed = TRUE)]
+chrom1[, c("chr", "phys_pos", "genotype") := transpose(stri_split_fixed(variable, ":"))]
+
+
 chrom1[,variable:=NULL]
 chrom1[, phys_pos := as.integer(phys_pos)]
 
@@ -165,7 +167,7 @@ ind.modwt <- chrom1.interp[, waveslim::modwt(ind_frq_interp, "haar",
 wav_var <- function(x){sum(x^2)/(length(x))}
 detail.cols <- names(ind.modwt)[grep("s", names(ind.modwt),invert=T)]
 ind.wav.var <- ind.modwt[,..detail.cols][,lapply(.SD,wav_var), by = ID]
-setnames(ind.wav.var, old = paste0("d",1:15), new = as.character(1:15))
+setnames(ind.wav.var, old = paste0("d",1:n.levels), new = as.character(1:n.levels))
 ind.wav.var <- melt(ind.wav.var, id.vars = c("ID"), 
                     variable.name = "scale",
                     value.name = "variance")
@@ -182,15 +184,15 @@ pop.mean.modwt <- chrom1.interp[ID==ID[1],
 pop.mean.wav.var <- rbindlist(list(pop.mean.modwt))
 smooth.col <- grep("s",names(pop.mean.wav.var))
 pop.mean.wav.var <- pop.mean.wav.var[,-smooth.col,with=F][,lapply(.SD,wav_var)]
-setnames(pop.mean.wav.var, paste0("d",1:15), as.character(1:15))
+setnames(pop.mean.wav.var, paste0("d",1:n.levels), as.character(1:n.levels))
 
 
-pop.mean.wv <- setDT(wave.variance(pop.mean.modwt, type = "nongaussian"))
-setnames(pop.mean.wv, "wavevar", "variance")
-pop.mean.wv <- pop.mean.wv[-nrow(pop.mean.wv)]
-pop.mean.wv[,"scale" := as.numeric(1:15)]
+#pop.mean.wv <- setDT(wave.variance(pop.mean.modwt, type = "nongaussian"))
+#setnames(pop.mean.wv, "wavevar", "variance")
+#pop.mean.wv <- pop.mean.wv[-nrow(pop.mean.wv)]
+#pop.mean.wv[,"scale" := as.numeric(1:15)]
 
-pop.mean.wav.var <- melt(pop.mean.wav.var, measure.vars = as.character(1:15),
+pop.mean.wav.var <- melt(pop.mean.wav.var, measure.vars = as.character(1:n.levels),
      variable.name = "scale", value.name = "variance")
 pop.mean.wav.var[,scale:=as.numeric(scale)]
 
@@ -199,7 +201,7 @@ ggplot(ind.wav.var, aes(x=as.numeric(scale), y=variance)) +
   geom_line(aes(group = ID, color = ID, alpha = 0.8)) +
   geom_line(data = pop.mean.wav.var, size = 1) + 
   geom_line(data = ind_mean_wav_var, color = "red", size = 1) + 
-  geom_ribbon(data = pop.mean.wv, aes(ymin=lower,ymax=upper)) +
+  #geom_ribbon(data = pop.mean.wv, aes(ymin=lower,ymax=upper)) +
   labs(x = "Scale log2 (N x Morgans)", y = "Wavelet variance")#   +
   geom_line(data = pop.mean.roll.wav.var, color = "blue", size = 1) 
 

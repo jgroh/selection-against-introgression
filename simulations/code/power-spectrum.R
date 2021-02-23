@@ -35,56 +35,13 @@ wav_var_exact <- function(x, expected.crossovers.per.unit.dist, n.pop, n.sample,
   )
 }
 
-# Continuous Haar wavelet function -----------------------------------------------
-haarCts <- function(x, j){
-  (x <= 0)*0 + (x > 0 & x <= 2^(j-1))*2^(-j/2) + (x > 2^(j-1) & x <= 2^j)*(-2^(-j/2))
-}
-
-# Expected wavelet variance: single sweep ----------------------------------------------
-# assumes infinite population. x[1] and x[2] x[3] are positions of l1,l2,ls
-
-wav_var_sweep <- function(x, j, r, n.sample, alpha, s, t) {
-  
-  #frequency of resident allele through time
-  p <- (1-alpha)*exp(s*t/2) / ( alpha + (1-alpha)*exp(s*t/2) )
-  q <- 1-p
-  
-  # recomb. probabilities
-  f_prime <- function(a, b){
-    exp(-r*abs(a-b) * 2*log(alpha + (1-alpha)*exp(s*t/2)) / s )
-  }
-  g_prime <- function(a,b){ 1 - f_prime(a,b) }
-  f <- function(a,b){ exp(-t*r*abs(a-b)) }
-  g <- function(a,b){1-f(a,b)}
-  
-  # integrand - nonzero only for l2 > l1, will multiply by two later
-  if(x[2] > x[1]){
-    if(x[3] <= x[1]){
-      cov_ii <-  q*(f_prime(x[2],x[3]) + alpha*(g_prime(x[1],x[3])*f(x[1],x[2]) + 
-                                                  f_prime(x[1],x[3])*g(x[1],x[2]) +
-                                                  alpha*g_prime(x[1],x[3])*g(x[1],x[2]))) +
-        p*(alpha*g_prime(x[1],x[3])*(f(x[1],x[2]) + alpha*g(x[1],x[2])))
-    } else if(x[3] > x[1] && x[3] <= x[2]){
-      cov_ii <-  q*(f_prime(x[1],x[3]) + alpha*g_prime(x[1],x[3]))*(f_prime(x[2],x[3]) + alpha*g_prime(x[2],x[3]))
-      + p*alpha^2*g_prime(x[1],x[3])*g_prime(x[2],x[3])
-    } else if(x[3] > x[2]){
-      cov_ii <-  q*(f_prime(x[1],x[3]) + alpha*(g_prime(x[2],x[3])*f(x[1],x[2]) + 
-                                                  f_prime(x[2],x[3])*g(x[1],x[2]) +
-                                                  alpha*g_prime(x[2],x[3])*g(x[1],x[2]))) +
-        p*(alpha*g_prime(x[2],x[3])*(f(x[1],x[2]) + alpha*g(x[1],x[2])))
-    } else{cov_ii <- 0}
-  } else{cov_ii <- 0}
-  haarCts(x[1], j=j)*haarCts(x[2],j=j)*(1/n.sample)*cov_ii
-}
-
-
 # Power spectrum function ----------------------------------------------------------------
 ps <- function(x, xvar){
   w <- wd(x[[xvar]], family = "DaubExPhase", filter.number = 1)
   temp <- vector(length = w$nlevels);
   x.var <- mean((x[[xvar]] - mean(x[[xvar]]))^2)
   for(i in 1:w$nlevels){
-    temp[i] <- (sum((accessD(w,level=(w$nlevels - i)))^2)/length(x[[xvar]]))/x.var
+    temp[i] <- (sum((accessD(w,level=(w$nlevels - i)))^2)/length(x[[xvar]]))#/x.var
   }
   return(temp)
 }
@@ -429,7 +386,7 @@ frq_ps$scale <- factor(frq_ps$scale, levels = as.character(rev(round((1e9/2^(1:1
 # plot power spectrum
 frq_ps %>% 
   filter(! gen %in% c("0001", "0002")) %>% 
-#  filter(str_detect(sim, "sel")) %>% 
+  filter(sim == "sel-periodic-recomb") %>% 
   ggplot(aes(x = as.factor(scale), y = ps, group = sim, color = sim, pch = sim)) + 
   geom_line(position=position_dodge(w=0.1)) +
   geom_point() +
