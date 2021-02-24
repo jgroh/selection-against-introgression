@@ -1,5 +1,7 @@
 # script combines scaffold data from each year and runs wavelets
+library(data.table)
 library(tools)
+library(waveslim)
 
 args <- commandArgs(trailingOnly = TRUE)
 year <- args[1]
