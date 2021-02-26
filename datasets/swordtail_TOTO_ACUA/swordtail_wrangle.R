@@ -8,7 +8,11 @@ scaff <- args[2]
 par1 <- fread(paste0("ancestry-probs-par1_allchrs_ACUA_historical_",year,".tsv"))
 par2 <- fread(paste0("ancestry-probs-par2_allchrs_ACUA_historical_",year,".tsv"))
 
-# Merge two files by ID and reformat ----------------------------------------
+# read recomb map for chr X 
+r.chrom1 <- fread(paste0("LD_recMap/LD_map_xbirchmanni-COAC-10x-", scaff,".post.txt_mod.bed")) 
+setnames(r.chrom1, c("chr","left_bp","right_bp","mean","V1","V2","V3"))
+
+# Merge two genotype files by ID and reformat ----------------------------------------
 gnom <- merge(par1, par2, by = "V1", suffixes = c(":gen11", ":gen22"))
 setnames(gnom, "V1", "ID")
 
@@ -46,12 +50,6 @@ chrom1[, "pop_mean" := mean(ind_frq_interp), by = .(chr, phys_pos)]
 
 # Recombination map -----------------------
 
-# read recomb map for chr X (will update for parallelization)
-# edited headers of these files before reading in
-r.chrom1 <- fread(paste0("LD_recMap/LD_map_xbirchmanni-COAC-10x-", scaff,".post.txt_mod.bed")) 
-setnames(r.chrom1, c("chr","left_bp","right_bp","mean","V1","V2","V3"))
-
-
 # generate vector of genetic distance using recombination LD map
 # propogate mean values for intervals to all intervening bps 
 r.chrom1.vec <- r.chrom1[, .(rate = rep(mean, times = (right_bp - left_bp ))), by = right_bp][, -c("right_bp")]
@@ -70,9 +68,13 @@ if(max(r.chrom1$right_bp) < max(chrom1$phys_pos)){
 r.chrom1.vec <- rbindlist(list(front, r.chrom1.vec, back))
 
 # assign genetic position of SNPS present in the data and per bp rate
-chrom1[, c("gen_pos", "rec_rate") := 
+chrom1[, c("gen_pos_rho", "rec_rate") := 
          list(cumsum(r.chrom1.vec$rate)[phys_pos], r.chrom1.vec$rate[phys_pos]),
        by = .(chr)]
+
+# we divide out Ne from genetic distances 
+Ne2 <- 97739 # see script scaff_lengths.R which compares LD map lengths to cM map lengths
+chrom1[, "gen_pos_M" := gen_pos_rho/Ne2]
 
 # sanity checks
 # dim(r.chrom1.vec)[1] == max(chrom1$phys_pos)
@@ -80,7 +82,6 @@ chrom1[, c("gen_pos", "rec_rate") :=
 # ind <- chrom1[ID == ID[1]]$phys_pos
 # plot(y = cumsum(r.chrom1.vec$rate)[ind], x = chrom1[ID == ID[1]]$phys_pos)
 
-# Interpolate ancestry to evenly spaced genetic coordinates -------------------------
 
 # plot population mean of minor parent ancestry along chromosome
 #chrom1[ID == ID[1]] %>% ggplot(aes(x = phys_pos, y = 1-pop_mean)) + geom_point()
@@ -129,24 +130,23 @@ chrom1[, c("gen_pos", "rec_rate") :=
 # Interpolate at evenly spaced genetic distances -------
 
 # what unit to interpolate at?
-# check # of SNPs / total genetic distance (in units 4*N*Morgans):
-# length(unique(chrom1$phys_pos))/max(chrom1$gen_pos) #~= 0.25 
-# so we can interpolate to unit distance of N*Morgans so that we on average have 1 snp per unit distance
+# check # of SNPs / Morgan:
+length(unique(chrom1$phys_pos))/max(chrom1$gen_pos_M) #roughly 50000 SNPs per M across chromosomes
+# so we can interpolate to unit distance such that we get approx 1 SNP per unit
+# this distance is roughly M*2^-15
 
-# xout.l <- ceiling(max(chrom1$gen_pos))/4 # # of interpolation points to give unit distance of N*M
-
-xout = seq(0, max(chrom1$gen_pos), by=4) # roughly the same, based on chrom1
+xout = seq(0, max(chrom1$gen_pos_M), by=2^-15) 
 
 # interpolate individual ancestry at genetic coordinates
-chrom1.interp <- chrom1[, approx(x = gen_pos, 
+chrom1.interp <- chrom1[, approx(x = gen_pos_M, 
                                  y = ind_frq_interp, 
                                  xout = xout, rule = 2), 
                         by = .(ID,chr)]
-setnames(chrom1.interp, c("x", "y"), c("gen_pos","ind_frq_interp"))
+setnames(chrom1.interp, c("x", "y"), c("gen_pos_M","ind_frq_interp"))
 
 # compute population mean
 chrom1.interp[, pop_mean_interp := mean(ind_frq_interp), 
-              by = .(chr, gen_pos)]
+              by = .(chr, gen_pos_M)]
 
 #chrom1.interp[ID == ID[1]] %>% ggplot(aes(x = gen_pos, y = 1-pop_mean_interp)) + geom_point()
 
