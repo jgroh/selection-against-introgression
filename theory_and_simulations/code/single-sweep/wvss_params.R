@@ -10,14 +10,15 @@ pars <- params %>% as.data.table() %>%
   .[, lapply(.SD, as.numeric)]
 
 # use sparse wavelets to approximate the integral for speed here
-pars2 <- rbindlist(list(pars[scale %in% 8:10 & shift %% 2 != 0,],
+spars <- rbindlist(list(pars[scale %in% 8:10 & shift %% 2 != 0,],
                         pars[scale %in% 6:7 & shift %% 4 == 0,],
                         pars[scale %in% 4:5 & shift %% 8 == 0,],
                         pars[scale %in% 2:3 & shift %% 16 == 0,],
                         pars[scale ==1 & shift %% 64 == 0,]
                         ))
 
-write.table(pars2,
+spars.out <- as.matrix(pars2[,paste(gen,scale,shift, sep = "_")])
+write.table(spars.out,
             file = "~/workspace/selection-against-introgression/theory_and_simulations/code/single-sweep/wvss_params.txt",
             quote = F,row.names = F,col.names=F)
 
