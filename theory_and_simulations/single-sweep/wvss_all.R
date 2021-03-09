@@ -12,15 +12,15 @@ k <- as.numeric( unlist(strsplit(arg,"_"))[3])
 S <- as.numeric( unlist(strsplit(arg,"_"))[4])
 
 # define wavlet support 
-upper <- k*(2^j)
-lower <- k*(2^j) - 2^j
+upper <- k*(2^J)
+lower <- k*(2^J) - 2^J
 mid <- mean(c(lower,upper))
 
 # Continuous Haar wavelet function -----------------------------------------------
 haarCts <- function(x){
   (x < lower)*0 + 
-  (x >= lower & x < mid)*2^(-j/2) + 
-  (x >= mid & x <= upper)*(-2^(-j/2))
+  (x >= lower & x < mid)*2^(-J/2) + 
+  (x >= mid & x <= upper)*(-2^(-J/2))
 }
 
 # Expected wavelet variance with sweep ----------------------------------------------
