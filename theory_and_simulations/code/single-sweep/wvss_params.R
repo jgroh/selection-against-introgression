@@ -1,7 +1,7 @@
 library(tidyr)
 library(data.table)
 params <- NULL
-for(g in c(10,100,1000)){
+for(g in c(5,10,50,100,500,1000)){
   for(i in 1:10){
    params <- c(params,paste(g,i,1:(2^((11-i)-1)),sep = "_"))
   }
