@@ -7,9 +7,9 @@ library(data.table)
 # read in generation, scale, location, sel coeff from command line
 arg <- commandArgs(trailingOnly = TRUE)
 gen <- as.numeric( unlist(strsplit(arg,"_"))[1])
-j <- as.numeric( unlist(strsplit(arg,"_"))[2])
+J <- as.numeric( unlist(strsplit(arg,"_"))[2])
 k <- as.numeric( unlist(strsplit(arg,"_"))[3])
-s <- as.numeric( unlist(strsplit(arg,"_"))[4])
+S <- as.numeric( unlist(strsplit(arg,"_"))[4])
 
 # define wavlet support 
 upper <- k*(2^j)
@@ -26,7 +26,7 @@ haarCts <- function(x){
 # Expected wavelet variance with sweep ----------------------------------------------
 # ignores coal. x[1] and x[2] are positions of l1, l2 (neutral loci).
 # ls must be provided (we integrate over ls below)
-wav_var_sweep <- function(x, j=j, r=1/1024, n.sample=1, alpha=0.5, s=s, N=10000, t=gen, l.s) {
+wav_var_sweep <- function(x, j=J, r=1/1024, n.sample=1, alpha=0.5, s=S, N=10000, t=gen, l.s) {
   
   # expected time to fixation 
   tsFix <- (2/s)*log( ((1-1/(2*N))*alpha ) / ( (1/(2*N)) *(1-alpha) ))
@@ -86,7 +86,6 @@ wav_var_sweep <- function(x, j=j, r=1/1024, n.sample=1, alpha=0.5, s=s, N=10000,
 }
 
 
-
 # Average calculation over X evenly spaced locations of the selected site
 # (This is an approximation to the continuous integral)
 vals <- NULL
@@ -100,7 +99,7 @@ for(l.s in seq(from=0,to=1024,length.out=10)){
 
 
 # output gen, scale, k, expected squared wavelet coefficient
-cat(gen, j, k, s, mean(vals))
+cat(gen, J, k, S, mean(vals))
 cat("\n")
 
 
