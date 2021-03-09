@@ -1,6 +1,7 @@
 library(tidyr)
+library(data.table)
 params <- NULL
-for(g in c(1000)){
+for(g in c(10,100,1000)){
   for(i in 1:10){
    params <- c(params,paste(g,i,1:(2^((11-i)-1)),sep = "_"))
   }
@@ -17,8 +18,8 @@ spars <- rbindlist(list(pars[scale %in% 8:10 & shift %% 2 != 0,],
                         pars[scale ==1 & shift %% 64 == 0,]
                         ))
 
-spars.out <- as.matrix(pars2[,paste(gen,scale,shift, sep = "_")])
+spars.out <- as.matrix(spars[,paste(gen,scale,shift, sep = "_")])
 write.table(spars.out,
-            file = "~/workspace/selection-against-introgression/theory_and_simulations/code/single-sweep/wvss_params.txt",
+            file = "wvss_params.txt",
             quote = F,row.names = F,col.names=F)
 

@@ -26,16 +26,17 @@ haarCts <- function(x){
 # Expected wavelet variance with sweep ----------------------------------------------
 # ignores coal. x[1] and x[2] are positions of l1, l2 (neutral loci).
 # ls must be provided (we integrate over ls below)
-wav_var_sweep <- function(x, j=j, r=0.01, n.sample=1, alpha=0.5, s=0.1, N=10000, t=gen, l.s) {
+wav_var_sweep <- function(x, j=j, r=1/1024, n.sample=1, alpha=0.5, s=0.1, N=10000, t=gen, l.s) {
   
   # expected time to fixation 
-  ts <- (2/s)*log( ((1-1/(2*N))*alpha ) / ( (1/(2*N)) * alpha) )
+  tsFix <- (2/s)*log( ((1-1/(2*N))*alpha ) / ( (1/(2*N)) *(1-alpha) ))
   
   #frequency of resident allele through time
-  if(t > ts){
-    t <- ts
+  if(t > tsFix){
+    ts <- tsFix
     p <- 1
   } else{ 
+	ts <- t
     p <- (1-alpha)*exp(s*t/2) / ( alpha + (1-alpha)*exp(s*t/2) )
   }
   q <- 1-p
@@ -45,12 +46,12 @@ wav_var_sweep <- function(x, j=j, r=0.01, n.sample=1, alpha=0.5, s=0.1, N=10000,
   g <- function(a,b){1-f(a,b)}
   
   f_prime <- function(a,b){
-    exp(2*r*abs(a-b)*log(alpha + (1-alpha)*exp(s*t/2))/s - r*abs(a-b)*t)
+    exp(2*r*abs(a-b)*log(alpha + (1-alpha)*exp(s*ts/2))/s - r*abs(a-b)*ts)
   }
   g_prime <- function(a,b){ 1 - f_prime(a,b) }
   
-  u_prime <- function(a, b){
-    exp(-r*abs(a-b) * 2*log(alpha + (1-alpha)*exp(s*t/2)) / s )
+  u_prime <- function(a,b){
+    exp(-r*abs(a-b) * 2*log(alpha + (1-alpha)*exp(s*ts/2)) / s )
   }
   v_prime <- function(a,b){ 1 - u_prime(a,b)}
   
@@ -71,8 +72,7 @@ wav_var_sweep <- function(x, j=j, r=0.01, n.sample=1, alpha=0.5, s=0.1, N=10000,
                                         alpha*g(x1,x2) ) )
     } else if(x1 < l.s && x2 >= l.s){
       #l1,ls,l2
-      cov_ii <-  q*(u_prime(x1,l.s) + alpha*v_prime(x1,l.s))*(u_prime(x2,l.s) + alpha*v_prime(x2,l.s))
-      +
+      cov_ii <-  q*(u_prime(x1,l.s) + alpha*v_prime(x1,l.s))*(u_prime(x2,l.s) + alpha*v_prime(x2,l.s)) +
         p*alpha^2*g_prime(x1,l.s)*g_prime(x2,l.s)
     } else if(x1 < l.s && x2 < l.s){
       #l1,l2,ls
@@ -81,24 +81,21 @@ wav_var_sweep <- function(x, j=j, r=0.01, n.sample=1, alpha=0.5, s=0.1, N=10000,
                                                  alpha*v_prime(x2,l.s)*g(x1,x2))) +
         p*(alpha*g_prime(x2,l.s)* ( f(x1,x2) + alpha*g(x1,x2)))
     } else{cov_ii <- 0}
-   
   }
-  haarCts(x[1])*haarCts(x[2])*(1/n.sample)*
-  cov_ii
+  return(haarCts(x[1])*haarCts(x[2])*(1/n.sample)*cov_ii)
 }
 
 
 
-# Average calculation over 100 evenly spaced locations of the selected site
+# Average calculation over X evenly spaced locations of the selected site
 # (This is an approximation to the continuous integral)
 vals <- NULL
-for(l.s in seq(from=0,to=1024,length.out=100)){
+for(l.s in seq(from=0,to=1024,length.out=10)){
   # avg. over location of selected site
   h <- hcubature(wav_var_sweep,c(lower,lower),c(upper,upper),
                  l.s=l.s,
                  maxEval = 1e4)
-
-  vals <- c(vals, h$integral/1024) # this is where mult by 2 comes in bc we ordered the neutral loci
+  vals <- c(vals, h$integral) 
 }
 
 
