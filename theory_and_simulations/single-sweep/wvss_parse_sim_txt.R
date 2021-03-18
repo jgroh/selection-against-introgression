@@ -8,11 +8,11 @@ sim <- args[1]
 params <- unlist(strsplit(sim, "_"))
 s <- gsub("s","", params[1])
 l.s <- gsub("replicate","", params[2])
-gen <- gsub(".txt","",gsub("replicate","", params[3]))
+gen <- gsub("replicate","", params[3])
 
 # read genotypes
 # snps are rows, individuals columns
-f <- fread(file = paste0("sims/",sim))
+f <- fread(file = paste0("sims/",sim,".txt"))
 
 # selected allele is coded as '2' so change to 1
 f <- f[, lapply(.SD, function(x){x[x>1] <- 1; x})]

@@ -14,7 +14,7 @@ initialize() {
 	m2.convertToSubstitution = F;
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, L-1);
-	defineConstant("baseRate", 1e-9);
+	defineConstant("baseRate", 1e-8);
 	
 	setSeed(seed);
 	initializeRecombinationRate((genomeSize/L)*baseRate);
