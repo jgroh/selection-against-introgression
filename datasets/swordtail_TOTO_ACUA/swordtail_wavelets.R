@@ -76,11 +76,21 @@ pop.mean.wav.var[,decomp :="pop_mean"]
 wvFinal <- rbind(ind.mean.wav.var, pop.mean.wav.var)
 wvFinal <- merge(wvFinal, chrWeights)[,-"numCoeffs"][]
 
-# output chromosome means (to account for total variance)
+# output chromosome means of pop mean (to account for total variance)
 chrMeans <- gnomP[, mean(1-pop_mean_interp), by = .(chr)]
 setnames(chrMeans, "V1", "avg_frq")
+chrVarPop <- chrMeans[, mean(avg_frq^2)-mean(avg_frq)^2]
 
-save(wvFinal, chrMeans, file = paste0("ACUA_",year,"/wvFinal.RData"))
+# chromosome level variance for individuals
+chrMeansInd <- gnomP[, mean(1-ind_frq_interp), by = .(ID,chr)]
+setnames(chrMeansInd, "V1", "avg_frq")
+# Take mean of chromosome-level variance over individuals 
+chrVarInd <- chrMeansInd[, mean(avg_frq^2) - mean(avg_frq)^2, by = ID][, mean(V1)]
+
+chrVar <- data.table("chrVar" = c(chrVarInd, chrVarPop), 
+           "decomp" = c("individual", "pop_mean"))
+
+save(wvFinal, chrVar, file = paste0("ACUA_",year,"/wvFinal.RData"))
 
 
 # Correlation Analysis ---------
