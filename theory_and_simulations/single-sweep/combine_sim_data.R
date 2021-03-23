@@ -5,4 +5,4 @@ dlist <- as.list(dir(path = "sims/", pattern="*.RData", full.names = T))
 
 allSimWV <- rbindlist(lapply(dlist, function(x){loadFrom(x, "simWV")}))
 
-write.table(allSimWV, file = "all-sim-wv.txt", quote = F, row.names=F)
+write.table(allSimWV, file = "all-sim-wvss.txt", quote = F, row.names=F)
