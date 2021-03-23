@@ -115,16 +115,16 @@ wvBottleneck <- function(d, popSizeModel,epochs){
 # Perform Computations ------------------------------------------
 
 # make grid of parameters over which we evaluate the function
-ns <- 1
-sc <- 1:10
-gn <- c(5,10,50,100,500,1000) 
+ns <- c(1,20) # number of sampled haplotypes
+sc <- 1:10 # scales
+gn <- c(5,10,50,100,500,1000) # generations 
 grd1 <- data.table(expand.grid(gen=gn, n.sample=ns, scale=sc, stringsAsFactors = F))
 
 # calculate wavelet variance under constant pop size
 grd1[, wvEquil := wvBottleneck(.SD, popSizeModel=10000, epochs=1000), by = seq_len(nrow(grd1))]
 
 # population size model of bottleneck. vector of pop size and epochs from time of admixture to present
-popSizeModel <- c(10000,10,10000)
+popSizeModel <- c(10000,20,10000)
 epochs <- c(50,50,900) # durations of epochs after admixture. these should go all the way to the present
 
 # calculate wavelet variance under above model 
@@ -135,17 +135,17 @@ grdP <- melt(grd1, measure.vars = c("wvEquil", "wvBottleneck"),
      variable.name = "popModel", 
      value.name = "var")
 
-ggplot(grdP, aes(x = scale, y = var, group = popModel)) + 
+ggplot(grdP, aes(x = scale, y = var, group = interaction(popModel, n.sample))) + 
   geom_point(aes(shape = popModel)) + 
-  geom_line(aes(linetype = popModel)) +
+  geom_line(aes(linetype = as.factor(n.sample))) +
   facet_wrap(~gen) + 
   theme_classic() + 
   labs(x = expression(Scale: log[2](Morgans)), 
        y = "Variance", shape = "", linetype = "") +
   scale_color_manual(values = c("black","red")) +
   scale_x_continuous(breaks = 1:10, labels = -10:-1) +
-  scale_linetype_discrete(labels = c("Equilibrium","Bottleneck\ngens 50-100")) +
-  scale_shape_discrete(labels = c("Equilibrium","Bottleneck\ngens 50-100")) +
+  scale_linetype_discrete(labels = c("n=1","n=20")) +
+  scale_shape_manual(values = c(1,2), labels = c("Equilibrium","Bottleneck\ngens 50-100")) +
   theme(aspect.ratio=1,
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5)) 
   
