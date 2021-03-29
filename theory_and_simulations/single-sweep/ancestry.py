@@ -11,7 +11,7 @@ ts = pyslim.load(sys.argv[1])
 
 # genotypes of 1000 random haplotypes
 G = ts.genotype_matrix(isolated_as_missing=False)
-index = np.random.choice(range(20000),1000,replace=False)
+index = np.random.choice(range(2000),1000,replace=False)
 
 #output to stdout
 np.savetxt(sys.stdout.buffer, G[:,index], delimiter=" ")
