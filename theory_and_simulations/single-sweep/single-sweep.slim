@@ -29,6 +29,9 @@ initialize() {
 	// add deleterious locus
 	p2.genomes.addNewDrawnMutation(m2, asInteger(seed*((L-1)/10)));
 	// migration / intitial admixture proportion
+	// note here that there will be no selection in parental generation
+	// thus F1s should have the same admix proprtion as parents
+	// but there will be selection on F1s
 	p1.setMigrationRates(p2, 0.5);
 	
 }
