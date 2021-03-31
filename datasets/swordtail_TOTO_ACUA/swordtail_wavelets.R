@@ -234,12 +234,12 @@ wvFinalG <- rbind(indMeanWavVarG, popMeanWavVarG)
 wvFinalG[, distance := "genetic"] 
 wvFinalP <- rbind(indMeanWavVarP, popMeanWavVarP)
 wvFinalP[, distance := "physical"]
-wvFinalAll <- rbind(wvFinalP, wvFinalG)
+wvFinallAll <- rbind(wvFinalP, wvFinalG)
 
 # combine chromosome-level variances
 chrVarAll <- rbind(chrVarP, chrVarG)
 
-save(wvFinalAll, chrVarAll, file = paste0("ACUA_",year,"/wvFinal.RData"))
+save(wvFinalAll, chrVarAll, file = paste0("ACUA_",year,"/varDecompAll.RData"))
 
 
 # 8. ========== Correlation Analysis ==========
@@ -311,4 +311,4 @@ chrCorDenom <- denominator <- chrMeansRecAnc[, sqrt(
 chrCor <- chrCorNum/chrCorDenom
 
 # ========== Save Correlation Analysis Outputs ==========
-save(wvCorFinal, chrCor, file = paste0("ACUA_",year,"/rAncCorFinal.RData"))
+save(wvCorFinal, chrCor, file = paste0("ACUA_",year,"/rAncCorDecompAll.RData"))
