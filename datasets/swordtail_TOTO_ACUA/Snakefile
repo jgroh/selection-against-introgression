@@ -1,0 +1,40 @@
+import numpy as np
+import os
+years = ["2006","2008","2013","2015","2018"]
+scaffs = [s.replace("LD_map_xbirchmanni-COAC-10x-","").replace(".post.txt_mod.bed","") for s in os.listdir("LD_recMap")]
+
+rule all:
+	input:
+		expand("ACUA_{year}/varDecompAll.RData",year=years),
+		expand("ACUA_{year}/rAncCorDecompAll.RData",year=years),
+		expand("ACUA_{year}/avgFrq_totalCor.RData",year=years)
+
+rule wrangle:
+	input: 
+		expand("ancestry-probs-par{par}_allchrs_ACUA_historical_{{year}}.tsv", par=["1","2"]),
+		"LD_recMap/LD_map_xbirchmanni-COAC-10x-{scaff}.post.txt_mod.bed"
+	output:
+		"ACUA_{year}/{scaff}.RData"
+	shell:
+		"Rscript --vanilla swordtail_wrangle.R {wildcards.year} {wildcards.scaff}"
+
+rule all_year_chr:
+	input:
+		expand("ACUA_{year}/{scaff}.RData",year=years,scaff=scaffs)
+
+rule avgFrq_totalCor:
+	input:
+		expand("ACUA_{{year}}/{scaff}.RData",scaff=scaffs)
+	output:
+		"ACUA_{year}/avgFrq_totalCor.RData"
+	shell:
+		"Rscript --vanilla avgFrq_totalCor.R {wildcards.year}"
+
+rule combine_chrs_and_run_wavelets:
+	input:
+		expand("ACUA_{{year}}/{scaff}.RData",scaff=scaffs)
+	output:
+		"ACUA_{year}/varDecompAll.RData",
+		"ACUA_{year}/rAncCorDecompAll.RData"
+	shell:
+		"Rscript --vanilla swordtail_wavelets.R {wildcards.year}"
