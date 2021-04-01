@@ -234,7 +234,7 @@ wvFinalG <- rbind(indMeanWavVarG, popMeanWavVarG)
 wvFinalG[, distance := "genetic"] 
 wvFinalP <- rbind(indMeanWavVarP, popMeanWavVarP)
 wvFinalP[, distance := "physical"]
-wvFinallAll <- rbind(wvFinalP, wvFinalG)
+wvFinalAll <- rbind(wvFinalP, wvFinalG)
 
 # combine chromosome-level variances
 chrVarAll <- rbind(chrVarP, chrVarG)
