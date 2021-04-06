@@ -1,5 +1,6 @@
 library(data.table)
 library(waveslim)
+library(magrittr)
 
 # read selection coefficient, generation, replicate
 args <- commandArgs(trailingOnly = TRUE)
@@ -23,13 +24,13 @@ f <- melt(f, id.vars = "position", variable.name = "id",
      value.name = "allele")
 
 # look at allele frequency
- f[, mean(allele), by = position] %>% 
-   ggplot(aes(x = position, y = V1)) + geom_point()
+# f[, mean(allele), by = position] %>% 
+#   ggplot(aes(x = position, y = V1)) + geom_point()
  
 # look at haplotypes
-f[id == unique(id)[100]] %>% 
-  ggplot(aes(x = position, y= allele)) + geom_point() +
-  geom_line()
+#f[id == unique(id)[100]] %>% 
+#  ggplot(aes(x = position, y= allele)) + geom_point() +
+#  geom_line()
 
 # wavelet coefficients for individuals
 mwtInd <- f[,brick.wall(wf="haar",x=modwt(allele, "haar", n.levels = 10)), by = id]
@@ -46,13 +47,13 @@ mwtMean[, position := 1:1024]
 setnames(mwtMean, "V1", "d9")
 
 # plot scale 9 wavelet coefficients
-mwtInd[id %in% unique(id)[1:20]] %>% ggplot(aes(x = position, y = d9)) +
-  geom_point() +
-  geom_line(aes(group = id, color = id)) +
-  theme(legend.position = "none") +
-  geom_line(data=mwtAvgInd, size = 1.5, alpha = 1) +
-  labs(y = "Scale 9 coefficients") + 
-  theme_classic()
+#mwtInd[id %in% unique(id)[1:20]] %>% ggplot(aes(x = position, y = d9)) +
+#  geom_point() +
+#  geom_line(aes(group = id, color = id)) +
+#  theme(legend.position = "none") +
+#  geom_line(data=mwtAvgInd, size = 1.5, alpha = 1) +
+#  labs(y = "Scale 9 coefficients") + 
+#  theme_classic()
 
 
 # wvCustom <- function(x){
@@ -87,6 +88,6 @@ simWV <- merge(wvPopMean, wvAvgInd, all = T)
 save(simWV, file = paste0("sims/",sim,".RData"))
 
 # plot wavelet spectrum
-simWV[signal == "pop_mean"] %>% 
-  ggplot(aes(x = scale, y = wavevar, group = signal)) + 
-  geom_point() + geom_line() + theme_classic()
+#simWV[signal == "pop_mean"] %>% 
+#  ggplot(aes(x = scale, y = wavevar, group = signal)) + 
+#  geom_point() + geom_line() + theme_classic()

@@ -91,6 +91,8 @@ popMeanWavVarG <- popMeanModwtG[,lapply(.SD,wav_var),by=chr]
 setnames(popMeanWavVarG, paste0("d",1:maxLevelG), as.character(1:maxLevelG))
 popMeanWavVarG <- melt(popMeanWavVarG, measure.vars = as.character(1:maxLevelG),
                          variable.name = "scale", value.name = "variance")
+# save the chromosome-level version before averaging for looking at chrs separately
+popWavVarG_Chrs <- popMeanWavVarG
 
 # weighted average over chromosomes
 popMeanWavVarG <- merge(popMeanWavVarG, chrWeightsG) 
@@ -241,7 +243,7 @@ wvFinalAll <- rbind(wvFinalP, wvFinalG)
 # combine chromosome-level variances
 chrVarAll <- rbind(chrVarP, chrVarG)
 
-save(wvFinalAll, chrVarAll, popWavVarP_Chrs, file = paste0("ACUA_",year,"/varDecompAll.RData"))
+save(wvFinalAll, chrVarAll, popWavVarG_Chrs, popWavVarP_Chrs, file = paste0("ACUA_",year,"/varDecompAll.RData"))
 
 
 # 8. ========== Correlation Analysis ==========
