@@ -61,9 +61,16 @@ wav_var_sweep <- function(x, j=J, r=1/1024, n.sample=1, alpha=(1/2), s=S, N=1000
   if(x[1] == x[2]){ 
 	x1 <- x[1]
     cov_ii <- q*(u_prime(x1,l.s) + alpha*(v_prime(x1,l.s))) + p*alpha*g_prime(x1,l.s)
+    cov_ij <- cov_ii^2
+
   } else{
     x2 <- max(x)
     x1 <- min(x)
+    
+    cov_ij <- (q^2)*(u_prime(x1,l.s) + alpha*v_prime(x1,l.s))*(u_prime(x2,l.2) + alpha*v_prime(x2,l.s)) +
+      p*q*g_prime(x1,l.s)*(u_prime(x2,l.s) + alpha*v_prime(x2,l.s)) + 
+      p*q*g_prime(x2,l.s)*(u_prime(x1,l.s) + alpha*v_prime(x1,l.s)) + 
+      p^2*alpha^2*g_prime(x1,l.s)*g_prime(x2,l.s)
     
     if(x1 >= l.s){
       # ls,l1,l2
@@ -73,19 +80,22 @@ wav_var_sweep <- function(x, j=J, r=1/1024, n.sample=1, alpha=(1/2), s=S, N=1000
         p*
         ( alpha*g_prime(x1,l.s) * ( f(x1,x2)  + 
                                         alpha*g(x1,x2) ) )
+      
     } else if(x1 < l.s && x2 >= l.s){
       #l1,ls,l2
       cov_ii <-  q*(u_prime(x1,l.s) + alpha*v_prime(x1,l.s))*(u_prime(x2,l.s) + alpha*v_prime(x2,l.s)) +
         p*alpha^2*g_prime(x1,l.s)*g_prime(x2,l.s)
+
     } else if(x1 < l.s && x2 < l.s){
       #l1,l2,ls
       cov_ii <-  q*(u_prime(x1,l.s) + alpha*(v_prime(x2,l.s)*f(x1,x2) + 
                                                  u_prime(x2,l.s)*g(x1,x2) +
                                                  alpha*v_prime(x2,l.s)*g(x1,x2))) +
         p*(alpha*g_prime(x2,l.s)* ( f(x1,x2) + alpha*g(x1,x2)))
+
     } else{cov_ii <- 0}
   }
-  return(haarCts(x[1])*haarCts(x[2])*(1/n.sample)*cov_ii)
+  return(haarCts(x[1])*haarCts(x[2])*(cov_ii/n.sample + cov_ij*(n.sample-1)/n.sample))
 }
 
 
