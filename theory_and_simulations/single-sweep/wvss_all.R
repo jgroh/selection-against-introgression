@@ -59,7 +59,7 @@ wav_var_sweep <- function(x, j=J, r=1/1024, n.sample=1, alpha=(1/3), s=S, N=1000
   
   # integrand, condition on locus configuration
   if(x[1] == x[2]){ 
-    cov_ii <- alpha
+    cov_ii <- q*(u_prime(x1,l.s) + alpha*(v_prime(x1,l.s))) + p*alpha*g_prime(x1,l.2)
   } else{
     x2 <- max(x)
     x1 <- min(x)
