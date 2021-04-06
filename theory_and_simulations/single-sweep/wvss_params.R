@@ -3,7 +3,7 @@ library(data.table)
 params <- NULL
 for(g in c(10,100,1000)){
   for(i in 1:10){
-    for(s in c(0.01,0.1,0.5)){
+    for(s in c(0.01,0.05,0.1)){
    params <- c(params,paste(g,i,1:(2^((11-i)-1)),s,sep = "_"))
     }
   }
@@ -16,8 +16,8 @@ pars <- params %>% as.data.table() %>%
 spars <- rbindlist(list(pars[scale %in% 8:10],
                         pars[scale %in% 6:7 & shift %% 2 == 0,],
                         pars[scale %in% 4:5 & shift %% 4 == 0,],
-                        pars[scale %in% 2:3 & shift %% 8 == 0,],
-                        pars[scale ==1 & shift %% 16 == 0,]
+                        pars[scale %in% 2:3 & shift %% 16 == 0,],
+                        pars[scale ==1 & shift %% 32 == 0,]
                         ))
 spars.out <- as.matrix(spars[,paste(gen,scale,shift,s, sep = "_")])
 write.table(spars.out,
