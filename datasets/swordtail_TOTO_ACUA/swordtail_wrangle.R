@@ -1,27 +1,29 @@
 library(data.table)
 
+# 1. Read and Format Data Files ==========
+
 args <- commandArgs(trailingOnly = TRUE)
 year <- args[1]
 scaff <- args[2]
 
-# read genomes and recombination map
+# read genotype files 
+# probability homozygous for either ancestry
 par1 <- fread(paste0("ancestry-probs-par1_allchrs_ACUA_historical_",year,".tsv"))
 par2 <- fread(paste0("ancestry-probs-par2_allchrs_ACUA_historical_",year,".tsv"))
 
-# read recomb map for chr X 
+# read recomb map for focal chromosome 
 r.chrom1 <- fread(paste0("LD_recMap/LD_map_xbirchmanni-COAC-10x-", scaff,".post.txt_mod.bed")) 
-setnames(r.chrom1, c("chr","left_bp","right_bp","mean","V1","V2","V3"))
+setnames(r.chrom1, c("chr","left_bp","right_bp","mean","V1","median","V3"))
 
-# Merge two genotype files by ID and reformat ----------------------------------------
+# merge by ID 
 gnom <- merge(par1, par2, by = "V1", suffixes = c(":gen11", ":gen22"))
 setnames(gnom, "V1", "ID")
 
-# subset to chr X here
+# subset to focal chromosome
 chrom1.cols <- c("ID", names(gnom)[grep(paste0(scaff,":"), names(gnom))])
 chrom1 <- gnom[, ..chrom1.cols]
 
-# move all post. probability entries to a single column
-# (throws warning about missing data, but OK)
+# move genotype probs for all loci to a single column
 chrom1 <- melt(chrom1, id.vars = "ID", value.name = "post_prob")
 
 # separate by chromosome, position, genotype
@@ -36,36 +38,37 @@ chrom1 <- dcast(chrom1, ... ~ genotype, value.var = "post_prob")
 chrom1[, frq := (gen11 + 0.5*(1 - sum(gen11, gen22))), by = .(ID,chr,phys_pos)]
 
 
-# Impute ancestry in individuals -------------------------
+# 2. Impute ancestry at SNP locations ==========
 
-# impute ancestry at each SNP position
+# impute ancestry at each SNP position in all individuals
 chrom1[, c("ind_frq") := 
          approx(x = phys_pos, y = frq, xout = phys_pos, rule = 2)$y, 
        by = .(ID,chr)]
 
-# average over individuals to get population mean
-chrom1[, "pop_mean" := mean(ind_frq), by = .(chr, phys_pos)]
+# average over individuals to get sample mean
+chrom1[, "smpl_mean" := mean(ind_frq), by = .(chr, phys_pos)]
 
 # examine ancestry pattern for a couple of individuals
 #a[V1 %in% unique(a$V1)[1:2]] %>% ggplot(aes(x = phys_pos, y = frq, group = V1, color = V1)) + geom_point()
 
-# Create recombination map -----------------------
+
+# 3. Create recombination map ==========
 
 # generate vector of genetic distance using recombination LD map
-# propogate mean values for intervals to all intervening bps 
-r.chrom1.allbp <- r.chrom1[, .(rho = rep(mean, times = (right_bp - left_bp ))), by = right_bp][, -c("right_bp")]
+# propogate median values for intervals to all intervening bps 
+r.chrom1.allbp <- r.chrom1[, .(rho = rep(median, times = (right_bp - left_bp ))), by = right_bp][, -c("right_bp")]
 
 # extend per bp values to ends of chromosome
 if(min(r.chrom1$left_bp) > 1){
-  front <- data.table(rho = rep(r.chrom1[left_bp == min(left_bp), mean], times=min(r.chrom1$left_bp)))
+  front <- data.table(rho = rep(r.chrom1[left_bp == min(left_bp), median], times=min(r.chrom1$left_bp)))
 } else{front <- data.table()}
 if(max(r.chrom1$right_bp) < max(chrom1$phys_pos)){
   back <- data.table(
-    rho = rep(r.chrom1[right_bp == max(right_bp), mean],
+    rho = rep(r.chrom1[right_bp == max(right_bp), median],
                times=(max(chrom1$phys_pos)-max(r.chrom1$right_bp))))
 } else{back <- data.table()}
 
-# stick together for full rec. map per bp 
+# stick pieces together 
 r.chrom1.allbp <- rbindlist(list(front, r.chrom1.allbp, back))
 
 # get genetic distance, divide out 2Ne
@@ -87,7 +90,7 @@ chrom1[, c("Morgan", "r") :=
 # plot(y = cumsum(r.chrom1.vec$rate)[ind], x = chrom1[ID == ID[1]]$phys_pos)
 
 # plot population mean of minor parent ancestry along chromosome
-#chrom1[ID == ID[1]] %>% ggplot(aes(x = phys_pos, y = 1-pop_mean)) + geom_point()
+#chrom1[ID == ID[1]] %>% ggplot(aes(x = phys_pos, y = 1-sample_mean)) + geom_point()
 
 # vs. genetic distance (non-interpolated genetic distances)
 #chrom1[ID == ID[1]] %>% ggplot(aes(y = 1-pop_mean, x = gen_pos)) + 
@@ -120,7 +123,7 @@ chrom1[, c("Morgan", "r") :=
 #               size=3, color="red") 
 
 
-# Interpolate at evenly spaced genetic distances -------
+# 4. Interpolate ancestry on genetic scale ==========
 
 # what unit to interpolate at?
 # check # of SNPs / Morgan:
@@ -137,12 +140,12 @@ chrom1.interp.gen <- chrom1[, approx(x = Morgan,
                         by = .(ID,chr)]
 setnames(chrom1.interp.gen, c("x", "y"), c("Morgan","ind_frq_interp"))
 
-# compute population mean
-chrom1.interp.gen[, pop_mean_interp := mean(ind_frq_interp), 
+# compute sample mean
+chrom1.interp.gen[, smpl_mean_interp := mean(ind_frq_interp), 
               by = .(chr, Morgan)]
 
 
-# Interpolate on physical scale for correlation analysis --------
+# 5. Interpolate ancestry on physical scale ==========
 
 # approximately 1 SNP per kb so interpolate at this resolution
 
@@ -154,8 +157,8 @@ chrom1.interp.phys <- chrom1[, approx(x = phys_pos,
                         by = .(ID,chr)]
 setnames(chrom1.interp.phys, c("x", "y"), c("position","ind_frq_interp"))
 
-# compute population mean
-chrom1.interp.phys[, pop_mean_interp := mean(ind_frq_interp), 
+# compute sample mean
+chrom1.interp.phys[, smpl_mean_interp := mean(ind_frq_interp), 
               by = .(chr, position)]
 
 # interpolate recombination at same resolution
