@@ -22,6 +22,25 @@ rule all_year_chr:
 	input:
 		expand("ACUA_{year}/{scaff}.RData",year=years,scaff=scaffs)
 
+rule make_interp_interval_bed:
+	input:
+		"ancestry-probs-par1_allchrs_ACUA_historical_2018.tsv"
+	output:
+		"allChrs_1kb.bed"
+	shell:
+		"Rscript --vanilla chr_1kb_bed.R"
+
+rule make_CDS_bed:
+	input:
+		"xiphophorus_birchmanni_10x_12Sep2018_yDAA6.gtf" 
+	output:
+		"Xbirch_CDS.bed"
+	shell:
+		"""
+		grep 'CDS' {input} | cut -f1,4,5 | awk '{print $1 "\t" $2-1 "\t" $3}' |\\
+		sort -k1,1 -k2,2n | bedtools merge -i stdin > {output}
+		"""
+
 rule avgFrq_totalCor:
 	input:
 		expand("ACUA_{{year}}/{scaff}.RData",scaff=scaffs)

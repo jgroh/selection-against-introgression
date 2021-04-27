@@ -10,6 +10,7 @@ gen <- as.numeric( unlist(strsplit(arg,"_"))[1])
 J <- as.numeric( unlist(strsplit(arg,"_"))[2])
 k <- as.numeric( unlist(strsplit(arg,"_"))[3])
 S <- as.numeric( unlist(strsplit(arg,"_"))[4])
+M <- as.numeric( unlist(strsplit(arg,"_"))[5])
 
 # define wavlet support 
 upper <- k*(2^J)
@@ -26,7 +27,8 @@ haarCts <- function(x){
 # Expected wavelet variance with sweep ----------------------------------------------
 # ignores coal. x[1] and x[2] are positions of l1, l2 (neutral loci).
 # ls must be provided (we integrate over ls below)
-wav_var_sweep <- function(x, j=J, r=1/1024, n.sample=1, alpha=(1/2), s=S, N=10000, t=gen, l.s) {
+wav_var_sweep <- function(x, j=J, r=1/1024, n.sample=M, alpha=(1/2), s=S, N=10000, t=gen, l.s) {
+
 # Note that alpha should be the frequency of the introgressed allele in the F2s before selection 
 # so the admixture proportion specified in slim is not the same here, as in the sim script corresponding to these calculations there is selection on F1s (not parentals though)
 
@@ -67,7 +69,7 @@ wav_var_sweep <- function(x, j=J, r=1/1024, n.sample=1, alpha=(1/2), s=S, N=1000
     x2 <- max(x)
     x1 <- min(x)
     
-    cov_ij <- (q^2)*(u_prime(x1,l.s) + alpha*v_prime(x1,l.s))*(u_prime(x2,l.2) + alpha*v_prime(x2,l.s)) +
+    cov_ij <- (q^2)*(u_prime(x1,l.s) + alpha*v_prime(x1,l.s))*(u_prime(x2,l.s) + alpha*v_prime(x2,l.s)) +
       p*q*g_prime(x1,l.s)*(u_prime(x2,l.s) + alpha*v_prime(x2,l.s)) + 
       p*q*g_prime(x2,l.s)*(u_prime(x1,l.s) + alpha*v_prime(x1,l.s)) + 
       p^2*alpha^2*g_prime(x1,l.s)*g_prime(x2,l.s)
@@ -112,7 +114,7 @@ for(l.s in seq(from=0,to=1024,length.out=10)){
 
 
 # output gen, scale, k, expected squared wavelet coefficient
-cat(gen, J, k, S, mean(vals))
+cat(gen, J, k, S, M, mean(vals))
 cat("\n")
 
 
