@@ -1,33 +1,11 @@
 library(data.table)
-library(tools)
-library(magrittr)
 
-# 1. Make 1kb bed file =====
-
-# read files containing chromosome lengths
-chrCM <- fread("cM_lengths_birchmanni10x.txt", col.names = c("chr", "cM")) # cM lengths
+# Make bed file of recombination per bp recombination rates for X. birchmanni genome =====
 chrLen <- fread("xbir10x_chrlengths.txt", col.names = c("chr", "len")) # physical lengths
+chrCM <- fread("cM_lengths_birchmanni10x.txt", col.names = c("chr", "cM")) # cM lengths
 
-# midpoints of 1kb windows for each chromosome 
-bed <- chrLen[, seq(500, max(len), by=5e2), by = .(chr,len)]
-setnames(bed, "V1", "midpoint")
-bed <- bed[bed$midpoint %% 1000 != 0] 
-
-# make start and end of intervals. If last window of chrom, use chr length + 1 as end bc bed file is zero-indexed
-bed[, c("start", "end") := .(midpoint - 500, 
-                             ifelse(midpoint == max(midpoint), max(len)+1, midpoint + 500)), by = chr] 
-
-bed[, "len" := NULL]
-setcolorder(bed, c("chr", "start", "end", "midpoint"))
-
-# write out
-write.table(bed, file = "allChr_1kb.bed", quote = F, sep = "\t", col.names = F, row.names = F)
-
-
-# 2. Make recombination bed file =====
-
-# This reads all recombination files and constructs a bed file of rec intervals
-# extending to the ends of chromosomes using the rec rates for the outermost intervals
+# This combines all recombination files,
+# extending intervals to the ends of chromosomes using the rec rates for the outermost intervals
 
 recombBed <- rbindlist(
   lapply(list.files("LD_recMap/",full.names=T), function(x){
@@ -69,5 +47,4 @@ Ne2 <- z$coefficients[1]
 recombBed[, r := median_2Ner/Ne2][, median_2Ner := NULL]
 
 # write out
-write.table(bed, file = "allChrLDRecMap.bed", quote = F, sep = "\t", col.names = F, row.names = F)
-
+write.table(recombBed, file = "", quote = F, sep = "\t", col.names = F, row.names = F)
