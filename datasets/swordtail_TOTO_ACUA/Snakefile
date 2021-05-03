@@ -1,7 +1,7 @@
 import numpy as np
 import os
 years = ["2006","2008","2013","2015","2018"]
-scaffs = [s.replace("LD_map_xbirchmanni-COAC-10x-","").replace(".post.txt_mod.bed","") for s in os.listdir("LD_recMap")]
+chrs = [s.replace("LD_map_xbirchmanni-COAC-10x-","").replace(".post.txt_mod.bed","") for s in os.listdir("LD_recMap")]
 
 rule all:
 	input:
@@ -12,23 +12,33 @@ rule all:
 rule wrangle:
 	input: 
 		expand("ancestry-probs-par{par}_allchrs_ACUA_historical_{{year}}.tsv", par=["1","2"]),
-		"LD_recMap/LD_map_xbirchmanni-COAC-10x-{scaff}.post.txt_mod.bed"
+		"LD_recMap/LD_map_xbirchmanni-COAC-10x-{chr}.post.txt_mod.bed"
 	output:
-		"ACUA_{year}/{scaff}.RData"
+		"ACUA_{year}/{chr}.RData"
 	shell:
-		"Rscript --vanilla swordtail_wrangle.R {wildcards.year} {wildcards.scaff}"
+		"Rscript --vanilla swordtail_wrangle.R {wildcards.year} {wildcards.chr}"
 
 rule all_year_chr:
 	input:
-		expand("ACUA_{year}/{scaff}.RData",year=years,scaff=scaffs)
+		expand("ACUA_{year}/{chr}.RData",year=years,chr=chrs)
 
-rule make_interp_interval_bed:
+rule make_kb_bed:
 	input:
-		"ancestry-probs-par1_allchrs_ACUA_historical_2018.tsv"
+		"xbir10x_chrlengths.txt",
 	output:
-		"allChrs_1kb.bed"
+		"allChr_1kb.bed",
 	shell:
-		"Rscript --vanilla chr_1kb_bed.R"
+		"Rscript --vanilla allChrMakeBed_1kb.R | sort -k1,1 -k2,2n > {output}"
+
+rule make_rec_bed:
+	input:
+		"xbir10x_chrlengths.txt",
+		"cM_lengths_birchmanni10x.txt",
+		expand("LD_recMap/LD_map_xbirchmanni-COAC-10x-{chr}.post.txt_mod.bed",chr=chrs)
+	output:
+		"allChr_LDRecMap.bed"
+	shell:
+		"Rscript --vanilla allChrMakeBed_LDRecMap.R | sort -k1,1 -k2,2n > {output}"
 
 rule make_CDS_bed:
 	input:
@@ -37,13 +47,21 @@ rule make_CDS_bed:
 		"Xbirch_CDS.bed"
 	shell:
 		"""
-		grep 'CDS' {input} | cut -f1,4,5 | awk '{print $1 "\t" $2-1 "\t" $3}' |\\
+		grep 'CDS' {input} | cut -f1,4,5 | awk '{{print $1 "\t" $2-1 "\t" $3}}' |\\
 		sort -k1,1 -k2,2n | bedtools merge -i stdin > {output}
 		"""
+rule calculate_cds_density:
+	input:
+		A="allChr_1kb.bed",
+		B="Xbirch_CDS.bed"
+	output:
+		"CDS_density.txt"
+	shell:
+		"bedtools coverage -a {input.A} -b {input.B} | cut -f1,4,8 > {output}"
 
 rule avgFrq_totalCor:
 	input:
-		expand("ACUA_{{year}}/{scaff}.RData",scaff=scaffs)
+		expand("ACUA_{{year}}/{chr}.RData",chr=chrs)
 	output:
 		"ACUA_{year}/avgFrq_totalCor.RData"
 	shell:
@@ -51,7 +69,7 @@ rule avgFrq_totalCor:
 
 rule combine_chrs_and_run_wavelets:
 	input:
-		expand("ACUA_{{year}}/{scaff}.RData",scaff=scaffs)
+		expand("ACUA_{{year}}/{chr}.RData",chr=chrs)
 	output:
 		"ACUA_{year}/varDecompAll.RData",
 		"ACUA_{year}/rAncCorDecompAll.RData"
