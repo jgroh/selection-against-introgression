@@ -9,6 +9,9 @@ year <- args[1]
 scaffFiles <- dir(path=paste0("ACUA_",year),pattern="ScyDAA6*",full.names=T)
 scaffs <- basename(file_path_sans_ext(scaffFiles))
 
+# read cds density file
+cdsDensity <- fread("CDS_density.txt", col.names = c("chr", "position", "cds_density"))
+
 # each file has the same object name for the scaffold 
 # so we load into separate environments
 loadFrom=function(file, name){e=new.env();load(file,env=e);e[[name]]} 
@@ -24,6 +27,9 @@ gnomG[,pop_mean_minor_parent := 1 - pop_mean_interp]
 
 gnomP[,ind_minor_parent := 1 - ind_frq_interp]
 gnomP[,pop_mean_minor_parent := 1 - pop_mean_interp]
+
+# merge cds density
+gnomP <- merge(gnomP, cdsDensity, by = c("chr", "position"))
 
 # 2. ========== MODWT Functions ==========
 
@@ -179,14 +185,14 @@ popModwtP <- gnomP[ID==ID[1], modwtAllScales(.SD,variable=pop_mean_minor_parent,
 popWavVarP <- popModwtP[,lapply(.SD,wav_var),by=chr]
 setnames(popWavVarP, paste0("d",1:maxLevelP), as.character(1:maxLevelP))
 popWavVarP <- melt(popWavVarP, measure.vars = as.character(1:maxLevelP),
-                         variable.name = "scale", value.name = "variance")
+                         variable.name = "scale", value.name = "anc_variance")
 # save the chromosome-level version before averaging for looking at chrs separately
 popWavVarP_Chrs <- popWavVarP
 
 # weighted average over chromosomes
 popWavVarP <- merge(popWavVarP, chrWeightsP) 
-popMeanWavVarP <- popWavVarP[, weighted.mean(variance, weight), by = scale]
-setnames(popMeanWavVarP, "V1", "variance")
+popMeanWavVarP <- popWavVarP[, weighted.mean(anc_variance, weight), by = scale]
+setnames(popMeanWavVarP, "V1", "anc_variance")
 popMeanWavVarP[, decomp := "pop_mean"]
 
 
@@ -259,8 +265,17 @@ setnames(rWavVarP, paste0("d",1:maxLevelP), as.character(1:maxLevelP))
 rWavVarP <- melt(rWavVarP, measure.vars = as.character(1:maxLevelP),
                        variable.name = "scale", value.name = "r_variance")
 
-# combine tables with wavelet variances for both signals
-rAncWavVar <- merge(rWavVarP, popWavVarP, by = c("chr", "scale"))
+# run modwt on gene density
+cdsModwtP <- gnomP[ID==ID[1],modwtAllScales(.SD,variable=cds_density,lenCol=position,allcols=allColsP), by = chr]
+
+# wavelet variance for cds density
+cdsWavVarP <- cdsModwtP[,lapply(.SD,wav_var),by=chr]
+setnames(cdsWavVarP, paste0("d",1:maxLevelP), as.character(1:maxLevelP))
+cdsWavVarP <- melt(cdsWavVarP, measure.vars = as.character(1:maxLevelP),
+                 variable.name = "scale", value.name = "cds_variance")
+
+# combine tables with wavelet variances for all signals
+rCdsAncWavVar <- merge(cdsWavVarP, merge(rWavVarP, popWavVarP, by = c("chr", "scale")), by = c("chr", "scale"))
 
 # get modwt data tables into more convenient shape (only after calculating wav var)
 rModwtP[, position := seq_len(.N), by = chr]
@@ -273,14 +288,25 @@ setnames(popModwtP, paste0("d",1:maxLevelP), as.character(1:maxLevelP))
 popModwtP <- melt(popModwtP, measure.vars = as.character(1:maxLevelP),
                   variable.name = "scale", value.name = "anc_coeff")
 
-rAncModwtP <- merge(popModwtP, rModwtP)
+cdsModwtP[, position := seq_len(.N), by = chr]
+setnames(cdsModwtP, paste0("d",1:maxLevelP), as.character(1:maxLevelP))
+cdsModwtP <- melt(cdsModwtP, measure.vars = as.character(1:maxLevelP),
+                  variable.name = "scale", value.name = "cds_coeff")
 
-# unweighted wavelet covariance at each scale separately for each chromosome
-rAncCov <- rAncModwtP[, sum(r_coeff*anc_coeff, na.rm=T)/length(r_coeff[!is.na(r_coeff)]), by = .(chr, scale)]
-setnames(rAncCov, "V1", "covariance")
+rCdsAncModwtP <- merge(merge(popModwtP, rModwtP, by = c("chr", "position", "scale")),
+                    cdsModwtP, by = c("chr", "position", "scale"))
+
+# unweighted wavelet covariances at each scale separately for each chromosome
+rAncCov <- rCdsAncModwtP[, sum(r_coeff*anc_coeff, na.rm=T)/length(r_coeff[!is.na(r_coeff)]), by = .(chr, scale)]
+setnames(rAncCov, "V1", "r_anc_covariance")
+
+cdsAncCov <- rCdsAncModwtP[, sum(cds_coeff*anc_coeff, na.rm=T)/length(cds_coeff[!is.na(cds_coeff)]), by = .(chr, scale)]
+setnames(cdsAncCov, "V1", "cds_anc_covariance")
+
+rCdsAncCov <- merge(rAncCov, cdsAncCov)
 
 # merge covariance table with wavelet variance table
-rAncCovWavVar <- merge(rAncCov, rAncWavVar, by = c("chr", "scale"))
+rAncCovWavVar <- merge(rCdsAncCov, rCdsAncWavVar, by = c("chr", "scale"))
 
 # Weight covariances and variances
 weightedVarCov <- rAncCovWavVar[, lapply(.SD, weighted.mean, w=weight), by = scale, 
