@@ -10,7 +10,7 @@ scaffFiles <- dir(path=paste0("ACUA_",year),pattern="ScyDAA6*",full.names=T)
 scaffs <- basename(file_path_sans_ext(scaffFiles))
 
 # read cds density file
-cdsDensity <- fread("CDS_density.txt", col.names = c("chr", "position", "cds_density"))
+cdsCM <- fread("allChr_cds_and_cm_per_1kb.txt")
 
 # each file has the same object name for the scaffold 
 # so we load into separate environments
@@ -18,18 +18,21 @@ loadFrom=function(file, name){e=new.env();load(file,env=e);e[[name]]}
 
 # combine data into one file for the year
 gnomG <- rbindlist(lapply(as.list(scaffFiles), 
-                  function(x){loadFrom(x, "chrom1.interp.gen")}))
+                  function(x){loadFrom(x, "chromAncInterpMorgan")}))
 gnomP <- rbindlist(lapply(as.list(scaffFiles), 
-                             function(x){loadFrom(x, "chrom1.interp.phys")}))
+                             function(x){loadFrom(x, "chromAnc1kb")}))
 
-gnomG[,ind_minor_parent := 1 - ind_frq_interp]
-gnomG[,pop_mean_minor_parent := 1 - pop_mean_interp]
+# For ACUA, minor parent is malinche
+gnomG[,indivFreq := 1 - indivFreq]
+gnomG[,meanFreq := 1 - meanFreq]
 
-gnomP[,ind_minor_parent := 1 - ind_frq_interp]
-gnomP[,pop_mean_minor_parent := 1 - pop_mean_interp]
+gnomP[,indivFreq := 1 - indivFreq]
+gnomP[,meanFreq := 1 - meanFreq]
 
-# merge cds density
-gnomP <- merge(gnomP, cdsDensity, by = c("chr", "position"))
+# merge ancestry data and genomic features data
+cdsCM[, position := start + 500]
+gnomP <- merge(gnomP, cdsCM, by = c("chr", "position"))
+
 
 # 2. ========== MODWT Functions ==========
 
@@ -62,7 +65,7 @@ maxLevelG <- max(gnomG[,floor(log2(length(unique(Morgan)))),by=chr][,2])
 allColsG <- paste0("d",1:maxLevelG)
 
 # 3.1. ---------- MODWT on individuals ----------
-indModwtG <- gnomG[, modwtAllScales(.SD,variable=ind_minor_parent,lenCol=Morgan,allcols=allColsG), by = .(chr,ID)]
+indModwtG <- gnomG[, modwtAllScales(.SD,variable=indivFreq,lenCol=Morgan,allcols=allColsG), by = .(chr,ID)]
 
 # number of wavelet coefficients per scale on each chromosome
 chrWeightsG <- indModwtG[ID==ID[1],lapply(.SD,numCoeff), by = .(chr,ID)]
@@ -83,27 +86,28 @@ indWavVarG <- melt(indWavVarG, id.vars = c("ID","chr"),
 # average over chromosomes within an individual, then average over individuals
 indWavVarG <- merge(indWavVarG, chrWeightsG) 
 indMeanWavVarG <- indWavVarG[, weighted.mean(variance, weight), by = .(ID,scale)][,mean(V1), by = scale]
-setnames(indMeanWavVarG, "V1", "variance")
+setnames(indMeanWavVarG, "V1", "anc_variance")
 indMeanWavVarG[,decomp :="mean_individual"]
 
 
 # 3.2. ---------- MODWT on population mean ----------
 
 # run modwt
-popMeanModwtG <- gnomG[ID==ID[1],modwtAllScales(.SD,variable=pop_mean_minor_parent,lenCol=Morgan,allcols=allColsG), by = chr]
+popMeanModwtG <- gnomG[ID==ID[1],modwtAllScales(.SD,variable=meanFreq,lenCol=Morgan,allcols=allColsG), by = chr]
 
 # wavelet variance by chromosome
 popMeanWavVarG <- popMeanModwtG[,lapply(.SD,wav_var),by=chr]
 setnames(popMeanWavVarG, paste0("d",1:maxLevelG), as.character(1:maxLevelG))
 popMeanWavVarG <- melt(popMeanWavVarG, measure.vars = as.character(1:maxLevelG),
-                         variable.name = "scale", value.name = "variance")
+                         variable.name = "scale", value.name = "anc_variance")
 # save the chromosome-level version before averaging for looking at chrs separately
 popWavVarG_Chrs <- popMeanWavVarG
+popWavVarG_Chrs[, distance := "genetic"]
 
 # weighted average over chromosomes
 popMeanWavVarG <- merge(popMeanWavVarG, chrWeightsG) 
-popMeanWavVarG <- popMeanWavVarG[, weighted.mean(variance, weight), by = scale]
-setnames(popMeanWavVarG, "V1", "variance")
+popMeanWavVarG <- popMeanWavVarG[, weighted.mean(anc_variance, weight), by = scale]
+setnames(popMeanWavVarG, "V1", "anc_variance")
 popMeanWavVarG[,decomp :="pop_mean"]
 
 
@@ -117,7 +121,7 @@ setnames(chrLenG, "V1", "len")
 chrLenG[, weight := len/sum(len)]
 
 # chromosome means of population mean minor parent ancestry
-chrMeansPopMeanG <- gnomG[, mean(pop_mean_minor_parent), by = .(chr)]
+chrMeansPopMeanG <- gnomG[, mean(meanFreq), by = .(chr)]
 setnames(chrMeansPopMeanG, "V1", "avg_frq")
 chrMeansPopMeanG <- merge(chrMeansPopMeanG, chrLenG)
 
@@ -131,7 +135,7 @@ chrVarPopG <- chrMeansPopMeanG[, sum(weight*(avg_frq - weightedMeanPopMeanG)^2)]
 # 4.2. ---------- Individual-Level ----------
 
 # chromosome-level average minor parent ancestry for individuals
-chrMeansIndG <- gnomG[, mean(ind_minor_parent), by = .(ID,chr)]
+chrMeansIndG <- gnomG[, mean(indivFreq), by = .(ID,chr)]
 setnames(chrMeansIndG, "V1", "avg_frq")
 
 # calculate genome-wide mean for individuals by weighting chromosomes
@@ -143,19 +147,19 @@ chrVarIndG <- chrMeansIndG[, sum(weight*(avg_frq - gnomWideMean)^2), by = ID][,m
 
 # output weighted chromosome-level variance for avg. individual-level signal 
 # and population mean 
-chrVarG <- data.table("variance" = c(chrVarIndG, chrVarPopG), 
+chrVarG <- data.table("anc_variance" = c(chrVarIndG, chrVarPopG), 
            "decomp" = c("mean_individual", "pop_mean"), 
            "scale" = "chr", "distance" = "genetic")
 
 
-# 5. ========== MODWT on Physical Scale ==========
+# 5. ========== MODWT of ancestry on Physical Scale ==========
 
 # define levels based on longest chromosome
 maxLevelP <- max(gnomP[,floor(log2(length(unique(position)))),by=chr][,2])
 allColsP <- paste0("d",1:maxLevelP)
 
 # 5.1. ---------- MODWT on Individuals ----------
-indModwtP <- gnomP[, modwtAllScales(.SD,variable=ind_minor_parent,lenCol=position,allcols=allColsP), by = .(chr,ID)]
+indModwtP <- gnomP[, modwtAllScales(.SD,variable=indivFreq,lenCol=position,allcols=allColsP), by = .(chr,ID)]
 
 # obtain chromosome weights for each scale based on number of non-boundary coefficients on the chromosome
 chrWeightsP <- indModwtP[ID==ID[1],lapply(.SD,numCoeff), by = .(chr,ID)]
@@ -174,20 +178,21 @@ indWavVarP <- melt(indWavVarP, id.vars = c("ID","chr"),
 # average over chromosomes within an individual, then average over individuals
 indWavVarP <- merge(indWavVarP, chrWeightsP) 
 indMeanWavVarP <- indWavVarP[, weighted.mean(variance, weight), by = .(ID,scale)][,mean(V1), by = scale]
-setnames(indMeanWavVarP, "V1", "variance")
+setnames(indMeanWavVarP, "V1", "anc_variance")
 indMeanWavVarP[, decomp := "mean_individual"]
 
 
 # 5.2. --------- MODWT on Population Mean ----------
 
 # run wavelet decomp on population mean for each chrom separately
-popModwtP <- gnomP[ID==ID[1], modwtAllScales(.SD,variable=pop_mean_minor_parent,lenCol=position,allcols=allColsP), by = chr]
+popModwtP <- gnomP[ID==ID[1], modwtAllScales(.SD,variable=meanFreq,lenCol=position,allcols=allColsP), by = chr]
 popWavVarP <- popModwtP[,lapply(.SD,wav_var),by=chr]
 setnames(popWavVarP, paste0("d",1:maxLevelP), as.character(1:maxLevelP))
 popWavVarP <- melt(popWavVarP, measure.vars = as.character(1:maxLevelP),
                          variable.name = "scale", value.name = "anc_variance")
 # save the chromosome-level version before averaging for looking at chrs separately
 popWavVarP_Chrs <- popWavVarP
+popWavVarP_Chrs[, distance := "physical"]
 
 # weighted average over chromosomes
 popWavVarP <- merge(popWavVarP, chrWeightsP) 
@@ -207,7 +212,7 @@ setnames(chrLenP, "V1", "len")
 chrLenP[, weight := len/sum(len)]
 
 # chromosome means of population mean minor parent ancestry
-chrMeansPopMeanP <- gnomP[, mean(pop_mean_minor_parent), by = .(chr)]
+chrMeansPopMeanP <- gnomP[, mean(meanFreq), by = .(chr)]
 setnames(chrMeansPopMeanP, "V1", "avg_frq")
 chrMeansPopMeanP[, weight := chrLenP[,weight]]
 
@@ -221,11 +226,11 @@ chrVarPopP <- chrMeansPopMeanP[, sum(weight*(avg_frq - weightedMeanPopMeanP)^2)]
 # 6.2. ---------- Individual-Level ----------
 
 # chromosome-level average minor parent ancestry for individuals
-chrMeansIndP <- gnomP[, mean(ind_minor_parent), by = .(ID,chr)]
+chrMeansIndP <- gnomP[, mean(indivFreq), by = .(ID,chr)]
 setnames(chrMeansIndP, "V1", "avg_frq")
 
 # calculate genome-wide mean for individuals by weighting chromosomes
-chrMeansIndP <- merge(chrMeansIndP, chrLenP) # add chrom weights
+chrMeansIndP <- merge(chrMeansIndP, chrLenP, by = "chr") # add chrom weights
 chrMeansIndP[, gnomWideMean := weighted.mean(avg_frq,weight), by = ID]
 
 # chromosome-level weighted variance by individual, then average over individuals
@@ -233,7 +238,7 @@ chrVarIndP <- chrMeansIndP[, sum(weight*(avg_frq - gnomWideMean)^2), by = ID][,m
 
 # output weighted chromosome-level variance for avg. individual-level signal 
 # and population mean 
-chrVarP <- data.table("variance" = c(chrVarIndP, chrVarPopP), 
+chrVarP <- data.table("anc_variance" = c(chrVarIndP, chrVarPopP), 
                       "decomp" = c("mean_individual", "pop_mean"), 
                       "scale" = "chr", "distance" = "physical")
 
@@ -246,27 +251,30 @@ wvFinalP <- rbind(indMeanWavVarP, popMeanWavVarP)
 wvFinalP[, distance := "physical"]
 wvFinalAll <- rbind(wvFinalP, wvFinalG)
 
+# combine wavelet variances by chromosome
+wvChrsAll <- rbind(popWavVarG_Chrs, popWavVarP_Chrs)
+
 # combine chromosome-level variances
 chrVarAll <- rbind(chrVarP, chrVarG)
 
-save(wvFinalAll, chrVarAll, popWavVarG_Chrs, popWavVarP_Chrs, file = paste0("ACUA_",year,"/varDecompAll.RData"))
+save(wvFinalAll, chrVarAll, wvChrsAll, file = paste0("ACUA_",year,"/ancVarDecomp.RData"))
 
 
 # 8. ========== Correlation Analysis ==========
 
 # 8.1. ---------- Wavelet Correlation Analysis ----------
 
-# run modwt on recombination rate
-rModwtP <- gnomP[ID==ID[1],modwtAllScales(.SD,variable=r_interp,lenCol=position,allcols=allColsP), by = chr]
+# run modwt on recombination rate (cM length of 1kb window)
+recModwtP <- gnomP[ID==ID[1],modwtAllScales(.SD,variable=cM,lenCol=position,allcols=allColsP), by = chr]
 
 # wavelet variance for rec rate
-rWavVarP <- rModwtP[,lapply(.SD,wav_var),by=chr]
-setnames(rWavVarP, paste0("d",1:maxLevelP), as.character(1:maxLevelP))
-rWavVarP <- melt(rWavVarP, measure.vars = as.character(1:maxLevelP),
-                       variable.name = "scale", value.name = "r_variance")
+recWavVarP <- recModwtP[,lapply(.SD,wav_var),by=chr]
+setnames(recWavVarP, paste0("d",1:maxLevelP), as.character(1:maxLevelP))
+recWavVarP <- melt(recWavVarP, measure.vars = as.character(1:maxLevelP),
+                       variable.name = "scale", value.name = "rec_variance")
 
-# run modwt on gene density
-cdsModwtP <- gnomP[ID==ID[1],modwtAllScales(.SD,variable=cds_density,lenCol=position,allcols=allColsP), by = chr]
+# run modwt on coding bp per 1kb window
+cdsModwtP <- gnomP[ID==ID[1],modwtAllScales(.SD,variable=coding_bp,lenCol=position,allcols=allColsP), by = chr]
 
 # wavelet variance for cds density
 cdsWavVarP <- cdsModwtP[,lapply(.SD,wav_var),by=chr]
@@ -274,71 +282,93 @@ setnames(cdsWavVarP, paste0("d",1:maxLevelP), as.character(1:maxLevelP))
 cdsWavVarP <- melt(cdsWavVarP, measure.vars = as.character(1:maxLevelP),
                  variable.name = "scale", value.name = "cds_variance")
 
+# run modwt on cM per kb coding bp
+cdsPerCmModwtP <- gnomP[ID==ID[1],modwtAllScales(.SD,variable=coding_bp/cM,lenCol=position,allcols=allColsP), by = chr]
+
+# wavelet variance for cds density
+cdsPerCmWavVarP <- cdsPerCmModwtP[,lapply(.SD,wav_var),by=chr]
+setnames(cdsPerCmWavVarP, paste0("d",1:maxLevelP), as.character(1:maxLevelP))
+cdsPerCmWavVarP <- melt(cdsPerCmWavVarP, measure.vars = as.character(1:maxLevelP),
+                   variable.name = "scale", value.name = "cdsPerCm_variance")
+
 # combine tables with wavelet variances for all signals
-rCdsAncWavVar <- merge(cdsWavVarP, merge(rWavVarP, popWavVarP, by = c("chr", "scale")), by = c("chr", "scale"))
+allVarsWavVar <- Reduce(merge, list(popWavVarP, recWavVarP, cdsWavVarP, cdsPerCmWavVarP))
 
 # get modwt data tables into more convenient shape (only after calculating wav var)
-rModwtP[, position := seq_len(.N), by = chr]
-setnames(rModwtP, paste0("d",1:maxLevelP), as.character(1:maxLevelP))
-rModwtP <- melt(rModwtP, measure.vars = as.character(1:maxLevelP),
-                   variable.name = "scale", value.name = "r_coeff")
-
 popModwtP[, position := seq_len(.N), by = chr]
 setnames(popModwtP, paste0("d",1:maxLevelP), as.character(1:maxLevelP))
 popModwtP <- melt(popModwtP, measure.vars = as.character(1:maxLevelP),
                   variable.name = "scale", value.name = "anc_coeff")
+
+recModwtP[, position := seq_len(.N), by = chr]
+setnames(recModwtP, paste0("d",1:maxLevelP), as.character(1:maxLevelP))
+recModwtP <- melt(recModwtP, measure.vars = as.character(1:maxLevelP),
+                   variable.name = "scale", value.name = "rec_coeff")
 
 cdsModwtP[, position := seq_len(.N), by = chr]
 setnames(cdsModwtP, paste0("d",1:maxLevelP), as.character(1:maxLevelP))
 cdsModwtP <- melt(cdsModwtP, measure.vars = as.character(1:maxLevelP),
                   variable.name = "scale", value.name = "cds_coeff")
 
-rCdsAncModwtP <- merge(merge(popModwtP, rModwtP, by = c("chr", "position", "scale")),
-                    cdsModwtP, by = c("chr", "position", "scale"))
+cdsPerCmModwtP[, position := seq_len(.N), by = chr]
+setnames(cdsPerCmModwtP, paste0("d",1:maxLevelP), as.character(1:maxLevelP))
+cdsPerCmModwtP <- melt(cdsPerCmModwtP, measure.vars = as.character(1:maxLevelP),
+                  variable.name = "scale", value.name = "cdsPerCm_coeff")
+
+
+allVarsModwtP <- Reduce(merge, list(popModwtP, recModwtP, cdsModwtP, cdsPerCmModwtP))
+ 
 
 # unweighted wavelet covariances at each scale separately for each chromosome
-rAncCov <- rCdsAncModwtP[, sum(r_coeff*anc_coeff, na.rm=T)/length(r_coeff[!is.na(r_coeff)]), by = .(chr, scale)]
-setnames(rAncCov, "V1", "r_anc_covariance")
+recAncCov <- allVarsModwtP[, sum(rec_coeff*anc_coeff, na.rm=T)/length(rec_coeff[!is.na(rec_coeff)]), by = .(chr, scale)]
+setnames(recAncCov, "V1", "rec_anc_covariance")
 
-cdsAncCov <- rCdsAncModwtP[, sum(cds_coeff*anc_coeff, na.rm=T)/length(cds_coeff[!is.na(cds_coeff)]), by = .(chr, scale)]
+cdsAncCov <- allVarsModwtP[, sum(cds_coeff*anc_coeff, na.rm=T)/length(cds_coeff[!is.na(cds_coeff)]), by = .(chr, scale)]
 setnames(cdsAncCov, "V1", "cds_anc_covariance")
 
-rCdsAncCov <- merge(rAncCov, cdsAncCov)
+cdsRecCov <- allVarsModwtP[, sum(cds_coeff*rec_coeff, na.rm=T)/length(cds_coeff[!is.na(cds_coeff)]), by = .(chr, scale)]
+setnames(cdsRecCov, "V1", "cds_rec_covariance")
+
+cdsPerCmAncCov <- allVarsModwtP[, sum(cdsPerCm_coeff*anc_coeff, na.rm=T)/length(cds_coeff[!is.na(cdsPerCm_coeff)]), by = .(chr, scale)]
+setnames(cdsPerCmAncCov, "V1", "cdsPerCm_anc_covariance")
+
+# combine covariance values
+allVarsCov <- Reduce(merge, list(recAncCov, cdsAncCov, cdsRecCov, cdsPerCmAncCov))
 
 # merge covariance table with wavelet variance table
-rAncCovWavVar <- merge(rCdsAncCov, rCdsAncWavVar, by = c("chr", "scale"))
+allVarsWavVarCov <- merge(allVarsWavVar, allVarsCov)
 
-# Weight covariances and variances
-weightedVarCov <- rAncCovWavVar[, lapply(.SD, weighted.mean, w=weight), by = scale, 
-                             .SDcols = c("covariance", "variance", "r_variance")]
+# Weighted mean covariances and variances over chromosomes, weighting by number of wavelets on chromosome at each scale
+weightedWavVarCov <- allVarsWavVarCov[, lapply(.SD, weighted.mean, w=weight), by = scale, 
+                             .SDcols = c("anc_variance","rec_variance","cds_variance","cdsPerCm_variance",
+                                         "rec_anc_covariance","cds_anc_covariance","cds_rec_covariance","cdsPerCm_anc_covariance")]
 
 # Compute final correlation using weights
-wvCorFinal <- weightedVarCov[, covariance/(sqrt(variance)*sqrt(r_variance)), by = scale]
-setnames(wvCorFinal, "V1", "cor")
-#plot(y =wvCorAll$cor, x=1:15)
+cdsPerCmAncWavCorFinal <- weightedWavVarCov[, cdsPerCm_anc_covariance/(sqrt(cdsPerCm_variance)*sqrt(anc_variance)), by = scale]
+setnames(cdsPerCmAncWavCorFinal, "V1", "cdsPerCm_anc_cor")
+#plot(y = cdsPerCmAncWavCorFinal$V1, x=1:14)
+
 
 # 8.2. ---------- Chromosome-Scale correlation ----------
 
-chrMeansRecP <- gnomP[, mean(r_interp), by = chr]
-setnames(chrMeansRecP, "V1", "rec")
+chrMeansCdsPerCm <- gnomP[, mean(coding_bp/cM), by = chr]
+setnames(chrMeansCdsPerCm, "V1", "cdsPerCm")
 
-chrMeansRecAnc <- merge(chrMeansPopMeanP, chrMeansRecP)
+chrMeansCdsPerCmAnc <- merge(chrMeansPopMeanP, chrMeansCdsPerCm)
 
-# compute weighted means of signals
-chrW8MeansRecAnc <- chrMeansRecAnc[, lapply(.SD,weighted.mean), .SDcols = c("avg_frq", "rec")]
+# compute weighted means of signals overall all chromosomes
+gnomMeansCdsPerCmAnc <- chrMeansCdsPerCmAnc[, lapply(.SD,weighted.mean, weight=weight), .SDcols = c("avg_frq", "cdsPerCm")]
 
-# numerator
-chrCorNum <- chrMeansRecAnc[, sum( weight*(avg_frq-chrW8MeansRecAnc$avg_frq)*(rec-chrW8MeansRecAnc$rec))/length(avg_frq)]
+# numerator is a weighted covariance
+chrCorNum <- chrMeansCdsPerCmAnc[, sum(weight*(avg_frq-gnomMeansCdsPerCmAnc$avg_frq)*(cdsPerCm-gnomMeansCdsPerCmAnc$cdsPerCm))]
 
-# weighted st. dev. of two signals
-chrCorDenom <- denominator <- chrMeansRecAnc[, sqrt(
-  (
-    sum(weight*(avg_frq - chrW8MeansRecAnc$avg_frq)^2)/length(avg_frq))*
-    (
-      sum(weight*(rec - chrW8MeansRecAnc$rec)^2)/length(rec))
-  )]
+# denom is product of weighted standard deviations of two signals
+chrCorDenom <- chrMeansCdsPerCmAnc[, sqrt(
+  (sum(weight*(avg_frq - gnomMeansCdsPerCmAnc$avg_frq)^2))*
+    (sum(weight*(cdsPerCm - gnomMeansCdsPerCmAnc$cdsPerCm)^2)) )
+  ]
 
-chrCor <- chrCorNum/chrCorDenom
+cdsPerCmAncChrCor <- chrCorNum/chrCorDenom
 
 # ========== Save Correlation Analysis Outputs ==========
-save(wvCorFinal, chrCor, file = paste0("ACUA_",year,"/rAncCorDecompAll.RData"))
+save(cdsPerCmAncWavCorFinal, cdsPerCmAncChrCor, file = paste0("ACUA_",year,"cdsPerCm_x_anc_corDecomp.RData"))
