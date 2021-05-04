@@ -44,7 +44,7 @@ rule make_CDS_bed:
 	input:
 		"xiphophorus_birchmanni_10x_12Sep2018_yDAA6.gtf" 
 	output:
-		"Xbirch_CDS.bed"
+		"allChr_CDS.bed"
 	shell:
 		"""
 		grep 'CDS' {input} | cut -f1,4,5 | awk '{{print $1 "\t" $2-1 "\t" $3}}' |\\
@@ -64,14 +64,25 @@ rule calculate_cm_per_kb:
 		awk '{{print $1 "\t" $2 "\t" $3 "\t" ($3-$2)*$4*100}}' > {output}
 		"""
 
-rule calculate_cds_density:
+rule cds_per_kb:
 	input:
 		A="allChr_1kb.bed",
-		B="Xbirch_CDS.bed"
+		B="allChr_CDS.bed"
 	output:
-		"CDS_density.txt"
+		"cds_per_kb.bed"
 	shell:
-		"bedtools coverage -a {input.A} -b {input.B} | cut -f1,4,8 > {output}"
+		"""
+		bedtools coverage -a {input.A} -b {input.B} | cut -f1-3,5 |\\
+		sort -k1,1 -k2,2n > {output}
+		"""
+rule cds_and_cm_per_kb:
+	input:
+		A="cds_per_kb.bed",
+		B="allChr_1kb_rec.bed"
+	output:
+		"allChr_cds_and_cm_per_1kb.txt"
+	shell:
+		"Rscript --vanilla merge_cds_and_cm_1kb.R"
 
 rule avgFrq_totalCor:
 	input:
