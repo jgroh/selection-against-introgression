@@ -82,20 +82,19 @@ if(max(rhoMap$end) < chrLen[chromosome==chr,len]){
 
 
 Ne2 <- 75981 # see script allChrMakeBed_LDRecMap.R for Ne calculation
-MorganVec <- cumsum(rhoMap[, rep(rho, end-start)/Ne2, by = end])
-setnames(MorganVec, "V1", "Morgan")
+MorganVec <- cumsum(rhoMap[, rep(rho/Ne2, end-start)])
 
 
 # 5. Interpolate ancestry at evenly space genetic distances =====
 
 # assign genetic position of SNPS present in the data
-chrom[, "Morgan" := MorganVec[,Morgan][position]]
+chrom[, "Morgan" := MorganVec[position]]
 
 # check number of SNPs per Morgan
 # chrom[,length(unique(position))/max(Morgan)]
 # roughly across chromosomes there are 50,000 SNPs per Morgan. So if we interpolate to M*2^-15, this gives roughly 1 SNP per interpolation window
 
-xoutMorgan <- MorganVec[,seq(0,max(Morgan), by = 2^-15)]
+xoutMorgan <- seq(0,max(MorganVec), by = 2^-15)
 
 # interpolate individual ancestry at genetic coordinates
 chromAncInterpMorgan <- chrom[, approx(x = Morgan, 
