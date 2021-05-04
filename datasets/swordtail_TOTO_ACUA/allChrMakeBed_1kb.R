@@ -1,4 +1,5 @@
 library(data.table)
+options(scipen=999)
 
 # Make 1kb interval bed file for X. birchmanni chromosomes =====
 
@@ -14,8 +15,8 @@ bed <- bed[bed$midpoint %% 1000 != 0]
 bed[, c("start", "end") := .(midpoint - 500, 
                              ifelse(midpoint == max(midpoint), max(len)+1, midpoint + 500)), by = chr] 
 
-bed[, "len" := NULL]
-setcolorder(bed, c("chr", "start", "end", "midpoint"))
+bed[, "len" := NULL][, "midpoint" := NULL]
+setcolorder(bed, c("chr", "start", "end"))
 
 # write out
 write.table(bed, file = "", quote = F, sep = "\t", col.names = F, row.names = F) 

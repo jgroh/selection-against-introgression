@@ -50,6 +50,20 @@ rule make_CDS_bed:
 		grep 'CDS' {input} | cut -f1,4,5 | awk '{{print $1 "\t" $2-1 "\t" $3}}' |\\
 		sort -k1,1 -k2,2n | bedtools merge -i stdin > {output}
 		"""
+
+rule calculate_cm_per_kb: 
+	input:
+		"allChr_1kb.bed",
+		"allChr_LDRecMap.bed"
+	output:
+		"allChr_1kb_rec.bed"
+	shell:
+		# This gets the weighted mean of r for 1kb windows, the awk statement converts to cM
+		"""
+		bedmap --echo --delim "\t" --wmean --sci allChr_1kb.bed allChr_LDRecMap.bed |\\
+		awk '{{print $1 "\t" $2 "\t" $3 "\t" ($3-$2)*$4*100}}' > {output}
+		"""
+
 rule calculate_cds_density:
 	input:
 		A="allChr_1kb.bed",

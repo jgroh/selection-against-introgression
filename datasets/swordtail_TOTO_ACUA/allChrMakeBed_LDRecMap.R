@@ -1,4 +1,5 @@
 library(data.table)
+options(scipen=999)
 
 # Make bed file of recombination per bp recombination rates for X. birchmanni genome =====
 chrLen <- fread("xbir10x_chrlengths.txt", col.names = c("chr", "len")) # physical lengths
@@ -47,4 +48,7 @@ Ne2 <- z$coefficients[1]
 recombBed[, r := median_2Ner/Ne2][, median_2Ner := NULL]
 
 # write out
+# since this will be map file, needs 5 columns where 5th column is score
+recombBed[, name := paste0("map-",seq_len(.N))]
+setcolorder(recombBed, c("chr","start","end","name","r"))
 write.table(recombBed, file = "", quote = F, sep = "\t", col.names = F, row.names = F)
