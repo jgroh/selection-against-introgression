@@ -96,7 +96,7 @@ rule combine_chrs_and_run_wavelets:
 	input:
 		expand("ACUA_{{year}}/{chr}.RData",chr=chrs)
 	output:
-		"ACUA_{year}/varDecompAll.RData",
-		"ACUA_{year}/rAncCorDecompAll.RData"
+		"ACUA_{year}/ancVarDecomp.RData",
+		"ACUA_{year}/cdsPerCm_x_anc_corDecomp.RData"
 	shell:
 		"Rscript --vanilla swordtail_wavelets.R {wildcards.year}"
