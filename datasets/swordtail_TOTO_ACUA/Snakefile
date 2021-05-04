@@ -9,14 +9,14 @@ rule all:
 		expand("ACUA_{year}/rAncCorDecompAll.RData",year=years),
 		expand("ACUA_{year}/avgFrq_totalCor.RData",year=years)
 
-rule wrangle:
+rule interpolate_ancestry_single_chrom:
 	input: 
 		expand("ancestry-probs-par{par}_allchrs_ACUA_historical_{{year}}.tsv", par=["1","2"]),
 		"LD_recMap/LD_map_xbirchmanni-COAC-10x-{chr}.post.txt_mod.bed"
 	output:
 		"ACUA_{year}/{chr}.RData"
 	shell:
-		"Rscript --vanilla swordtail_wrangle.R {wildcards.year} {wildcards.chr}"
+		"Rscript --vanilla interpolate_ancestry_single_chrom.R {wildcards.year} {wildcards.chr}"
 
 rule all_year_chr:
 	input:
