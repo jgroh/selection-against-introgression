@@ -4,40 +4,55 @@ library(tidyverse)
 loadFrom=function(file, name){e=new.env();load(file,env=e);e[[name]]} 
 
 # load wavelet variance files
-acua2006wv <- loadFrom("ACUA_2006/varDecompAll.RData", "wvFinalAll"); acua2006wv[,year := "2006"]
-acua2008wv <- loadFrom("ACUA_2008/varDecompAll.RData", "wvFinalAll"); acua2008wv[,year := "2008"]
-acua2013wv <- loadFrom("ACUA_2013/varDecompAll.RData", "wvFinalAll"); acua2013wv[,year := "2013"]
-acua2015wv <- loadFrom("ACUA_2015/varDecompAll.RData", "wvFinalAll"); acua2015wv[,year := "2015"]
-acua2018wv <- loadFrom("ACUA_2018/varDecompAll.RData", "wvFinalAll"); acua2018wv[,year := "2018"]
+acua2006wv <- loadFrom("ACUA_2006/ancVarDecomp.RData", "wvFinalAll"); acua2006wv[,year := "2006"]
+acua2008wv <- loadFrom("ACUA_2008/ancVarDecomp.RData", "wvFinalAll"); acua2008wv[,year := "2008"]
+acua2013wv <- loadFrom("ACUA_2013/ancVarDecomp.RData", "wvFinalAll"); acua2013wv[,year := "2013"]
+acua2015wv <- loadFrom("ACUA_2015/ancVarDecomp.RData", "wvFinalAll"); acua2015wv[,year := "2015"]
+acua2018wv <- loadFrom("ACUA_2018/ancVarDecomp.RData", "wvFinalAll"); acua2018wv[,year := "2018"]
 allWV <- rbindlist(list(acua2006wv,acua2008wv,acua2013wv,acua2015wv,acua2018wv))
 
 # load chrromosome-level variance files
-acua2006chrVar <- loadFrom("ACUA_2006/varDecompAll.RData", "chrVarAll"); acua2006chrVar[,year := "2006"]
-acua2008chrVar <- loadFrom("ACUA_2008/varDecompAll.RData", "chrVarAll"); acua2008chrVar[,year := "2008"]
-acua2013chrVar <- loadFrom("ACUA_2013/varDecompAll.RData", "chrVarAll"); acua2013chrVar[,year := "2013"]
-acua2015chrVar <- loadFrom("ACUA_2015/varDecompAll.RData", "chrVarAll"); acua2015chrVar[,year := "2015"]
-acua2018chrVar <- loadFrom("ACUA_2018/varDecompAll.RData", "chrVarAll"); acua2018chrVar[,year := "2018"]
+acua2006chrVar <- loadFrom("ACUA_2006/ancVarDecomp.RData", "chrVarAll"); acua2006chrVar[,year := "2006"]
+acua2008chrVar <- loadFrom("ACUA_2008/ancVarDecomp.RData", "chrVarAll"); acua2008chrVar[,year := "2008"]
+acua2013chrVar <- loadFrom("ACUA_2013/ancVarDecomp.RData", "chrVarAll"); acua2013chrVar[,year := "2013"]
+acua2015chrVar <- loadFrom("ACUA_2015/ancVarDecomp.RData", "chrVarAll"); acua2015chrVar[,year := "2015"]
+acua2018chrVar <- loadFrom("ACUA_2018/ancVarDecomp.RData", "chrVarAll"); acua2018chrVar[,year := "2018"]
 allChrVar <- rbindlist(list(acua2006chrVar,acua2008chrVar,acua2013chrVar,acua2015chrVar,acua2018chrVar))
-
-
-# load wavelet cor files
-acua2006wc <- loadFrom("ACUA_2006/rAncCorDecompAll.RData", "wvCorFinal"); acua2006wc[,year := "2006"]
-acua2008wc <- loadFrom("ACUA_2008/rAncCorDecompAll.RData", "wvCorFinal"); acua2008wc[,year := "2008"]
-acua2013wc <- loadFrom("ACUA_2013/rAncCorDecompAll.RData", "wvCorFinal"); acua2013wc[,year := "2013"]
-acua2015wc <- loadFrom("ACUA_2015/rAncCorDecompAll.RData", "wvCorFinal"); acua2015wc[,year := "2015"]
-acua2018wc <- loadFrom("ACUA_2018/rAncCorDecompAll.RData", "wvCorFinal"); acua2018wc[,year := "2018"]
-allWC <- rbindlist(list(acua2006wc,acua2008wc,acua2013wc,acua2015wc,acua2018wc))
 
 # combine wavelet and chromosome data - add chromosome as fake scale number for display
 allChrVar[, scale := as.character(17)][, scale := as.numeric(scale)]
 allWV[, scale := as.numeric(scale)]
 allVar <- merge(allWV, allChrVar, all=TRUE)
 
+# load wavelet cor files
+acua2006wc <- loadFrom("ACUA_2006/cdsPerCm_x_anc_corDecomp.RData", "cdsPerCmAncWavCorFinal"); acua2006wc[,year := "2006"]
+acua2008wc <- loadFrom("ACUA_2008/cdsPerCm_x_anc_corDecomp.RData", "cdsPerCmAncWavCorFinal"); acua2008wc[,year := "2008"]
+acua2013wc <- loadFrom("ACUA_2013/cdsPerCm_x_anc_corDecomp.RData", "cdsPerCmAncWavCorFinal"); acua2013wc[,year := "2013"]
+acua2015wc <- loadFrom("ACUA_2015/cdsPerCm_x_anc_corDecomp.RData", "cdsPerCmAncWavCorFinal"); acua2015wc[,year := "2015"]
+acua2018wc <- loadFrom("ACUA_2018/cdsPerCm_x_anc_corDecomp.RData", "cdsPerCmAncWavCorFinal"); acua2018wc[,year := "2018"]
+allWC <- rbindlist(list(acua2006wc,acua2008wc,acua2013wc,acua2015wc,acua2018wc))
+allWC[, scale := as.numeric(scale)]
+
+# load chromosome-level wav cor files
+acua2006ChrCor <- loadFrom("ACUA_2006/cdsPerCm_x_anc_corDecomp.RData", "cdsPerCmAncChrCor")
+acua2008ChrCor <- loadFrom("ACUA_2008/cdsPerCm_x_anc_corDecomp.RData", "cdsPerCmAncChrCor")
+acua2013ChrCor <- loadFrom("ACUA_2013/cdsPerCm_x_anc_corDecomp.RData", "cdsPerCmAncChrCor")
+acua2015ChrCor <- loadFrom("ACUA_2015/cdsPerCm_x_anc_corDecomp.RData", "cdsPerCmAncChrCor")
+acua2018ChrCor <- loadFrom("ACUA_2018/cdsPerCm_x_anc_corDecomp.RData", "cdsPerCmAncChrCor")
+allChrCor <- data.table(cdsPerCm_anc_cor = 
+                          c(acua2006ChrCor,acua2008ChrCor,
+                            acua2013ChrCor,acua2015ChrCor,acua2018ChrCor),
+                        year = c(2006,2008,2013,2015,2018), scale = as.numeric(17))
+
+# combine wavelet and chromosome data for correlation
+allCor <- rbind(allWC, allChrCor)
+
+
 
 # Plot variance decomposition genetic scale =========
 lineData <- allVar[scale < 17]
 
-allVar[decomp == "mean_individual" & distance == "genetic"] %>% ggplot(aes(x = scale, y = variance, group = interaction(decomp, year), color = year)) +
+allVar[decomp == "mean_individual" & distance == "genetic"] %>% ggplot(aes(x = scale, y = anc_variance, group = interaction(decomp, year), color = year)) +
   geom_point(aes(shape = decomp),size=2.2) +
   geom_line(data = lineData[decomp == "mean_individual" & distance == "genetic"], size=0.5,linetype=2) + 
   labs(x = expression(Scale: log[2](Morgans)), 
@@ -55,7 +70,7 @@ allVar[decomp == "mean_individual" & distance == "genetic"] %>% ggplot(aes(x = s
         axis.title.x = element_text(hjust=.4,margin=margin(t=-20)))
 
 # Plot proportion ---------------
-allVar[, propVar := variance/sum(variance), by = .(decomp,distance,year)]
+allVar[, propVar := anc_variance/sum(anc_variance), by = .(decomp,distance,year)]
 lineDataProp <- allVar[scale < 17]
   
 allVar[decomp == "mean_individual" & distance == "genetic"] %>% ggplot(aes(x = scale, y = propVar, group = interaction(decomp, year), color = year)) +
@@ -74,6 +89,7 @@ allVar[decomp == "mean_individual" & distance == "genetic"] %>% ggplot(aes(x = s
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5),#,
         axis.ticks.x = element_line(size=c(rep(1,15),0)),
         axis.title.x = element_text(hjust=.4,margin=margin(t=-20)))
+
 
 # ====== Plot decomp of individual chromosomes =========
 
@@ -115,13 +131,13 @@ acua2006_wvChrP[!chr %in% selChrs, BDMI := "no"]
 
 acua2006_wvChrP %>%
   ggplot(aes(x = scale, y = variance, group = chr, color = BDMI)) + 
-  geom_point() + geom_line() + 
-  theme(legend.position = "none")
+  geom_point() + geom_line() #+ 
+  #theme(legend.position = "none")
 
 
 # Plot variance decomp on physical scale =========
 
-allVar[distance == "physical"] %>% ggplot(aes(x = scale, y = variance, group = interaction(decomp, year), color = year)) +
+allVar[distance == "physical"] %>% ggplot(aes(x = scale, y =anc_variance, group = interaction(decomp, year), color = year)) +
   geom_point(aes(shape = decomp),size=2.2) +
   geom_line(data = lineData[distance == "physical"], size=0.5,linetype=2) + 
   labs(x = expression(Scale: log[2](kbp)), 
@@ -159,25 +175,23 @@ allVar[decomp == "mean_individual" & distance == "physical"] %>% ggplot(aes(x = 
 
 
 # ===== Plot Decomp of Cor between Recomb and Ancestry ===========
+lineDataCor <- allCor[scale < 17]
 
-# weighted average of chromosomes
 
-allWC %>%
-  ggplot(aes(x = scale, y = cor, group = year, color = year)) + 
+# Plot correlation by scale 
+allCor %>%
+  ggplot(aes(x = scale, y = cdsPerCm_anc_cor, group = year, color = year)) + 
   geom_point() + 
-  geom_line(size=0.5,linetype=2) + 
+  geom_line(data = lineDataCor, size=0.5,linetype=2) + 
   labs(x = expression(Scale: log[2](kbp)), 
        y = "Pearson correlation coefficient",
        color = "Year") +
-  scale_x_discrete(breaks = c(1:15), labels = c(as.character(0:14))) + 
+  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(-15:-1),"chromosome\nlevel")) + 
   theme_classic() +
   scale_colour_viridis_d() +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
-  geom_segment(aes(x=16.5,xend=17.5,y=-Inf,yend=-Inf),color="black")
-
-
-
-
+  geom_segment(aes(x=16.5,xend=17.5,y=-Inf,yend=-Inf),color="black") +
+  theme(axis.line.x = element_blank())
 
 
 
