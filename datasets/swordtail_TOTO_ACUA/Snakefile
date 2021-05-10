@@ -26,9 +26,9 @@ rule make_kb_bed:
 	input:
 		"xbir10x_chrlengths.txt",
 	output:
-		"allChr_1kb.bed",
+		"xbir_1kb.bed",
 	shell:
-		"Rscript --vanilla allChrMakeBed_1kb.R | sort -k1,1 -k2,2n > {output}"
+		"Rscript --vanilla xbir_makeBed_1kb.R | sort -k1,1 -k2,2n > {output}"
 
 rule make_rec_bed:
 	input:
@@ -36,15 +36,15 @@ rule make_rec_bed:
 		"cM_lengths_birchmanni10x.txt",
 		expand("LD_recMap/LD_map_xbirchmanni-COAC-10x-{chr}.post.txt_mod.bed",chr=chrs)
 	output:
-		"allChr_LDRecMap.bed"
+		"xbir_LDRecMap.bed"
 	shell:
-		"Rscript --vanilla allChrMakeBed_LDRecMap.R | sort -k1,1 -k2,2n > {output}"
+		"Rscript --vanilla xbir_makeBed_LDRecMap.R | sort -k1,1 -k2,2n > {output}"
 
 rule make_CDS_bed:
 	input:
 		"xiphophorus_birchmanni_10x_12Sep2018_yDAA6.gtf" 
 	output:
-		"allChr_CDS.bed"
+		"xbir_CDS.bed"
 	shell:
 		"""
 		grep 'CDS' {input} | cut -f1,4,5 | awk '{{print $1 "\t" $2-1 "\t" $3}}' |\\
@@ -53,23 +53,23 @@ rule make_CDS_bed:
 
 rule calculate_cm_per_kb: 
 	input:
-		"allChr_1kb.bed",
-		"allChr_LDRecMap.bed"
+		"xbir_1kb.bed",
+		"xbir_LDRecMap.bed"
 	output:
-		"allChr_1kb_rec.bed"
+		"xbir_1kb_rec.bed"
 	shell:
 		# This gets the weighted mean of r for 1kb windows, the awk statement converts to cM
 		"""
-		bedmap --echo --delim "\t" --wmean --sci allChr_1kb.bed allChr_LDRecMap.bed |\\
+		bedmap --echo --delim "\t" --wmean --sci xbir_1kb.bed xbir_LDRecMap.bed |\\
 		awk '{{print $1 "\t" $2 "\t" $3 "\t" ($3-$2)*$4*100}}' > {output}
 		"""
 
 rule cds_per_kb:
 	input:
-		A="allChr_1kb.bed",
-		B="allChr_CDS.bed"
+		A="xbir_1kb.bed",
+		B="xbir_CDS.bed"
 	output:
-		"cds_per_kb.bed"
+		"xbir_1kb_CDS.bed"
 	shell:
 		"""
 		bedtools coverage -a {input.A} -b {input.B} | cut -f1-3,5 |\\
@@ -77,10 +77,10 @@ rule cds_per_kb:
 		"""
 rule cds_and_cm_per_kb:
 	input:
-		A="cds_per_kb.bed",
-		B="allChr_1kb_rec.bed"
+		A="xbir_1kb_CDS.bed",
+		B="xbir_1kb_rec.bed"
 	output:
-		"allChr_cds_and_cm_per_1kb.txt"
+		"xbir_1kb_CDS_and_cM.txt"
 	shell:
 		"Rscript --vanilla merge_cds_and_cm_1kb.R"
 
