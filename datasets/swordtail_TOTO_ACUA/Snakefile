@@ -5,8 +5,8 @@ chrs = [s.replace("LD_map_xbirchmanni-COAC-10x-","").replace(".post.txt_mod.bed"
 
 rule all:
 	input:
-		expand("ACUA_{year}/ancVarDecomp.RData",year=years),
-		expand("ACUA_{year}/cdsPerCm_x_anc_corDecomp.RData",year=years),
+		expand("ACUA_{year}/anc_rec_cds_varDecomp.RData",year=years),
+		expand("ACUA_{year}/anc_rec_cds_corDecomp.RData",year=years),
 #		expand("ACUA_{year}/avgFrq_totalCor.RData",year=years)
 
 rule interpolate_ancestry_single_chrom:
@@ -96,7 +96,7 @@ rule combine_chrs_and_run_wavelets:
 	input:
 		expand("ACUA_{{year}}/{chr}.RData",chr=chrs)
 	output:
-		"ACUA_{year}/ancVarDecomp.RData",
-		"ACUA_{year}/cdsPerCm_x_anc_corDecomp.RData"
+		"ACUA_{year}/anc_rec_cds_varDecomp.RData",
+		"ACUA_{year}/anc_rec_cds_corDecomp.RData"
 	shell:
 		"Rscript --vanilla swordtail_wavelets.R {wildcards.year}"
