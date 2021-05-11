@@ -322,7 +322,6 @@ allVarsModwtP <- Reduce(merge, list(popModwtP, recModwtP, cdsModwtP, cdsPerCmMod
 # save modwt coefficients for linear model analysis
 save(allVarsModwtP, file = paste0("ACUA_",year,"/anc_rec_cds_MODWT.RData"))
 
-
 # 8.2. --------- Wavelet covariances -----------
 
 # unweighted wavelet covariances at each scale separately for each chromosome
