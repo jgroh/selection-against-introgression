@@ -1,8 +1,10 @@
 import numpy as np
-reps = np.arange(20)
-gens = ["gen" + num for num in ["0005","0010","0050","0100","0500","1000"]]
+reps = np.arange(10)
+gens = ["gen" + num for num in ["0010", "0100", "1000"]]
+#gens = ["gen" + num for num in ["0005","0010","0050","0100","0500","1000"]]
 #gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0050","0100","0250","0500","0750","1000"]]
-sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb","single-sweep"]
+#sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb","single-sweep"]
+sims = ["neutral-const-recomb2"]
 
 rule all:
 	input:
@@ -15,13 +17,17 @@ rule simulation:
 	shell:
 		"slim -d seed={wildcards.rep} code/{wildcards.sim}.slim"
 
+rule all_sim:
+	input:
+		expand("results/{sim}/replicate{rep}_{gen}.trees", sim=sims,rep=reps,gen=gens)
+
 rule ancestry_calc:
 	input:
 		"results/{sim}/{rep_gen}.trees"
 	output:
 		"results/{sim}/{rep_gen}_ancestry.txt"
 	shell:
-		"python code/derived-allele-freq.py {input} > {output}"
+		"python3 code/derived-allele-freq.py {input} > {output}"
 
 rule aggregate:
 	input:
