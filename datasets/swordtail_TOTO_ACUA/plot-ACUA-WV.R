@@ -40,32 +40,34 @@ allCor[, scale := as.numeric(scale)]
 
 
 # 2. ===== Ancestry Variance Decomposition, Genetic Scale =========
-lineData <- allVar[scale < 17]
+lineData <- allVar[scale < 17 & decomp == "pop_mean"]
 
-allVar[distance == "genetic"] %>% ggplot(aes(x = scale, y = anc_variance, group = interaction(decomp, year), color = year)) +
+allVar[distance == "genetic" & decomp == "pop_mean"] %>% ggplot(aes(x = scale, y = anc_variance, group = interaction(decomp, year), color = year)) +
   geom_point(aes(shape = decomp),size=2.2) +
   geom_line(data = lineData[distance == "genetic"], size=0.5, linetype=2) + 
   labs(x = expression(Scale: log[2](Morgans)), 
        y = "Variance",
        color = "Year", shape = "Signal") +
   scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(-15:-1),"chromosome\nlevel")) + 
-  scale_shape_discrete(labels = c("Individual","Pop mean"))+
+  scale_shape_discrete(labels = c("Mean\nancestry"))+
   theme_classic() +
   scale_colour_viridis_d() +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
   geom_segment(aes(x=16.5,xend=17.5,y=-Inf,yend=-Inf),color="black")+
-  theme(axis.line.x = element_blank(),
-        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5),#,
+  theme(text = element_text(size=15),
+        axis.line.x = element_blank(),
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
+        axis.text.y = element_text(size=12),
         axis.ticks.x = element_line(size=c(rep(1,15),0)),
         axis.title.x = element_text(hjust=.4,margin=margin(t=-20)))
 
 # 2.1. ----- Plot proportion ---------------
 allVar[, propVar := anc_variance/sum(anc_variance), by = .(decomp,distance,year)]
-lineDataProp <- allVar[scale < 17]
+lineDataProp <- allVar[scale < 17 & decomp == "pop_mean"]
   
-allVar[decomp == "mean_individual" & distance == "genetic"] %>% ggplot(aes(x = scale, y = propVar, group = interaction(decomp, year), color = year)) +
+allVar[decomp == "pop_mean" & distance == "genetic"] %>% ggplot(aes(x = scale, y = propVar, group = interaction(decomp, year), color = year)) +
   geom_point(aes(shape = decomp),size=2.2) +
-  geom_line(data = lineDataProp[decomp == "mean_individual" & distance == "genetic"], size=0.5,linetype=2) + 
+  geom_line(data = lineDataProp[decomp == "pop_mean" & distance == "genetic"], size=0.5,linetype=2) + 
   labs(x = expression(Scale: log[2](Morgans)), 
        y = "Proportion of variance",
        color = "Year", shape = "Signal") +
@@ -219,6 +221,8 @@ allCor %>%
        color = "Year") +
   scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chromosome\nlevel")) + 
   theme_classic() +
+  theme(text = element_text(size = 15),
+        axis.text.x = element_text(size = 10)) +
   scale_colour_viridis_d() +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
   geom_segment(aes(x=16.5,xend=17.5,y=-Inf,yend=-Inf),color="black") +
@@ -255,6 +259,48 @@ allCor %>%
   geom_segment(aes(x=16.5,xend=17.5,y=-Inf,yend=-Inf),color="black") +
   theme(axis.line.x = element_blank())
 
+
+# 4.3. ----- cdsPerCm x Anc -----
+allCor %>%
+  ggplot(aes(x = scale, y = cdsPerCm_anc_cor)) + 
+  geom_point() + 
+  geom_line(data = lineDataCor, size=0.5,linetype=2) + 
+  labs(x = expression(Scale: log[2](kbp)), 
+       y = "Pearson correlation coefficient",
+       color = "Year") +
+  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chromosome\nlevel")) + 
+  theme_classic() +
+  scale_colour_viridis_d() +
+  geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
+  geom_segment(aes(x=16.5,xend=17.5,y=-Inf,yend=-Inf),color="black") +
+  theme(axis.line.x = element_blank())
+
+
+head(allCor)
+head(allVar)
+
+mrgd <- merge(allCor, allVar[distance == "physical" & decomp == "pop_mean"], by = c("year", "scale"))
+
+allVar[year == 2018 & scale == 1 & distance == "physical"]
+head(mrgd[year == 2018])
+head(mrgd[year == 2015])
+
+
+mrgd <- mrgd[scale < 17]
+mrgd[, contribution := sqrt(anc_variance*rec_variance)*rec_anc_cor, by = .(year,scale)]
+mrgd[, norm_cor := contribution/sum(contribution), by = .(year)]
+
+
+mrgd[scale < 17] %>%
+  ggplot() + 
+  geom_bar(aes(fill = reorder(as.factor(scale), desc(as.factor(scale))), x = year, y = norm_cor),
+               position = "stack", stat = "identity", color = "black") + 
+  scale_fill_viridis_d(option = "plasma") + 
+  labs(x = "Year", 
+       y = "Normalized wavelet correlation",
+       fill = expression(Scale: log[2](kb))) + 
+  theme(text = element_text(size = 15))
+  theme_classic()
 
 
 
