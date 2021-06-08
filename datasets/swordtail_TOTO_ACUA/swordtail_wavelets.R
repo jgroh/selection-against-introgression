@@ -2,6 +2,7 @@
 library(data.table)
 library(tools)
 library(waveslim)
+library(stringi)
 
 args <- commandArgs(trailingOnly = TRUE)
 year <- args[1]
@@ -52,11 +53,68 @@ modwtAllScales <- function(x,variable,lenCol,allcols){
   return(dt)
 }
 
+dwt.nondyadic <- function(x){
+  # discrete wavelet transform for signal that is not length power of 2
+  # (allows for maximum number of coefficients at each scale w/o extending past end of chrom)
+  M <- length(x)
+  N <- ceiling(log(M, 2)) # next highest power of 2
+  J <- floor(log2(length(x))) # max power of 2
+  xx <- c(x, rep(0, 2^N - M)) # append zeros to end of sequence
+  y <- dwt(xx, wf = "haar", n.levels = N) # a list with coefficients for each scale
+  
+  for(j in 1:(length(y))){
+    if(j <= J){
+      y[[j]] <- y[[j]][1:floor(M/2^j)] # truncates to only those coefficients not affected by appending zeros to end
+    } 
+  }
+  y[(J+1):length(y)] <- NULL # also changed to simply remove other coefficients
+
+  return(y)
+}
+
 # To get number of non-boundary coefficients
 numCoeff <- function(x){length(x[!is.na(x)])} 
 
 # Unbiased estimator of wavelet variance for MODWT with brick wall boundary condition
 wav_var <- function(x){sum(x^2,na.rm=TRUE)/(length(x[!is.na(x)]))} 
+
+# To compute dwt on variable in a data table
+dwtAllScales <- function(x,variable,allcols){
+  y <- x[, dwt.nondyadic(variable)]
+  dt <- as.data.table(stri_list2matrix(y))
+  setnames(dt, names(y))
+  
+  # add empty detail columns for higher scales not present on particular chromosome
+  naCols <- setdiff(allcols, names(dt))
+  if(length(naCols) > 0){ dt[,(naCols) := as.numeric(NA)] }
+  return(dt[,lapply(.SD, as.double)])
+}
+
+# ============ DWT: Ancestry, recombination, and coding bp ==========
+# define levels based on longest chromosome
+maxLevelP <- max(gnomP[,floor(log2(length(unique(position)))),by=chr][,2])
+allColsP <- paste0("d",1:maxLevelP)
+
+dwtAnc <- gnomP[ID==ID[1], dwtAllScales(.SD, variable = meanFreq, allcols = allColsP), by = chr]
+dwtRec <- gnomP[ID==ID[1], dwtAllScales(.SD, variable = cM, allcols = allColsP), by = chr]
+dwtCds <- gnomP[ID==ID[1], dwtAllScales(.SD, variable = coding_bp,  allcols = allColsP), by = chr]
+
+# combine tables
+lapply(list(dwtAnc, dwtRec, dwtCds), function(x){ x[,position := seq_len(.N), by = chr] })
+
+dwtAnc <- melt(dwtAnc, id.vars = c("chr","position"), 
+               variable.name = "scale",
+               value.name = "ancestry_coeff")
+
+dwtRec <- melt(dwtRec, id.vars = c("chr","position"), 
+               variable.name = "scale",
+               value.name = "rec_coeff")
+dwtCds <- melt(dwtCds, id.vars = c("chr","position"), 
+               variable.name = "scale",
+               value.name = "cds_coeff")
+
+allDWT <- Reduce(function(...) merge(..., all=TRUE), list(dwtAnc, dwtRec, dwtCds))
+save(allDWT, file = paste0("ACUA_",year,"/anc_rec_cds_DWT.RData"))
 
 
 # 3. ========== MODWT: Genetic Scale ==========
@@ -153,10 +211,6 @@ chrVarG <- data.table("anc_variance" = c(chrVarIndG, chrVarPopG),
 
 
 # 5. ========== MODWT of ancestry on Physical Scale ==========
-
-# define levels based on longest chromosome
-maxLevelP <- max(gnomP[,floor(log2(length(unique(position)))),by=chr][,2])
-allColsP <- paste0("d",1:maxLevelP)
 
 # 5.1. ---------- MODWT on Individuals ----------
 indModwtP <- gnomP[, modwtAllScales(.SD,variable=indivFreq,lenCol=position,allcols=allColsP), by = .(chr,ID)]
@@ -395,3 +449,7 @@ allVarsCorDecomp <- rbind(allVarsWavCor,
 
 # ========== Save Correlation Analysis Outputs ==========
 save(allVarsCorDecomp, file = paste0("ACUA_",year,"/anc_rec_cds_corDecomp.RData"))
+
+# ========== DWT for linear model analysis ==========
+
+

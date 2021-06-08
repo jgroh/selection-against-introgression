@@ -499,17 +499,25 @@ df %>%
 
 
 # Examine effect of population size on variance. 
+setDT(df)
+df[,propVar := variance/sum(variance), by = .(n.sample, n.pop, gen)]
+
 df %>% 
-  filter(n.sample == 1) %>% 
-  ggplot(aes(x=scale,y=variance, group=n.pop, color=as.factor(n.pop))) + 
+  filter(n.sample == 200, gen %in% c(3, 250, 1000)) %>% 
+  ggplot(aes(x=scale,y=propVar, group=n.pop, color=as.factor(n.pop))) + 
   scale_x_discrete(labels = scale.labs) + 
   geom_point() + geom_line() + facet_wrap(~gen) + 
   labs(color = "Population", x = "Scale (Mb)",
-       y = "Variance", title = "Sample size = 1")
+       y = "Proportion of variance", title = "Sample size = 200") + 
+  scale_color_viridis_d() + 
+  theme_classic() + 
+  theme(aspect.ratio = 1, 
+        axis.text.x = element_text(angle = 90))
 
 # Examine effect of population size on *proportion* of variance. 
+
 df %>% 
-  filter(n.sample == 1) %>% 
+  filter(n.sample == 200, gen %in% c(3, 250, 1000)) %>% 
   ggplot(aes(x=scale,y=prop.var, group=n.pop, color=as.factor(n.pop))) + 
   scale_x_discrete(labels = scale.labs) + 
   geom_point() + geom_line() + facet_wrap(~gen) + 
@@ -823,7 +831,14 @@ wav_cor %>%
   geom_point() + 
   geom_line() + 
   theme(aspect.ratio = 1) +
-  facet_wrap(~sim) + ylab("Detail coefficient 'correlation'") + xlab("Generation")
+  facet_wrap(~sim) + ylab("Detail coefficient 'correlation'") + 
+  xlab("Generation") + 
+  theme_classic() +
+  theme(aspect.ratio = 1, 
+    text = element_text(size = 15), 
+        axis.text.x = element_text(angle = 90)) + 
+  scale_color_viridis_d() 
+
 
 
 
@@ -837,12 +852,14 @@ wav_cor %>%
   facet_wrap(~sim)
 
 # stacked barplot
-wav_cor <- filter(wav_cor, sim == "sel-periodic-recomb")
+wav_cor <- filter(wav_cor, sim == "sel-periodic-recomb", !gen %in% "0003")
 ggplot(wav_cor) +
   geom_bar(aes(fill = scale, x = gen, y = weighted.cor), position = "stack", stat = "identity", color = "black") +
   scale_fill_viridis_d(option = "plasma") +
   geom_point(aes(x = gen, y = total.cor), size=4) +
-  facet_wrap(~sim) + xlab("Generation") + ylab("Contribution to correlation")
+  facet_wrap(~sim) + xlab("Generation") + ylab("Contribution to correlation") + 
+  theme_classic() + 
+  theme(text = element_text(size=15))
 
   #geom_line(aes(x = gen, y = total.cor, group = 1)) +
   #geom_line(aes(x = gen,y = sum.weighted.cor, group = 1)) # this line confirms that the sum of weighted correlations equals the total correlation
