@@ -38,11 +38,11 @@ gnomP <- merge(gnomP, cdsCM, by = c("chr", "position"))
 
 # check total correlation
 
-gnomP[sample(1:nrow(gnomP), 100000)] %>% ggplot(aes(x=log(cM), y = meanFreq)) + 
-  geom_point() + 
-  geom_smooth(method = "lm")
+#gnomP[sample(1:nrow(gnomP), 100000)] %>% ggplot(aes(x=log(cM), y = meanFreq)) + 
+#  geom_point() + 
+#  geom_smooth(method = "lm")
 
-cor.test(gnomP$meanFreq, log(gnomP$cM))
+#cor.test(gnomP$meanFreq, log(gnomP$cM))
 
 
 # 2. ========== MODWT Functions ==========
@@ -107,7 +107,7 @@ maxLevelP <- max(gnomP[ID==ID[1],floor(log2(length(position))),by=chr][,2])
 allColsP <- paste0("d",1:maxLevelP)
 
 dwtAnc <- gnomP[ID==ID[1], dwtAllScales(.SD, variable = meanFreq, allcols = allColsP), by = chr]
-dwtRec <- gnomP[ID==ID[1], dwtAllScales(.SD, variable = cM, allcols = allColsP), by = chr]
+dwtRec <- gnomP[ID==ID[1], dwtAllScales(.SD, variable = log(cM), allcols = allColsP), by = chr]
 dwtCds <- gnomP[ID==ID[1], dwtAllScales(.SD, variable = coding_bp,  allcols = allColsP), by = chr]
 
 # combine tables
