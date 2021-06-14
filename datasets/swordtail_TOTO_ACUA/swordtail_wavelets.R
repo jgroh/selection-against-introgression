@@ -20,6 +20,7 @@ loadFrom=function(file, name){e=new.env();load(file,env=e);e[[name]]}
 # combine data into one file for the year
 gnomG <- rbindlist(lapply(as.list(scaffFiles), 
                   function(x){loadFrom(x, "chromAncInterpMorgan")}))
+
 gnomP <- rbindlist(lapply(as.list(scaffFiles), 
                              function(x){loadFrom(x, "chromAnc1kb")}))
 
@@ -33,6 +34,15 @@ gnomP[,meanFreq := 1 - meanFreq]
 # merge ancestry data and genomic features data
 cdsCM[, position := start + 500] # this is the midpoint of the 1kb intervals where I interpolate ancestry
 gnomP <- merge(gnomP, cdsCM, by = c("chr", "position"))
+
+
+# check total correlation
+
+gnomP[sample(1:nrow(gnomP), 100000)] %>% ggplot(aes(x=log(cM), y = meanFreq)) + 
+  geom_point() + 
+  geom_smooth(method = "lm")
+
+cor.test(gnomP$meanFreq, log(gnomP$cM))
 
 
 # 2. ========== MODWT Functions ==========
@@ -56,10 +66,11 @@ modwtAllScales <- function(x,variable,lenCol,allcols){
 dwt.nondyadic <- function(x){
   # discrete wavelet transform for signal that is not length power of 2
   # (allows for maximum number of coefficients at each scale w/o extending past end of chrom)
+  x <- x - mean(x) # subtract off mean for each chromosome
   M <- length(x)
   N <- ceiling(log(M, 2)) # next highest power of 2
   J <- floor(log2(length(x))) # max power of 2
-  xx <- c(x, rep(0, 2^N - M)) # append zeros to end of sequence
+  xx <- c(x, rep(0, 2^N - M)) # append zeros to end of sequence to reach length N
   y <- dwt(xx, wf = "haar", n.levels = N) # a list with coefficients for each scale
   
   for(j in 1:(length(y))){
@@ -78,7 +89,7 @@ numCoeff <- function(x){length(x[!is.na(x)])}
 # Unbiased estimator of wavelet variance for MODWT with brick wall boundary condition
 wav_var <- function(x){sum(x^2,na.rm=TRUE)/(length(x[!is.na(x)]))} 
 
-# To compute dwt on variable in a data table
+# To compute dwt on variable in a data table, for a single group
 dwtAllScales <- function(x,variable,allcols){
   y <- x[, dwt.nondyadic(variable)]
   dt <- as.data.table(stri_list2matrix(y))
@@ -92,7 +103,7 @@ dwtAllScales <- function(x,variable,allcols){
 
 # ============ DWT: Ancestry, recombination, and coding bp ==========
 # define levels based on longest chromosome
-maxLevelP <- max(gnomP[,floor(log2(length(unique(position)))),by=chr][,2])
+maxLevelP <- max(gnomP[ID==ID[1],floor(log2(length(position))),by=chr][,2])
 allColsP <- paste0("d",1:maxLevelP)
 
 dwtAnc <- gnomP[ID==ID[1], dwtAllScales(.SD, variable = meanFreq, allcols = allColsP), by = chr]
