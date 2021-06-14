@@ -7,7 +7,8 @@ rule all:
 	input:
 		expand("ACUA_{year}/anc_rec_cds_varDecomp.RData",year=years),
 		expand("ACUA_{year}/anc_rec_cds_corDecomp.RData",year=years),
-		expand("ACUA_{year}/anc_rec_cds_MODWT.RData",year=years)
+		expand("ACUA_{year}/anc_rec_cds_MODWT.RData",year=years),
+		expand("ACUA_{year}/anc_rec_cds_DWT.RData",year=years)
 #		expand("ACUA_{year}/avgFrq_totalCor.RData",year=years)
 
 rule interpolate_ancestry_single_chrom:
@@ -99,6 +100,7 @@ rule combine_chrs_and_run_wavelets:
 	output:
 		"ACUA_{year}/anc_rec_cds_varDecomp.RData",
 		"ACUA_{year}/anc_rec_cds_corDecomp.RData",
-		"ACUA_{year}/anc_rec_cds_MODWT.RData"
+		"ACUA_{year}/anc_rec_cds_MODWT.RData",
+		"ACUA_{year}/anc_rec_cds_DWT.RData"
 	shell:
 		"Rscript --vanilla swordtail_wavelets.R {wildcards.year}"
