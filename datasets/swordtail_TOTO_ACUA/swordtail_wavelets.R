@@ -40,14 +40,21 @@ gnomP <- merge(gnomP, cdsCM, by = c("chr", "position"))
 # logit transform ancestry proportion
 epsilon <- gnomP[indivFreq > 0, min(indivFreq)]/2
 gnomP[, indivFreqTr := log(indivFreq/(1-indivFreq))]
+gnomG[, indivFreqTr := log(indivFreq/(1-indivFreq))]
+
 gnomP[indivFreq == 0, indivFreqTr := log(epsilon/(1-epsilon))]
+gnomG[indivFreq == 0, indivFreqTr := log(epsilon/(1-epsilon))]
+
 gnomP[indivFreq == 1, indivFreqTr := log((1-epsilon)/epsilon)]
+gnomG[indivFreq == 1, indivFreqTr := log((1-epsilon)/epsilon)]
 
 # mean transformed ancestry
 gnomP[,meanFreqTr := mean(indivFreqTr), by = .(position,chr)]
+gnomG[,meanFreqTr := mean(indivFreqTr), by = .(position,chr)]
 
 # log transform recombination rates
 gnomP[, cmTr := log(cM)]
+gnomG[, cmTr := log(cM)]
 
 #ggplot(gnomP[sample(1:8e6,1000)], aes(x = log(coding_bp+1), y = meanFreqTr, colour = chr)) + 
 #  geom_point() + geom_smooth(method = "lm")
