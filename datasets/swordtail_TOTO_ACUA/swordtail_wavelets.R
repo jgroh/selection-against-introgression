@@ -50,11 +50,12 @@ gnomG[indivFreq == 1, indivFreqTr := log((1-epsilon)/epsilon)]
 
 # mean transformed ancestry
 gnomP[,meanFreqTr := mean(indivFreqTr), by = .(position,chr)]
-gnomG[,meanFreqTr := mean(indivFreqTr), by = .(position,chr)]
+
+gnomG[, position := seq_len(.N), by = .(ID,chr)]
+gnomG[, meanFreqTr := mean(indivFreqTr), by = .(position,chr)]
 
 # log transform recombination rates
 gnomP[, cmTr := log(cM)]
-gnomG[, cmTr := log(cM)]
 
 #ggplot(gnomP[sample(1:8e6,1000)], aes(x = log(coding_bp+1), y = meanFreqTr, colour = chr)) + 
 #  geom_point() + geom_smooth(method = "lm")
