@@ -63,7 +63,7 @@ allVar[distance == "genetic" & decomp == "pop_mean"] %>% ggplot(aes(x = scale, y
 
 # 2.1. ----- Plot proportion ---------------
 allVar[, propVar := anc_variance/sum(anc_variance), by = .(decomp,distance,year)]
-lineDataProp <- allVar[scale < 17 & decomp == "pop_mean"]
+lineDataProp <- allVar[scale < 17]
   
 allVar[decomp == "pop_mean" & distance == "genetic"] %>% ggplot(aes(x = scale, y = propVar, group = interaction(decomp, year), color = year)) +
   geom_point(aes(shape = decomp),size=2.2) +

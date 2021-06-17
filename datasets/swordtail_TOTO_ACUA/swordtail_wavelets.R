@@ -325,6 +325,10 @@ signalCols <- c("meanFreqTr", "cmTr", "coding_bp")
 chrSignalMeans <- gnomP[, lapply(.SD, mean), .SDcols = signalCols, by = .(chr)]
 chrSignalMeans[, weight := chrLenP[,weight]]
 
+# ----- save chromosome means -----
+save(chrSignalMeans, file = paste0("ACUA_",year,"/chrSignalMeans.RData"))
+
+
 # compute weighted variance 
 chrVarP <- chrSignalMeans[, lapply(.SD, function(x){sum(weight*(x - weighted.mean(x, weight))^2)}),
                                           .SDcols = signalCols]
