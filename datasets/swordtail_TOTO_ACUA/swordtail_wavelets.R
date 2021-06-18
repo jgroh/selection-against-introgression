@@ -62,6 +62,10 @@ gnomP[, cmTr := log(cM)]
 
 #ggplot(gnomP[chr == chr[1] & position < 1000000], aes(x= position, y = coding_bp)) + geom_point()
 
+#  ===== Total Variance =====
+totalVar <- gnomP[ID==ID[1],var(meanFreqTr)]
+save(totalVar, file = paste0("ACUA_",year,"/totalVar.RData"))
+
 # 3. ========== Wavelet Functions ==========
 
 # To compute modwt on variable in a data table:
