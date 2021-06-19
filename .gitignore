@@ -3,3 +3,4 @@
 *.swp
 results/*
 .snakemake/
+.Rproj.user
