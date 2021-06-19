@@ -29,7 +29,7 @@ m[, pos_cM := approx(y=pos_cM,x=pos_bp,xout=pos_bp)$y, by = chr]
 MexAncGenScale <- m[, approx(x=pos_cM, 
            y=freqMex, 
            xout=seq(min(pos_cM),max(pos_cM)/100,by=2^-14),
-           rule=1),
+           rule=2),
   by=chr]
 setnames(MexAncGenScale, c('x','y'),c('Morgan','freqMex'))
 MexAncGenScale[, Morgan := Morgan - min(Morgan), by = chr] # shift minimum to zero
