@@ -224,11 +224,20 @@ b  <-  a %>%
   separate(sim_rep_gen, c("sim_rep.id", "gen"), sep = "_gen") %>% 
   separate(sim_rep.id, c("sim", "rep.id"), sep = "_replicate")
 
-# average introgressed frequency per simulation,generation over replicates
-d  <- b %>% 
-   group_by(sim,pos_absolute,gen,recomb,pos_gen) %>% 
-   dplyr::summarise(avg.frq = mean(freq))
 
+# average introgressed frequency per simulation,generation over replicates
+# do I want to do this??
+#d  <- b %>% 
+#   group_by(sim,pos_absolute,gen,recomb,pos_gen) %>% 
+#   dplyr::summarise(avg.frq = mean(freq))
+
+# see whether variance increases over time
+setDT(b)
+totalVar <- b[, sum((freq-mean(freq))^2)/length(pos_absolute), by=.(sim,rep.id,gen)][,mean(V1),by=.(sim,gen)]
+
+setnames(totalVar,"V1","totalVar")
+
+ggplot(totalVar,aes(x=gen,y=log(totalVar),group=sim,colour=sim)) + geom_point() + geom_line()
 
 
 # visualize allele frequency data: physical scale ----------------------------------------------------------------------------------------

@@ -5,6 +5,20 @@ library(tidyverse)
 
 loadFrom=function(file, name){e=new.env();load(file,env=e);e[[name]]} 
 
+acua2006var <- data.table(var=loadFrom("ACUA_2006/totalVar.RData", "totalVar")); acua2006var[,year := "2006"]
+acua2008var <- data.table(var=loadFrom("ACUA_2008/totalVar.RData", "totalVar")); acua2008var[,year := "2008"]
+acua2013var <- data.table(var=loadFrom("ACUA_2013/totalVar.RData", "totalVar")); acua2013var[,year := "2013"]
+acua2015var <- data.table(var=loadFrom("ACUA_2015/totalVar.RData", "totalVar")); acua2015var[,year := "2015"]
+acua2018var <- data.table(var=loadFrom("ACUA_2018/totalVar.RData", "totalVar")); acua2018var[,year := "2018"]
+allVar <- rbindlist(list(acua2006var,acua2008var,acua2013var,acua2015var,acua2018var))
+
+
+ggplot(allVar, aes(x = year, y = var)) + 
+  geom_point(size=2) + 
+  theme_classic() + 
+  labs(y="Total variance")
+
+
 # 1.1. ----- load wavelet variance files -----
 acua2006wv <- loadFrom("ACUA_2006/anc_rec_cds_varDecomp.RData", "wvFinalAll"); acua2006wv[,year := "2006"]
 acua2008wv <- loadFrom("ACUA_2008/anc_rec_cds_varDecomp.RData", "wvFinalAll"); acua2008wv[,year := "2008"]
