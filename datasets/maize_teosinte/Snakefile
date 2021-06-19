@@ -1,0 +1,23 @@
+import numpy as np
+import pandas as pd
+import os
+
+meta = pd.read_csv("/Users/Shared/wavelets/hilo/samples/HILO_MAIZE55_PARV50_meta.txt",sep='\t',header=0)
+symPops = meta.loc[meta['symp_allo']=='sympatric']['RI_ACCESSION'].unique().tolist()
+symInds = [i.replace(".posterior","") for i in os.listdir("/Users/Shared/wavelets/hilo/local_ancestry/results/ancestry_hmm/HILO_MAIZE55/K2/Ne10000_yesBoot/posterior")]
+#symInds = meta.loc[meta['symp_allo']=='sympatric']['ID'].unique().tolist()
+
+#popDf = pd.read_csv("/Users/Shared/wavelets/hilo/samples/population_metadata.csv",header=0)
+#symPops = popDf.loc[popDf['symp_allo'] == 'sympatric']['accession'].to_list()
+rule all:
+	input:
+		expand("hmm_anc_interp/genetic/{ind}.txt",ind=symInds)
+
+rule interpolate_hmm_ancestry:
+	input:
+		indFile="/Users/Shared/wavelets/hilo/local_ancestry/results/ancestry_hmm/HILO_MAIZE55/K2/Ne10000_yesBoot/posterior/{ind}.posterior",
+		recMapFile="/Users/Shared/wavelets/hilo/linkage_map/results/ogut_2015_rmap_v2_to_v4_EXTENDED.txt"
+	output:
+		"hmm_anc_interp/genetic/{ind}.txt"	
+	shell:
+		"Rscript --vanilla interpolate_hmm_ancestry.R {input.indFile} {wildcards.ind} {input.recMapFile} > {output}"
