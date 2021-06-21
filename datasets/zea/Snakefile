@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 import os
 
-meta = pd.read_csv("/Users/Shared/wavelets/hilo/samples/HILO_MAIZE55_PARV50_meta.txt",sep='\t',header=0)
+metaFile = "/Users/Shared/wavelets/hilo/samples/HILO_MAIZE55_PARV50_meta.txt"
+meta = pd.read_csv(metaFile,sep='\t',header=0)
 symPops = meta.loc[meta['symp_allo']=='sympatric']['RI_ACCESSION'].unique().tolist()
 symInds = [i.replace(".posterior","") for i in os.listdir("/Users/Shared/wavelets/hilo/local_ancestry/results/ancestry_hmm/HILO_MAIZE55/K2/Ne10000_yesBoot/posterior")]
 #symInds = meta.loc[meta['symp_allo']=='sympatric']['ID'].unique().tolist()
@@ -11,7 +12,8 @@ symInds = [i.replace(".posterior","") for i in os.listdir("/Users/Shared/wavelet
 #symPops = popDf.loc[popDf['symp_allo'] == 'sympatric']['accession'].to_list()
 rule all:
 	input:
-		expand("hmm_anc_interp/genetic/{ind}.txt",ind=symInds)
+		expand("hmm_anc_interp/genetic/{ind}.txt",ind=symInds),
+		expand("wavelet_results/{popID}.RData",popID=symPops)
 
 rule interpolate_hmm_ancestry:
 	input:
@@ -21,3 +23,13 @@ rule interpolate_hmm_ancestry:
 		"hmm_anc_interp/genetic/{ind}.txt"	
 	shell:
 		"Rscript --vanilla interpolate_hmm_ancestry.R {input.indFile} {wildcards.ind} {input.recMapFile} > {output}"
+
+rule wavelets:
+	input:
+		metaFile=metaFile,
+	output:
+		"wavelet_results/{popID}.RData"
+	shell:
+		"Rscript --vanilla zea_wavelets.R {input.metaFile} {wildcards.popID} 'hmm_anc_interp/genetic/' {output}" 
+		# Rscript arguments 1. metaFile 2. population ID 3. path to individual ancestry files 4. outFile
+		
