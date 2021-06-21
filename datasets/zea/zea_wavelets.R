@@ -7,24 +7,19 @@ pop <- args[2]
 ancPath <- args[3]
 outPath <- args[4]
 
-meta <- fread("HILO_MAIZE55_PARV50_meta.txt")
-
-# placeholder, pass from CL
-
-ancPath <- 'hmm_anc_interp/genetic/'
+meta <- fread(metaFile)
 
 # read whichever files present from individuals in focal population
-
 indFiles <- as.list(paste0(ancPath, 
                            intersect(list.files(ancPath), 
-                                     paste0(meta[pop==pop,ID],".txt"))))
-
+                                     paste0(meta[RI_ACCESSION==pop,ID],".txt"))))
+# combine individuals
 gnoms <- rbindlist(lapply(indFiles, fread))
-gnoms[max(freqMex)]
 
 # logit transform ancestry
 gnoms[freqMex > 1, freqMex := 1] # strangely some values slightly > 1, precision error?
 
+# replace values of zero or 1 by small deviation so logit works
 epsilon <- gnoms[freqMex > 0, min(freqMex)]/2
 gnoms[, freqMexTr := log(freqMex/(1-freqMex))]
 gnoms[freqMex == 0, freqMexTr := log(epsilon/(1-epsilon))]

@@ -19,7 +19,7 @@ map <- fread(mapFile)
 # ===== Interpolate Ancestry in Genetic Distance =====
 
 # What scale to interpolate at?
--log2(map[, max(pos_cM)-min(pos_cM),by=chr][,V1/100]/gnom[,length(unique(pos_bp)),by=chr][,V1])
+#-log2(map[, max(pos_cM)-min(pos_cM),by=chr][,V1/100]/gnom[,length(unique(pos_bp)),by=chr][,V1])
 # interpolate to 2^-14 of a Morgan so that on average there is >1 SNP per interval
 
 m <- merge(gnom,map, by = c("chr","pos_bp"),all=T)
