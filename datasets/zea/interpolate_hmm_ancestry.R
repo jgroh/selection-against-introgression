@@ -1,10 +1,18 @@
+# ===== Input =====
 library(data.table)
 
-# ===== Read Data =====
 args <- commandArgs(trailingOnly = TRUE)
 indFile <- args[1]
 ind <- args[2]
 mapFile <- args[3]
+chrLenFile <- args[4]
+outPath <- args[5]
+
+# If running locally:
+#indFile <- "HILO2.posterior"
+#ind <- "HILO2"
+#mapFile <- "ogut_2015_rmap_v2_to_v4_EXTENDED.txt"
+chrLenFile <- "Zea_mays.AFPv4.dna.chr.autosome.lengths"
 
 # hmm post. prob. for individual 
 gnom <- fread(indFile)
@@ -15,8 +23,12 @@ gnom[, freqMex := 0.5*p1.1 + p0.2]
 # recombination map
 map <- fread(mapFile)
 
+# chromosome physical lengths
+chrLen <- fread(chrLenFile, col.names = c("chr","len"))
 
-# ===== Interpolate Ancestry in Genetic Distance =====
+# ===== Interpolate Ancestry  =====
+
+# ----- Genetic scale -----
 
 # What scale to interpolate at?
 #-log2(map[, max(pos_cM)-min(pos_cM),by=chr][,V1/100]/gnom[,length(unique(pos_bp)),by=chr][,V1])
@@ -35,5 +47,23 @@ setnames(MexAncGenScale, c('x','y'),c('Morgan','freqMex'))
 MexAncGenScale[, Morgan := Morgan - min(Morgan), by = chr] # shift minimum to zero
 MexAncGenScale[, ID := ind]
 
-# write output to console
-write.table(MexAncGenScale,file = "",quote=F,sep="\t",row.names=F)
+# ----- Physical Scale -----
+# What scale to interpolate at?
+
+#chrLen[, len, by=chr]/gnom[,length(unique(pos_bp)),by=chr]
+# roughly 1 SNP per 5-7 kb
+# interpolate to 1kb 
+
+gnom <- merge(gnom,chrLen)
+MexAncPhysScale <- gnom[, approx(x=pos_bp,
+                                 y=freqMex,
+                                 xout=seq(500,len[1],by=1000),
+                                 rule=2),
+                        by=chr]
+setnames(MexAncPhysScale, c('x','y'),c('position','freqMex'))
+MexAncPhysScale[, ID := ind]
+
+# ===== Output =====
+
+write.table(MexAncGenScale,file = paste0(outPath,"/genetic/",ind,".txt"),quote=F,sep="\t",row.names=F)
+write.table(MexAncPhysScale,file = paste0(outPath,"/physical/",ind,".txt"),quote=F,sep="\t",row.names=F)
