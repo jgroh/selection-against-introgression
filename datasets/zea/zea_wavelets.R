@@ -62,8 +62,9 @@ gnoms[freqMex == 1, freqMexTr := log((1-epsilon)/epsilon)]
 meanAnc <- gnoms[, lapply(.SD,mean),.SDcols = c('freqMex','freqMexTr'),by=.(Morgan,chr)]
 
 # mean ancestry in population
-
 totalMeanAnc <- meanAnc[, mean(freqMex)]
+
+
 # ===== Wavelet Transform =====
 
 # define levels based on longest chromosome
@@ -91,7 +92,6 @@ chrWeights[,weight := numCoeffs/sum(numCoeffs), by=.(scale)]
 indAncWavVarChrs <- indAncModwt[,lapply(.SD,wav_var),by=.(chr,ID)]
 
 # ----- wavelet variance: individual -----
-# weighted average over chromosomes within each individual
 setnames(indAncWavVarChrs, paste0("d",1:maxLevel), as.character(1:maxLevel))
 indAncWavVarChrs <- melt(indAncWavVarChrs, measure.vars = as.character(1:maxLevel),
                           variable.name = "scale", value.name = "anc_variance")
@@ -99,13 +99,13 @@ indAncWavVarChrs <- melt(indAncWavVarChrs, measure.vars = as.character(1:maxLeve
 indAncWavVar <- merge(indAncWavVarChrs, chrWeights) 
 indAncWavVar <- indAncWavVar[, weighted.mean(anc_variance, weight), by=.(ID,scale)]
 setnames(indAncWavVar, "V1", "anc_variance")
-# average over individuals
+# now average over individuals
 indMeanAncWavVar <- indAncWavVar[, mean(anc_variance), by = scale]
 setnames(indMeanAncWavVar, "V1", "anc_variance")
 indMeanAncWavVar[,decomp :="individual"]
 
 
-# ----- wavelet variance: mean -----
+# ----- wavelet variance: mean ancestry -----
 meanAncWavVarChrs <- meanAncModwt[,lapply(.SD,wav_var),by=chr]
 setnames(meanAncWavVarChrs, paste0("d",1:maxLevel), as.character(1:maxLevel))
 meanAncWavVarChrs <- melt(meanAncWavVarChrs, measure.vars = as.character(1:maxLevel),
@@ -119,7 +119,6 @@ meanAncWavVar[,decomp :="mean"]
 
 # ----- combine wav var tables -----
 allAncWavVar <- rbind(meanAncWavVar, indMeanAncWavVar)
-
 
 
 # ===== Chromosome Variance =====
@@ -136,7 +135,7 @@ indChrMeanAnc[, weight := MorganLength/sum(MorganLength), by = ID]
 
 # weighted total mean for individuals
 indChrMeanAnc[, indMean := weighted.mean(meanFreqMex,w=MorganLength),by=ID]
-# chrom-level weighted variance
+# chrom-level weighted variance, then averaged over individuals
 indChrVarAnc <- data.table(anc_variance=indChrMeanAnc[, sum(weight*(meanFreqMex-indMean)^2),by=ID][,mean(V1)],
                            decomp = "individual",
                            scale = "chrom")
