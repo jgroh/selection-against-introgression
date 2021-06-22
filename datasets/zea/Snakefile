@@ -12,17 +12,22 @@ symInds = [i.replace(".posterior","") for i in os.listdir("/Users/Shared/wavelet
 #symPops = popDf.loc[popDf['symp_allo'] == 'sympatric']['accession'].to_list()
 rule all:
 	input:
-		expand("hmm_anc_interp/genetic/{ind}.txt",ind=symInds),
+		expand("hmm_anc_interp/{distance}/{ind}.txt",ind=symInds,distance=['genetic','physical']),
 		expand("wavelet_results/{popID}.RData",popID=symPops)
 
 rule interpolate_hmm_ancestry:
 	input:
 		indFile="/Users/Shared/wavelets/hilo/local_ancestry/results/ancestry_hmm/HILO_MAIZE55/K2/Ne10000_yesBoot/posterior/{ind}.posterior",
-		recMapFile="/Users/Shared/wavelets/hilo/linkage_map/results/ogut_2015_rmap_v2_to_v4_EXTENDED.txt"
+		recMapFile="/Users/Shared/wavelets/hilo/linkage_map/results/ogut_2015_rmap_v2_to_v4_EXTENDED.txt",
+		chrLenFile="/Users/Shared/wavelets/hilo/data/refMaize/Zea_mays.AFPv4.dna.chr.autosome.lengths"
 	output:
-		"hmm_anc_interp/genetic/{ind}.txt"	
+		genetic="hmm_anc_interp/genetic/{ind}.txt",
+		physical="hmm_anc_interp/physical/{ind}.txt"
 	shell:
-		"Rscript --vanilla interpolate_hmm_ancestry.R {input.indFile} {wildcards.ind} {input.recMapFile} > {output}"
+		"""
+		Rscript --vanilla interpolate_hmm_ancestry.R {input.indFile} {wildcards.ind} {input.recMapFile} {input.chrLenFile} 'hmm_anc_interp/'
+		"""
+		# Rscript arguments 1. genotype posteriors probs for individual 2. individual ID 3. rec map file 4. chr length file 5. path for output
 
 rule wavelets:
 	input:
