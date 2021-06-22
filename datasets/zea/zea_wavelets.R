@@ -26,7 +26,6 @@ indFiles <- as.list(paste0(ancPath,
 # combine individuals from population into one table
 gnoms <- rbindlist(lapply(indFiles, fread))
 
-
 # ===== Define Functions =====
 
 # maximum overlap discrete wavelet transform
@@ -62,7 +61,9 @@ gnoms[freqMex == 1, freqMexTr := log((1-epsilon)/epsilon)]
 # take mean over individuals
 meanAnc <- gnoms[, lapply(.SD,mean),.SDcols = c('freqMex','freqMexTr'),by=.(Morgan,chr)]
 
+# mean ancestry in population
 
+totalMeanAnc <- meanAnc[, mean(freqMex)]
 # ===== Wavelet Transform =====
 
 # define levels based on longest chromosome
@@ -115,13 +116,51 @@ meanAncWavVar <- meanAncWavVar[, weighted.mean(anc_variance, weight), by = scale
 setnames(meanAncWavVar, "V1", "anc_variance")
 meanAncWavVar[,decomp :="mean"]
 
-# ----- combine tables and output -----
+
+# ----- combine wav var tables -----
 allAncWavVar <- rbind(meanAncWavVar, indMeanAncWavVar)
-allAncWavVar[,popID := pop]
-allAncWavVar[,species := meta[RI_ACCESSION==pop,zea][1]]
-allAncWavVar[,locality := meta[RI_ACCESSION==pop,LOCALITY][1]]
 
 
 
-save(meanAncWavVar, file=outPath)
+# ===== Chromosome Variance =====
+# new weights: total genetic length
+
+chrMorgans <- gnoms[ID==ID[1], max(Morgan), by=chr]
+setnames(chrMorgans, "V1","MorganLength")
+
+# ----- individual-level -----
+indChrMeanAnc <- gnoms[, mean(freqMex), by = .(chr,ID)]
+setnames(indChrMeanAnc,"V1","meanFreqMex")
+indChrMeanAnc <- merge(indChrMeanAnc,chrMorgans)
+indChrMeanAnc[, weight := MorganLength/sum(MorganLength), by = ID]
+
+# weighted total mean for individuals
+indChrMeanAnc[, indMean := weighted.mean(meanFreqMex,w=MorganLength),by=ID]
+# chrom-level weighted variance
+indChrVarAnc <- data.table(anc_variance=indChrMeanAnc[, sum(weight*(meanFreqMex-indMean)^2),by=ID][,mean(V1)],
+                           decomp = "individual",
+                           scale = "chrom")
+
+# ----- mean ancestry ------
+meanChrMeanAnc <- meanAnc[, mean(freqMex),by=chr]
+setnames(meanChrMeanAnc,"V1","meanFreqMex")
+meanChrMeanAnc <- merge(meanChrMeanAnc,chrMorgans)
+meanChrMeanAnc[, weight := MorganLength/sum(MorganLength)]
+
+#chrom-level weighted variance
+meanChrVarAnc <- data.table(anc_variance=meanChrMeanAnc[, sum(weight*(meanFreqMex-totalMeanAnc)^2)],
+                            decomp = "mean",
+                            scale = "chrom")
+
+# ===== Final Output =====
+allAncVarDecomp <- rbind(indChrVarAnc, meanChrVarAnc, allAncWavVar)
+
+# Add metadata to table for output
+allAncVarDecomp[,popID := pop]
+allAncVarDecomp[,species := meta[RI_ACCESSION==pop,zea][1]]
+allAncVarDecomp[,locality := meta[RI_ACCESSION==pop,LOCALITY][1]]
+allAncVarDecomp[,totalMean := totalMeanAnc]
+
+
+save(allAncVarDecomp, file=outPath)
 
