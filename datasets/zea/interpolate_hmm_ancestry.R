@@ -12,7 +12,7 @@ outPath <- args[5]
 #indFile <- "HILO2.posterior"
 #ind <- "HILO2"
 #mapFile <- "ogut_2015_rmap_v2_to_v4_EXTENDED.txt"
-chrLenFile <- "Zea_mays.AFPv4.dna.chr.autosome.lengths"
+#chrLenFile <- "Zea_mays.AFPv4.dna.chr.autosome.lengths"
 
 # hmm post. prob. for individual 
 gnom <- fread(indFile)
