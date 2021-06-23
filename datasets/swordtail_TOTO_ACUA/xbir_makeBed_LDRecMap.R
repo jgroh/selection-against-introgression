@@ -10,7 +10,7 @@ chrCM <- fread("cM_lengths_birchmanni10x.txt", col.names = c("chr", "cM")) # cM 
 
 recombBed <- rbindlist(
   lapply(list.files("LD_recMap/",full.names=T), function(x){
-    rChrom <- fread(x, col.names = c("chr","start","end","mean_2Nerrr","V1","median_2Ner","V3"))
+    rChrom <- fread(x, col.names = c("chr","start","end","mean_2Ner","V1","median_2Ner","V3"))
     rChrom <- rChrom[, c("chr", "start", "end", "median_2Ner")]
     
     if(min(rChrom$start) != 0){
