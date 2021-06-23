@@ -9,11 +9,17 @@ map <- fread(mapFile)
 
 map[, `:=` (cM_interval=pos_cM-shift(pos_cM),
             start=shift(pos_bp)-1,
-            end=pos_bp-1), by = chr]
+            end=(pos_bp-1)), by = chr]
 
+# add 1 to end of last interval for zero-based indexing of bed file
+idx <- map[, .(idx = .I[end==max(end)]), by=chr]$idx
+map[idx, end := end+1]
+
+# get average per bp recombination rate for interval
 map[, r:= (cM_interval/100)/(end-start)]
 
-map <- map[, .SD[-1], by=chr][,.(chr,start,end,marker,r)]
+# remove first value and select column order
+map <- map[, .SD[-1], by=chr][, .(chr,start,end,marker,r)]
 
 #boxplot(log10(map[,r]), ylab = "log10 per bp recomb rate")
 
