@@ -37,23 +37,25 @@ rule make_recMap_bed:
 	input:
 		recMapFile=recMapFile
 	output:
-		"zea_recMap_bed.txt"
+		"zea_recMap.bed"
 	shell:
 		"""
-		Rscript --vanilla zea_make_recMap_bed.R {input.recMapFile} | sort -k1,1 -k2,2 > {output}
+		Rscript --vanilla zea_make_recMap_bed.R {input.recMapFile} | sort -k1,1 -k2,2n > {output}
 		"""
 rule make_kb_bed:
 	input:
 		chrLenFile=chrLenFile
 	output:
-		"zea_1kb_bed.txt"
+		"zea_1kb.bed"
 	shell:
-		"Rscript --vanilla make_1kb_bed.R {input.chrLenFile} {output}"		
+		"""
+		Rscript --vanilla make_1kb_bed.R {input.chrLenFile} | sort -k1,1 -k2,2n > {output}
+		"""	
 
 rule cm_per_kb:
 	input:
-		kb_bed="zea_1kb_bed.txt",
-		rec_bed="zea_recMap_bed.txt"
+		kb_bed="zea_1kb.bed",
+		rec_bed="zea_recMap.bed"
 	output:
 		"zea_1kb_rec.bed"
 	shell:
