@@ -5,21 +5,25 @@ import os
 metaFile = "/Users/Shared/wavelets/hilo/samples/HILO_MAIZE55_PARV50_meta.txt"
 meta = pd.read_csv(metaFile,sep='\t',header=0)
 symPops = meta.loc[meta['symp_allo']=='sympatric']['RI_ACCESSION'].unique().tolist()
-symInds = [i.replace(".posterior","") for i in os.listdir("/Users/Shared/wavelets/hilo/local_ancestry/results/ancestry_hmm/HILO_MAIZE55/K2/Ne10000_yesBoot/posterior")]
-#symInds = meta.loc[meta['symp_allo']=='sympatric']['ID'].unique().tolist()
 
-#popDf = pd.read_csv("/Users/Shared/wavelets/hilo/samples/population_metadata.csv",header=0)
-#symPops = popDf.loc[popDf['symp_allo'] == 'sympatric']['accession'].to_list()
+indGenoDir="/Users/Shared/wavelets/hilo/local_ancestry/results/ancestry_hmm/HILO_MAIZE55/K2/Ne10000_yesBoot/posterior/"
+symInds = [i.replace(".posterior","") for i in os.listdir(indGenoDir)]
+
+chrLenFile="/Users/Shared/wavelets/hilo/data/refMaize/Zea_mays.AFPv4.dna.chr.autosome.lengths"
+recMapFile="/Users/Shared/wavelets/hilo/linkage_map/results/ogut_2015_rmap_v2_to_v4_EXTENDED.txt"
+
+
 rule all:
 	input:
 		expand("hmm_anc_interp/{distance}/{ind}.txt",ind=symInds,distance=['genetic','physical']),
-		expand("wavelet_results/{popID}.RData",popID=symPops)
+		expand("wavelet_results/{popID}.RData",popID=symPops),
+		"zea_1kb_rec.bed"
 
 rule interpolate_hmm_ancestry:
 	input:
-		indFile="/Users/Shared/wavelets/hilo/local_ancestry/results/ancestry_hmm/HILO_MAIZE55/K2/Ne10000_yesBoot/posterior/{ind}.posterior",
-		recMapFile="/Users/Shared/wavelets/hilo/linkage_map/results/ogut_2015_rmap_v2_to_v4_EXTENDED.txt",
-		chrLenFile="/Users/Shared/wavelets/hilo/data/refMaize/Zea_mays.AFPv4.dna.chr.autosome.lengths"
+		indFile = indGenoDir + "{ind}.posterior",
+		chrLenFile=chrLenFile,
+		recMapFile=recMapFile
 	output:
 		genetic="hmm_anc_interp/genetic/{ind}.txt",
 		physical="hmm_anc_interp/physical/{ind}.txt"
@@ -29,9 +33,38 @@ rule interpolate_hmm_ancestry:
 		"""
 		# Rscript arguments 1. genotype posteriors probs for individual 2. individual ID 3. rec map file 4. chr length file 5. path for output
 
+rule make_recMap_bed:
+	input:
+		recMapFile=recMapFile
+	output:
+		"zea_recMap_bed.txt"
+	shell:
+		"""
+		Rscript --vanilla zea_make_recMap_bed.R {input.recMapFile} | sort -k1,1 -k2,2 > {output}
+		"""
+rule make_kb_bed:
+	input:
+		chrLenFile=chrLenFile
+	output:
+		"zea_1kb_bed.txt"
+	shell:
+		"Rscript --vanilla make_1kb_bed.R {input.chrLenFile} {output}"		
+
+rule cm_per_kb:
+	input:
+		kb_bed="zea_1kb_bed.txt",
+		rec_bed="zea_recMap_bed.txt"
+	output:
+		"zea_1kb_rec.bed"
+	shell:
+		"""
+		bedmap --echo --delim "\t" --wmean --sci {input.kb_bed} {input.rec_bed} |\\
+		awk '{{print $1 "\t" $2 "\t" $3 "\t" ($3-$2)*$4*100}}' > {output}
+		"""
+
 rule wavelets:
 	input:
-		metaFile=metaFile,
+		metaFile=metaFile
 	output:
 		"wavelet_results/{popID}.RData"
 	shell:
