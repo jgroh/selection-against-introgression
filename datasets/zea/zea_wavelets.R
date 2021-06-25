@@ -12,19 +12,31 @@ outPath <- args[4]
 
 # run this block only if running locally
 #pop <- "RIMMA0366"
-#ancPath <- "hmm_anc_interp/genetic/"
+#ancPathG <- "hmm_anc_interp/genetic/"
+#ancPathP <- "hmm_anc_interp/physical/"
 #metaFile <- "HILO_MAIZE55_PARV50_meta.txt"
-#
+#recFile <- "zea_1kb_rec.bed"
 
 # Read files
 meta <- fread(metaFile)
+rec <- fread(recFile, col.names = c('chr','start','end','cM'))
 
-# read whichever files present from individuals in focal population
-indFiles <- as.list(paste0(ancPath, 
-                           intersect(list.files(ancPath), 
-                                     paste0(meta[RI_ACCESSION==pop,ID],".txt"))))
-# combine individuals from population into one table
-gnoms <- rbindlist(lapply(indFiles, fread))
+# ----- read gnom files in genetic and physical distance ----
+d <- data.table(x=c("ancPathG","ancPathP"), y=c("gnomsG","gnomsP"))
+
+for(i in 1:2){
+  # read whichever files present from individuals in focal population
+  indFiles <- as.list(paste0(get(d[i,x]),
+                             intersect(list.files(get(d[i,x])), 
+                                       paste0(meta[RI_ACCESSION==pop,ID],".txt"))))
+  # combine individuals from population into one table
+  assign(d[i,y], rbindlist(lapply(indFiles, fread)))
+}
+
+# merge ancestry data and genomic features data
+rec[, position := start + 500] # this is the midpoint of the 1kb intervals where I interpolate ancestry
+gnomsP <- merge(gnomsP, rec, by = c("chr", "position"))
+
 
 # ===== Define Functions =====
 
@@ -49,44 +61,75 @@ wav_var <- function(x){sum(x^2,na.rm=TRUE)/(length(x[!is.na(x)]))}
 
 # ===== Data transformations =====
 
-# logit transform ancestry (?)
-gnoms[freqMex > 1, freqMex := 1] # strangely some values slightly > 1, precision error?
+# ----- log transform recombination -----
+rec[, cmTr := log10(cM)]
+
+# ----- logit transform ancestry -----
+lapply(list(gnomsG,gnomsP),function(x){
+  x[freqMex > 1, freqMex := 1] # strangely some values that are 1 evaluate to > 1
+})
 
 # replace values of zero or 1 by small deviation so logit works
-epsilon <- gnoms[freqMex > 0, min(freqMex)]/2
-gnoms[, freqMexTr := log(freqMex/(1-freqMex))]
-gnoms[freqMex == 0, freqMexTr := log(epsilon/(1-epsilon))]
-gnoms[freqMex == 1, freqMexTr := log((1-epsilon)/epsilon)]
+lapply(list(gnomsG,gnomsP),function(x){
+  epsilon <- x[freqMex > 0, min(freqMex)]/2
+  x[, freqMexTr := log(freqMex/(1-freqMex))]
+  x[freqMex == 0, freqMexTr := log(epsilon/(1-epsilon))]
+  x[freqMex == 1, freqMexTr := log((1-epsilon)/epsilon)]
+})
 
-# take mean over individuals
-meanAnc <- gnoms[, lapply(.SD,mean),.SDcols = c('freqMex','freqMexTr'),by=.(Morgan,chr)]
+# ----- mean ancestry -----
+# mean over individuals
+meanAncG <- gnomsG[, lapply(.SD,mean),.SDcols = c('freqMex','freqMexTr'),by=.(Morgan,chr)]
+meanAncP <- gnomsP[, lapply(.SD,mean),.SDcols = c('freqMex','freqMexTr'),by=.(position,chr)]
 
-# mean ancestry in population
-totalMeanAnc <- meanAnc[, mean(freqMex)]
+# total mean ancestry in population
+totalMeanAncG <- meanAncG[, mean(freqMex)]
+totalMeanAncP <- meanAncP[, mean(freqMex)]
 
 
-# ===== Wavelet Transform =====
+# ===== Wavelet Transforms =====
 
-# define levels based on longest chromosome
-maxLevel <- max(gnoms[,floor(log2(length(unique(Morgan)))),by=chr][,2])
-allCols <- paste0("d",1:maxLevel)
+# assign max level and column names for scales
+maxLevelG <- max( gnomsG[ID==ID[1], 
+            .(level = floor(log2(length(freqMex)))),
+            by=chr][,level])
+maxLevelP <- max( gnomsP[ID==ID[1], 
+                         .(level = floor(log2(length(freqMex)))),
+                         by=chr][,level])
+allColsG <- paste0("d",1:maxLevelG) # these are the names waveslim gives to scales
+allColsP <- paste0("d",1:maxLevelP)
+
 
 # MODWT on individuals
-indAncModwt <- gnoms[, modwtAllScales(.SD,variable=freqMexTr,lenCol=Morgan,allcols=allCols),by=.(ID,chr)]
+indAncModwtG <- gnomsG[, modwtAllScales(.SD,variable=freqMexTr,lenCol=Morgan,allcols=allColsG),by=.(ID,chr)]
+indAncModwtP <- gnomsP[, modwtAllScales(.SD,variable=freqMexTr,lenCol=position,allcols=allColsP),by=.(ID,chr)]
 
 # MODWT on mean ancestry
-meanAncModwt <- meanAnc[,modwtAllScales(.SD,variable=freqMexTr,lenCol=Morgan,allcols=allCols), by = chr]
+meanAncModwtG <- meanAncG[,modwtAllScales(.SD,variable=freqMexTr,lenCol=Morgan,allcols=allColsG), by = chr]
+meanAncModwtP <- meanAncP[,modwtAllScales(.SD,variable=freqMexTr,lenCol=position,allcols=allColsP), by = chr]
 
-# ===== Wavelet Variance =====
+# MODWT of recombination rate
+recModwtP <- rec[, modwtAllScales(.SD,variable=cmTr,lenCol=position,allcols=allColsP), by=chr]
+
+
+# ===== Wavelet Variances =====
 
 # number of wavelet coefficients per scale on each chromosome
-chrWeights <- meanAncModwt[,lapply(.SD,function(x)length(x[!is.na(x)]) ), by = chr]
-setnames(chrWeights, old = paste0("d",1:maxLevel), new = as.character(1:maxLevel))
-chrWeights <- melt(chrWeights, id.vars = "chr", measure.vars = as.character(1:maxLevel),
-                    variable.name = "scale", value.name = "numCoeffs")
+d <- data.table(A=c("chrWeightsG","chrWeightsP"),
+                B=c("meanAncModwtG","meanAncModwtP"),
+                C=c("allColsG","allColsP"))
 
-# rescale weights to percentages
-chrWeights[,weight := numCoeffs/sum(numCoeffs), by=.(scale)]
+for(i in 1:2){
+  assign(d[i,A], 
+         get(d[i,B])[,
+                     lapply(.SD,function(x)length(x[!is.na(x)])),
+                     by = chr] %>%
+           melt(., id.vars = "chr", measure.vars = get(d[i,C]),
+                variable.name = "scale", value.name = "numCoeffs"))
+  get(d[i,A])[, scale := gsub("d","",scale)]
+  get(d[i,A])[, weight := numCoeffs/sum(numCoeffs), by = scale]
+}
+
 
 # ----- wavelet variance: chromosome x individual ----- 
 indAncWavVarChrs <- indAncModwt[,lapply(.SD,wav_var),by=.(chr,ID)]
