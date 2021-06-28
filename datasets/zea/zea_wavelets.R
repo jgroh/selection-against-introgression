@@ -11,6 +11,7 @@ metaFile <- args[1]
 pop <- args[2]
 ancPath <- args[3]
 outPath <- args[4]
+recFile <- args[5]
 
 # run this block only if running locally
 # metaFile <- "HILO_MAIZE55_PARV50_meta.txt"
