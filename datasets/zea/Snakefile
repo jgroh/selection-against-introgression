@@ -66,10 +66,11 @@ rule cm_per_kb:
 
 rule wavelets:
 	input:
-		metaFile=metaFile
+		metaFile=metaFile,
+		recMapFile=recMapFile
 	output:
 		"wavelet_results/{popID}.RData"
 	shell:
-		"Rscript --vanilla zea_wavelets.R {input.metaFile} {wildcards.popID} 'hmm_anc_interp/genetic/' {output}" 
+		"Rscript --vanilla zea_wavelets.R {input.metaFile} {wildcards.popID} 'hmm_anc_interp/genetic/' 'hmm_anc_interp/physical/' {input.recMapFile} {output}" 
 		# Rscript arguments 1. metaFile 2. population ID 3. path to individual ancestry files 4. outFile
 		
