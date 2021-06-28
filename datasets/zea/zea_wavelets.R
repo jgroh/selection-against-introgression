@@ -3,6 +3,7 @@
 library(data.table)
 library(waveslim)
 library(magrittr)
+library(psych)
 
 # arguments from command line
 args <- commandArgs(trailingOnly = TRUE)
