@@ -343,7 +343,7 @@ recAncCor <- rbind(data.table(scale = "chrom",
 
 
 # ===== Final Output =====
-save(allVarDecomp, allVarsModwtP, recAncCor, file = outPath)
+save(allVarDecomp, recAncCor, file = outPath)
 
 
 
