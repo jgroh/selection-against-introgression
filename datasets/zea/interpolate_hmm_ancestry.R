@@ -56,8 +56,9 @@ MexAncGenScale <- m[, approx(x=pos_cM,
   by=chr]
 setnames(MexAncGenScale, 'x', 'position') # note that units of 'position' are Morgans
 MexAncGenScale[, freqMex := exp(y)/(1+exp(y))][, y := NULL] # inverse logit transform
-MexAncGenScale[, Morgan := Morgan - min(Morgan), by = chr] # shift minimum to zero
+MexAncGenScale[, position := position - min(position), by = chr] # shift minimum to zero
 MexAncGenScale[, ID := ind]
+MexAncGenScale[, distance := "genetic"]
 
 # ----- Physical Scale -----
 # What scale to interpolate at?
@@ -65,19 +66,9 @@ chrLen[, len, by=chr]/gnom[,length(unique(pos_bp)),by=chr]
 # roughly 1 SNP per 5-7 kb
 # interpolate to 1kb for simplicity now
 
-gnom <- merge(gnom,chrLen)
+m <- merge(m,chrLen, by = "chr", all=T) # add chrom length as we'll seq to the end of the chrom
 
-gnom[, freqMexTr := log(freqMex/(1-freqMex))]
-
-# replace values of zero or 1 by small deviation so logit works
-if(any(gnom$freqMex==0, na.rm=T) | any(gnom$freqMex ==1, na.rm=T)){
-  epsilon <- gnom[freqMex > 0, min(freqMex)]/2
-  gnom[freqMex == 0, freqMexTr := log(epsilon/(1-epsilon))]
-  gnom[freqMex == 1, freqMexTr := log((1-epsilon)/epsilon)]
-}
-
-
-MexAncPhysScale <- gnom[, approx(x=pos_bp,
+MexAncPhysScale <- m[, approx(x=pos_bp,
                                  y=freqMexTr,
                                  xout=seq(500,len[1],by=1000),
                                  rule=2),
@@ -85,8 +76,9 @@ MexAncPhysScale <- gnom[, approx(x=pos_bp,
 setnames(MexAncPhysScale, 'x','position') # units are bps
 MexAncPhysScale[, freqMex := exp(y)/(1+exp(y))][, y := NULL] # inverse logit transform
 MexAncPhysScale[, ID := ind]
+MexAncPhysScale[, distance := "physical"]
 
 # ===== Output =====
 
-write.table(MexAncGenScale,file = paste0(outPath,"/genetic/",ind,".txt"),quote=F,sep="\t",row.names=F)
-write.table(MexAncPhysScale,file = paste0(outPath,"/physical/",ind,".txt"),quote=F,sep="\t",row.names=F)
+write.table(rbind(MexAncGenScale, MexAncPhysScale), file = paste0(outPath,"/",ind,".txt"),
+            quote=F,sep="\t",row.names=F)

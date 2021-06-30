@@ -16,11 +16,12 @@ outPath <- args[6]
 
 # run this block only if running locally
 # metaFile <- "HILO_MAIZE55_PARV50_meta.txt"
-# pop <- "RIMME0035" # mexicana 
+# pop <- "RIMME0035" # mexicana
 # pop <- "RIMMA0366" # maize
 # ancPathG <- "hmm_anc_interp/genetic/"
 # ancPathP <- "hmm_anc_interp/physical/"
 # recFile <- "zea_1kb_rec.bed"
+
 
 # Read files
 meta <- fread(metaFile)
@@ -37,6 +38,8 @@ for(i in 1:2){
   # combine individuals from population into one table
   assign(d[i,y], rbindlist(lapply(indFiles, fread)))
 }
+
+setnames(gnomsG, "Morgan", "position")
 
 # merge ancestry data and genomic features data
 rec[, position := start + 500] # this is the midpoint of the 1kb intervals where I interpolate ancestry
@@ -73,7 +76,9 @@ rec[, cmTr := log10(cM)]
 
 # ----- logit transform ancestry -----
 lapply(list(gnomsG,gnomsP),function(x){
-  x[freqMex > 1, freqMex := 1] # strangely some values that are 1 evaluate to > 1
+  if(any(x$freqMex > 1)){
+    x[freqMex > 1, freqMex := 1]
+    } # strangely some values that are 1 evaluate to > 1
 })
 
 # replace values of zero or 1 by small deviation so logit works
