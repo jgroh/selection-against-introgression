@@ -42,9 +42,6 @@ for(i in 1:2){
 rec[, position := start + 500] # this is the midpoint of the 1kb intervals where I interpolate ancestry
 gnomsP <- merge(gnomsP, rec, by = c("chr", "position"))
 
-# change col name of gnomsG Morgan to position for parallelization
-setnames(gnomsG, "Morgan","position")
-
 
 # ===== Define Functions =====
 
