@@ -19,6 +19,11 @@ rule all:
 		expand("wavelet_results/{popID}.RData",popID=symPops),
 		"zea_1kb_rec.bed"
 
+rule all_hmm_ancestry:
+	input:
+		expand("hmm_anc_interp/genetic/{ind}.txt",ind=symInds),
+		expand("hmm_anc_interp/physical/{ind}.txt",ind=symInds)
+
 rule interpolate_hmm_ancestry:
 	input:
 		indFile = indGenoDir + "{ind}.posterior",
