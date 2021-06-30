@@ -78,10 +78,14 @@ lapply(list(gnomsG,gnomsP),function(x){
 
 # replace values of zero or 1 by small deviation so logit works
 lapply(list(gnomsG,gnomsP),function(x){
-  epsilon <- x[freqMex > 0, min(freqMex)]/2
+  
   x[, freqMexTr := log(freqMex/(1-freqMex))]
-  x[freqMex == 0, freqMexTr := log(epsilon/(1-epsilon))]
-  x[freqMex == 1, freqMexTr := log((1-epsilon)/epsilon)]
+  
+  if(any(x$freqMexTr == 0, na.rm=T) | any(x$freqMexTr==1, na.rm=T)){
+    epsilon <- x[freqMex > 0, min(freqMex)]/2
+    x[freqMex == 0, freqMexTr := log(epsilon/(1-epsilon))]
+    x[freqMex == 1, freqMexTr := log((1-epsilon)/epsilon)]
+  }
 })
 
 # ----- mean ancestry -----
