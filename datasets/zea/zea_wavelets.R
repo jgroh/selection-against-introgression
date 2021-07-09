@@ -18,8 +18,7 @@ outPath <- args[6]
 # metaFile <- "HILO_MAIZE55_PARV50_meta.txt"
 # pop <- "RIMME0035" # mexicana
 # pop <- "RIMMA0366" # maize
-# ancPathG <- "hmm_anc_interp/genetic/"
-# ancPathP <- "hmm_anc_interp/physical/"
+# ancPath <- "hmm_anc_interp/"
 # recFile <- "zea_1kb_rec.bed"
 
 
@@ -30,20 +29,15 @@ rec <- fread(recFile, col.names = c('chr','start','end','cM'))
 # ----- read gnom files in genetic and physical distance ----
 d <- data.table(x=c("ancPathG","ancPathP"), y=c("gnomsG","gnomsP"))
 
-for(i in 1:2){
-  # read whichever files present from individuals in focal population
-  indFiles <- as.list(paste0(get(d[i,x]),
-                             intersect(list.files(get(d[i,x])), 
-                                       paste0(meta[RI_ACCESSION==pop,ID],".txt"))))
-  # combine individuals from population into one table
-  assign(d[i,y], rbindlist(lapply(indFiles, fread)))
-}
-
-setnames(gnomsG, "Morgan", "position")
+indFiles <- as.list(paste0(ancPath,
+                           intersect(list.files(ancPath), 
+                                     paste0(meta[RI_ACCESSION==pop,ID],".txt"))))
+# combine individuals from population into one table
+gnoms <- rbindlist(lapply(indFiles, fread))
 
 # merge ancestry data and genomic features data
 rec[, position := start + 500] # this is the midpoint of the 1kb intervals where I interpolate ancestry
-gnomsP <- merge(gnomsP, rec, by = c("chr", "position"))
+gnoms <- merge(gnoms, rec, by = c("chr", "position"), all=T)
 
 
 # ===== Define Functions =====
@@ -70,64 +64,54 @@ wav_var <- function(x){sum(x^2,na.rm=TRUE)/(length(x[!is.na(x)]))}
 # ===== Data transformations =====
 
 # ----- log transform recombination -----
-rec[, cmTr := log10(cM)]
+gnoms[, cmTr := log10(cM)]
 #qqnorm(rec[chr==1,cmTr])
 
 
 # ----- logit transform ancestry -----
-lapply(list(gnomsG,gnomsP),function(x){
-  if(any(x$freqMex > 1)){
-    x[freqMex > 1, freqMex := 1]
-    } # strangely some values that are 1 evaluate to > 1
-})
+if(any(gnoms$freqMex > 1)){
+  gnoms[freqMex > 1, freqMex := 1]
+}
+if(any(gnoms$freqMex < 0)){
+  gnoms[freqMex < 0, freqMex := 0]
+}
 
+# logit
+gnoms[, freqMexTr := log(freqMex/(1-freqMex))]
+  
 # replace values of zero or 1 by small deviation so logit works
-lapply(list(gnomsG,gnomsP),function(x){
-  
-  x[, freqMexTr := log(freqMex/(1-freqMex))]
-  
-  if(any(x$freqMexTr == 0, na.rm=T) | any(x$freqMexTr==1, na.rm=T)){
-    epsilon <- x[freqMex > 0, min(freqMex)]/2
-    x[freqMex == 0, freqMexTr := log(epsilon/(1-epsilon))]
-    x[freqMex == 1, freqMexTr := log((1-epsilon)/epsilon)]
-  }
-})
+if(any(gnoms$freqMex == 0, na.rm=T) | any(gnoms$freqMex==1, na.rm=T)){
+  gnoms[freqMex > 0, epsilon := min(freqMex)/2, by = distance]
+  gnoms[freqMex == 0, freqMexTr := log(epsilon/(1-epsilon))]
+  gnoms[freqMex == 1, freqMexTr := log((1-epsilon)/epsilon)]
+}
 
 # ----- mean ancestry -----
 # mean over individuals
-vars <- c("gnoms","meanAnc","totalMeanAnc")
-d <- setDT(lapply(vars, function(x)paste0(x,c("G","P"))))
-setnames(d,vars)
+meanAnc <- gnoms[, .(freqMexTr = mean(freqMexTr)), by=.(position,chr,distance)]
 
-for(i in 1:2){
-  # mean over individuals
-  assign(d[i,meanAnc], 
-         get(d[i,gnoms])[, 
-                         lapply(.SD,mean),
-                         .SDcols = c('freqMex','freqMexTr'),
-                         by=.(position,chr)])
-  
-  # total mean ancestry in population
-  assign( d[i,totalMeanAnc], get(d[i,meanAnc])[, lapply(.SD,mean),
-                                               .SDcols = c('freqMex','freqMexTr')] )
-}
+# total mean ancestry 
+totalMeanAnc <- meanAnc[, .(meanFreqMex=mean(freqMexTr)), by = distance]
 
-#qqnorm(meanAncG$freqMexTr)
 
 # ===== Wavelet Transforms =====
-vars <- c("gnoms","maxLevel","allCols","indAncModwt","meanAnc","meanAncModwt")
-d <- setDT(lapply(vars, function(x)paste0(x,c("G","P"))));setnames(d,vars)
 
-for(i in 1:2){
-  # maximum level of wavelet decomposition
-  assign(d[i,maxLevel],
-         max( get(d[i,gnoms]) [ID==ID[1],
-                              .(level = floor(log2(length(position)))),
-                              by=chr][,level] ) )
-  # these are the names waveslim gives to scales
-  assign(d[i,allCols], paste0("d",1:get(d[i,maxLevel])))
+# max level of wavelet decomp
+maxLevel <- meanAnc[, .(level=floor(log2(length(position)))), 
+                                    by = .(chr,distance)][, .(maxLevel=max(level))]
+
+gnoms[, maxLevel := maxLevel]
+meanAnc[, maxLevel := maxLevel]
+
+gnoms[, modwtAllScales(.SD,
+                       variable=freqMexTr,
+                       lenCol=position,
+                       allcols=paste0("d",1:maxLevel[1])),
+      by=.(ID,chr,distance)]
+x <- gnoms[ID==ID[1] & chr==chr[1] & distance == "genetic"]
   
-  # MODWT on individuals
+
+# MODWT on individuals
   assign(d[i,indAncModwt], 
          get(d[i,gnoms])[, modwtAllScales(.SD,
                                           variable=freqMexTr,
