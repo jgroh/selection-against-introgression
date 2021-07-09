@@ -2,23 +2,32 @@
 library(data.table)
 
 args <- commandArgs(trailingOnly = TRUE)
-indFile <- args[1]
-ind <- args[2]
-mapFile <- args[3]
-chrLenFile <- args[4]
-outPath <- args[5]
+meta <- args[1]
+indFile <- args[2]
+ind <- args[3]
+mapFile <- args[4]
+chrLenFile <- args[5]
+outPath <- args[6]
 
 # # If running locally:
+# metaFile <- "HILO_MAIZE55_PARV50_meta.txt"
 # indFile <- "HILO2.posterior"
 # ind <- "HILO2"
 # mapFile <- "ogut_2015_rmap_v2_to_v4_EXTENDED.txt"
 # chrLenFile <- "Zea_mays.AFPv4.dna.chr.autosome.lengths"
+
+# meta data
+meta <- fread(metaFile)
+
+meta[ID == ind]
 
 # hmm post. prob. for individual 
 gnom <- fread(indFile)
 setnames(gnom, c('2,0','1,1','0,2','position','chrom'),
          c('p2.0','p1.1','p0.2','pos_bp','chr'))
 gnom[, freqMex := 0.5*p1.1 + p0.2]
+
+meta
 
 # recombination map
 map <- fread(mapFile)
