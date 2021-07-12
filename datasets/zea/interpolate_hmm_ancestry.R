@@ -2,22 +2,17 @@
 library(data.table)
 
 args <- commandArgs(trailingOnly = TRUE)
-meta <- args[1]
-indFile <- args[2]
-ind <- args[3]
-mapFile <- args[4]
-chrLenFile <- args[5]
-outPath <- args[6]
+indFile <- args[1]
+ind <- args[2]
+mapFile <- args[3]
+chrLenFile <- args[4]
+outPath <- args[5]
 
 # # If running locally:
-# metaFile <- "HILO_MAIZE55_PARV50_meta.txt"
 # indFile <- "HILO2.posterior"
 # ind <- "HILO2"
 # mapFile <- "ogut_2015_rmap_v2_to_v4_EXTENDED.txt"
 # chrLenFile <- "Zea_mays.AFPv4.dna.chr.autosome.lengths"
-
-# meta data
-meta <- fread(metaFile)
 
 # hmm post. prob. for individual 
 gnom <- fread(indFile)

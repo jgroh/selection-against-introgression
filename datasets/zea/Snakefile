@@ -15,14 +15,9 @@ recMapFile="/Users/Shared/wavelets/hilo/linkage_map/results/ogut_2015_rmap_v2_to
 
 rule all:
 	input:
-		expand("hmm_anc_interp/{distance}/{ind}.txt",ind=symInds,distance=['genetic','physical']),
-		expand("wavelet_results/{popID}.RData",popID=symPops),
+		expand("hmm_anc_interp/{units}/{ind}.txt",units=['physical','genetic'],ind=symInds),
+#		expand("wavelet_results/{popID}.RData",popID=symPops),
 		"zea_1kb_rec.bed"
-
-rule all_hmm_ancestry:
-	input:
-		expand("hmm_anc_interp/genetic/{ind}.txt",ind=symInds),
-		expand("hmm_anc_interp/physical/{ind}.txt",ind=symInds)
 
 rule interpolate_hmm_ancestry:
 	input:
@@ -30,11 +25,10 @@ rule interpolate_hmm_ancestry:
 		chrLenFile=chrLenFile,
 		recMapFile=recMapFile
 	output:
-		genetic="hmm_anc_interp/genetic/{ind}.txt",
-		physical="hmm_anc_interp/physical/{ind}.txt"
+		"hmm_anc_interp/{units}/{ind}.txt",
 	shell:
 		"""
-		Rscript --vanilla interpolate_hmm_ancestry.R {input.indFile} {wildcards.ind} {input.recMapFile} {input.chrLenFile} 'hmm_anc_interp/'
+		Rscript --vanilla interpolate_hmm_ancestry.R {input.indFile} {wildcards.ind} {input.recMapFile} {input.chrLenFile} 'hmm_anc_interp'
 		"""
 		# Rscript arguments 1. genotype posteriors probs for individual 2. individual ID 3. rec map file 4. chr length file 5. path for output
 

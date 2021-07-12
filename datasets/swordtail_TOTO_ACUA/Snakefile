@@ -10,7 +10,8 @@ rule all:
 		expand("ACUA_{year}/anc_rec_cds_MODWT.RData",year=years),
 		expand("ACUA_{year}/anc_rec_cds_DWT.RData",year=years),
 		expand("ACUA_{year}/chrSignalMeans.RData",year=years),
-		expand("ACUA_{year}/totalVar.RData",year=years)
+		expand("ACUA_{year}/totalVar.RData",year=years),
+		"dwt_lm_plot_data.txt"
 #		expand("ACUA_{year}/avgFrq_totalCor.RData",year=years)
 
 rule interpolate_ancestry_single_chrom:
@@ -108,3 +109,13 @@ rule combine_chrs_and_run_wavelets:
 		"ACUA_{year}/totalVar.RData"
 	shell:
 		"Rscript --vanilla swordtail_wavelets.R {wildcards.year}"
+
+rule lm_analysis:
+	input:
+		dwt="ACUA_2018/anc_rec_cds_DWT.RData",
+		functions="lm_functions.R",
+	output:
+		"dwt_lm_plot_data.txt"
+	threads: 16
+	shell:
+		"Rscript --vanilla lm_dwt_coeffs.R {input.dwt} {output} {threads}"
