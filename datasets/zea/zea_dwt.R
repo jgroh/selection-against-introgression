@@ -143,6 +143,8 @@ all_var_decomp <- merge(ancestry_var_decomp, rec_var_decomp, all=T)
 
 # ===== Correlation Analysis =====
 
+totalCor <- merge(meanAnc, rec, by = c("chr", "position"))[, cor(freq_sp2,log10_cm)]
+
 rec_dwt_coeffs <- rec[,haar_dwt_nondyadic_coeffs(.SD, variable = "log10_cm"), by = chr]
 ancestry_dwt_coeffs <- meanAnc[,haar_dwt_nondyadic_coeffs(.SD, variable = "freq_sp2"), by = chr]
 
@@ -170,6 +172,12 @@ cor_decomp[level == "chrom", rho:=
                         sqrt(sum(weight*(freq_sp2-total_mean)^2)*sum(weight*(log10_cm-total_mean_log10_cm)^2))]
 ]
 
+# correlation output
+cor_decomp[, `:=`(popID = pop,
+                  species = meta[RI_ACCESSION==pop,zea][1],
+                  locality = meta[RI_ACCESSION==pop,LOCALITY][1],
+                  totalMean = totalMeanAnc,
+                  totalCor = totalCor)][]
 
 # ===== Final Output =====
 save(all_var_decomp, cor_decomp, file = outPath)
