@@ -47,13 +47,18 @@ haar_dwt_nondyadic_var <- function(data,variable,max.level){
 
 # ===== Haar DWT wavelet coeffs for lm analysis =====
 
-haar_dwt_nondyadic_coeffs <- function(x){
-  # used for lm 
-  x <- x-mean(x)
-  M <- length(x)
-  N <- 2^(ceiling(log(M, 2)))
-  xx <- c(x, rep(mean(x), N - M)) # pad with zeros to next highest power of 2
-  y <- dwt(xx, "haar", n.levels = ceiling(log(M, 2)))
+haar_dwt_nondyadic_coeffs <- function(data, variable, max.level){
+  
+  u <- data[, get(variable)]
+  u <- u-mean(u) # center to mean zero
+  
+  # pad with zeros to next highest power of 2
+  M <- length(u)
+  N <- 2^(ceiling(log2(M)))
+  x <- c(u, rep(mean(u), N - M)) 
+  
+  # haar dwt
+  y <- dwt(x, "haar", n.levels = ceiling(log2(M)))
   
   # we don't need the scaling coefficient
   y <- y[-length(y)]

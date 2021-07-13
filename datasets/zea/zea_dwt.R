@@ -36,7 +36,7 @@ d <- data.table(units = c("genetic", "physical"),
 # ===== Ancestry Variance Decomposition =====
 
 for(i in 1:2){
-  # repeat for genetic and physical
+  # repeat for genetic and physical. do physical second so that objects remain for correlation analysis
   
   unit <- d[i, units]
   path <- d[i,path]
@@ -120,33 +120,59 @@ for(i in 1:2){
 # ====== Recombination Variance Decomposition =====
 # (did physical scale 2nd in loop so maxLevel the same)
 
-rec[, cm_tr := log10(cM)]
-rec_var_decomp <- rec[, haar_dwt_nondyadic_var(.SD, variable="cm_tr", max.level = maxLevel), by = chr]
+rec[, log10_cm := log10(cM)]
+rec[, position := start + 2500] # this is the midpoint of the 1kb intervals where I interpolate ancestry
+
+rec_var_decomp <- rec[, haar_dwt_nondyadic_var(.SD, variable="log10_cm", max.level = maxLevel), by = chr]
 
 # average over chromosomes
 rec_var_decomp <- rec_var_decomp[, .(rec_var = weighted.mean(variance, n.wavelets)),by=level]
 
 
 # chromosome-level
-chr_means_rec <- rec[, .(len = max(position), cm_tr = mean(cm_tr)), by = chr]
+chr_means_rec <- rec[, .(len = max(position), log10_cm = mean(log10_cm)), by = chr]
 chr_means_rec[, weight := len/sum(len)]
-chr_means_rec[, total_mean := weighted.mean(cm_tr,weight)]
+chr_means_rec[, total_mean_log10_cm := weighted.mean(log10_cm,weight)]
 
 # add chromosome-level variance to table
 rec_var_decomp <- rbindlist(list(rec_var_decomp, 
                                       list(level="chrom",
-                                           rec_var=chr_means_rec[, sum(weight*(cm_tr-total_mean)^2)])))
+                                           rec_var=chr_means_rec[, sum(weight*(log10_cm-total_mean_log10_cm)^2)])))
 
 all_var_decomp <- merge(ancestry_var_decomp, rec_var_decomp, all=T)
 
-
 # ===== Correlation Analysis =====
 
+rec_dwt_coeffs <- rec[,haar_dwt_nondyadic_coeffs(.SD, variable = "log10_cm"), by = chr]
+ancestry_dwt_coeffs <- meanAnc[,haar_dwt_nondyadic_coeffs(.SD, variable = "freq_sp2"), by = chr]
 
+rec_dwt_coeffs[, rec_coeff := w][, w:=NULL]
+ancestry_dwt_coeffs[, ancestry_coeff := w][, w:=NULL]
+
+all_dwt_coeffs <- merge(rec_dwt_coeffs, ancestry_dwt_coeffs)
+
+# decompose correlation by level
+rho <- all_dwt_coeffs[, .(rho = sum(rec_coeff*ancestry_coeff, na.rm=T)/sqrt(sum(ancestry_coeff^2, na.rm=T)*sum(rec_coeff^2,na.rm=T))), by = level]
+
+propVar <- all_var_decomp[signal == "mean" & units == "physical"]
+propVar[, `:=`(ancestry_propVar = variance/sum(variance),
+                    rec_propVar = rec_var/sum(rec_var))]
+
+cor_decomp <- merge(rho, propVar[,.(level,variance,rec_var,ancestry_propVar,rec_propVar)], by="level",all=T)
+
+
+# all that's left is to calculate the chromosome-level correlation
+chr_data <- merge(chr_means, chr_means_rec)
+
+# add to cor_decomp table
+cor_decomp[level == "chrom", rho:= 
+             chr_data[, sum(weight*(freq_sp2-total_mean)*(log10_cm-total_mean_log10_cm))/
+                        sqrt(sum(weight*(freq_sp2-total_mean)^2)*sum(weight*(log10_cm-total_mean_log10_cm)^2))]
+]
 
 
 # ===== Final Output =====
-save(all_var_decomp, file = outPath)
+save(all_var_decomp, cor_decomp, file = outPath)
 
 
 
