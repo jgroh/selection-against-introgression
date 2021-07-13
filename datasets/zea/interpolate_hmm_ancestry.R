@@ -52,7 +52,7 @@ if(any(m$freq_sp2==0, na.rm=T) | any(m$freq_sp2 ==1, na.rm=T)){
 # interpolate on logit scale
 sp2AncGenScale <- m[, approx(x=pos_cM, 
            y=freq_sp2_tr, 
-           xout=seq(min(pos_cM),max(pos_cM)/100,by=2^-14),
+           xout=seq(min(pos_cM)/100,max(pos_cM)/100,by=2^-14),
            rule=2),
   by=chr]
 setnames(sp2AncGenScale, 'x', 'position') # note that units of 'position' are Morgans
