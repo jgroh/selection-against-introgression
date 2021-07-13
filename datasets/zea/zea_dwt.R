@@ -141,7 +141,7 @@ rec_var_decomp <- rbindlist(list(rec_var_decomp,
 
 all_var_decomp <- merge(ancestry_var_decomp, rec_var_decomp, all=T)
 
-# ===== Correlation Analysis =====
+# ===== Linear Model and Correlation Analysis =====
 
 totalCor <- merge(meanAnc, rec, by = c("chr", "position"))[, cor(freq_sp2,log10_cm)]
 
@@ -152,6 +152,12 @@ rec_dwt_coeffs[, rec_coeff := w][, w:=NULL]
 ancestry_dwt_coeffs[, ancestry_coeff := w][, w:=NULL]
 
 all_dwt_coeffs <- merge(rec_dwt_coeffs, ancestry_dwt_coeffs)
+
+# output wavelet coefficients for lm analysis
+all_dwt_coeffs[, `:=`(popID = pop,
+                  species = meta[RI_ACCESSION==pop,zea][1],
+                  locality = meta[RI_ACCESSION==pop,LOCALITY][1])][]
+
 
 # decompose correlation by level
 rho <- all_dwt_coeffs[, .(rho = sum(rec_coeff*ancestry_coeff, na.rm=T)/sqrt(sum(ancestry_coeff^2, na.rm=T)*sum(rec_coeff^2,na.rm=T))), by = level]
@@ -180,7 +186,7 @@ cor_decomp[, `:=`(popID = pop,
                   totalCor = totalCor)][]
 
 # ===== Final Output =====
-save(all_var_decomp, cor_decomp, file = outPath)
+save(all_var_decomp, cor_decomp, all_dwt_coeffs, file = outPath)
 
 
 
