@@ -17,7 +17,7 @@ rule all:
 	input:
 		expand("hmm_anc_interp/{units}/{ind}.txt",units=['physical','genetic'],ind=symInds),
 		expand("wavelet_results/ancestry_var_decomp/{popID}.RData",popID=symPops),
-		"zea_1kb_rec.bed"
+		"zea_5kb_rec.bed"
 
 rule interpolate_hmm_ancestry:
 	input:
@@ -45,18 +45,18 @@ rule make_kb_bed:
 	input:
 		chrLenFile=chrLenFile
 	output:
-		"zea_1kb.bed"
+		"zea_5kb.bed"
 	shell:
 		"""
-		Rscript --vanilla make_1kb_bed.R {input.chrLenFile} | sort -k1,1 -k2,2n > {output}
+		Rscript --vanilla make_5kb_bed.R {input.chrLenFile} | sort -k1,1 -k2,2n > {output}
 		"""	
 
-rule cm_per_kb:
+rule cm_per_fiveKB:
 	input:
-		kb_bed="zea_1kb.bed",
+		kb_bed="zea_5kb.bed",
 		rec_bed="zea_recMap.bed"
 	output:
-		"zea_1kb_rec.bed"
+		"zea_5kb_rec.bed"
 	shell:
 		"""
 		bedmap --echo --delim "\t" --wmean --sci {input.kb_bed} {input.rec_bed} |\\
