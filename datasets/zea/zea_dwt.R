@@ -24,7 +24,7 @@ outPath <- args[4]
 
 # Read files
 meta <- fread(metaFile)
-rec <- fread(recFile, col.names = c('chr','start','end','cM'))
+#rec <- fread(recFile, col.names = c('chr','start','end','cM'))
 
 # list of individual files 
 indFiles <- as.list(paste0(ancPath,

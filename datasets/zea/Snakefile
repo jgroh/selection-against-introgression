@@ -16,7 +16,7 @@ recMapFile="/Users/Shared/wavelets/hilo/linkage_map/results/ogut_2015_rmap_v2_to
 rule all:
 	input:
 		expand("hmm_anc_interp/{units}/{ind}.txt",units=['physical','genetic'],ind=symInds),
-		expand("wavelet_results/{popID}.RData",popID=symPops),
+		expand("wavelet_results/ancestry_var_decomp/{popID}.RData",popID=symPops),
 		"zea_1kb_rec.bed"
 
 rule interpolate_hmm_ancestry:
@@ -67,7 +67,7 @@ rule dwt:
 	input:
 		metaFile=metaFile,
 	output:
-		"wavelet_results/{popID}.RData"
+		"wavelet_results/ancestry_var_decomp/{popID}.RData"
 	shell:
 		"""
 		Rscript --vanilla zea_dwt.R {input.metaFile} {wildcards.popID} 'hmm_anc_interp/genetic/' {output}
