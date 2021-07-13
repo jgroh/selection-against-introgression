@@ -65,13 +65,13 @@ sp2AncGenScale[, ID := ind]
 # What scale to interpolate at?
 chrLen[, len, by=chr]/gnom[,length(unique(pos_bp)),by=chr]
 # roughly 1 SNP per 5-7 kb
-# interpolate to 10kb for simplicity now
+# interpolate to 5kb
 
 m <- merge(m,chrLen, by = "chr", all=T) # add chrom length as we'll seq to the end of the chrom
 
 sp2AncPhysScale <- m[, approx(x=pos_bp,
                                  y=freq_sp2_tr,
-                                 xout=seq(5000,len[1],by=10000),
+                                 xout=seq(2500,len[1],by=5000),
                                  rule=2),
                         by=chr]
 setnames(sp2AncPhysScale, 'x','position') # units are bps
