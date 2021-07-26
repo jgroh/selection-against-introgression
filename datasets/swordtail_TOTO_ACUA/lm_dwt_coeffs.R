@@ -27,17 +27,13 @@ r.squared_dwt <- acua2018dwt[, r.squared_lm(.SD,
 
 # ===== bootstrap confidence intervals =====
 
-# due to memory constraint use percentile intervals for smaller scales, but bca for larger scales
-r.squared_dwt_CI_part1 <- acua2018dwt[scale %in% paste0("d",1:7), r.sqrd_boot_all(.SD,type="perc"), by = scale]
-r.squared_dwt_CI_part2 <- acua2018dwt[scale %in% paste0("d",8:15), r.sqrd_boot_all(.SD,type="perc"), by = scale]
-
-r.squared_dwt_CI <- rbind(r.squared_dwt_CI_part1, r.squared_dwt_CI_part2)
+r.squared_dwt_CI <- acua2018dwt[, r.sqrd_boot_all(.SD), by = scale]
 
 dwt_lm_plot_data <- merge(r.squared_dwt,r.squared_dwt_CI, all = T)
 
 dwt_lm_plot_data[, scale := as.numeric(gsub("d","",scale))]
 
-write.table(dwt_lm_plot_data, file = out_file, quote=F, sep="\t", row.names=F, col.names=T)
+write.table(lm_plot_data, file = out_file, quote=F, sep="\t", row.names=F, col.names=T)
 
 #ggplot(r.squared_plot_data, aes(x = scale, y = r.squared_adj, colour = model)) + 
 #  geom_point() +
