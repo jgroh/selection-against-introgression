@@ -186,7 +186,8 @@ cor_decomp[, `:=`(popID = pop,
                   totalCor = totalCor)][]
 
 # ===== Final Output =====
-save(all_var_decomp, cor_decomp, all_dwt_coeffs, file = outPath)
+save(all_var_decomp, cor_decomp, file = outPath)
+#save(all_var_decomp, cor_decomp, all_dwt_coeffs, file = outPath)
 
 
 
