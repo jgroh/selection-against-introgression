@@ -45,6 +45,63 @@ haar_dwt_nondyadic_var <- function(data,variable,max.level){
   # sum((x-mean(x))^2)/length(x)
 }
 
+
+# ===== Haar MODWT variance estimation w/ brick wall boundary condition =====
+
+haar_modwt_var <- function(data,variable,max.levels){
+  u <- data[, get(variable)]
+  u <- u-mean(u) # center to mean zero
+  
+  # wavelet variance 
+  m <- brick.wall(
+    modwt(u, "haar", n.levels = floor(log2(length(u)))),
+    "haar")
+  
+  n.coeffs <- sapply(m, function(x)length(x[!is.na(x)]))
+  
+  wv <- data.table(wave.variance(m)[1], 
+    keep.rownames = T)
+  setnames(wv, "rn", "level")
+  
+  wv[,n.coeffs := n.coeffs]
+  
+  #n coeffs
+  
+  
+  if(floor(log2(length(u))) == max(max.levels)){
+    
+    result <- rbind(wv, 
+                    data.table(level = paste0("s", max.levels[max.levels != max(max.levels)]),
+                               variance = NA, 
+                               n.coeffs = NA))
+  }
+}
+  
+  
+haar_dwt_coeffs <- function(data,variable){
+  
+  u <- data[, get(variable)]
+  # haar dwt
+  y <- dwt(u, "haar", n.levels = log2(length(u)))
+  
+  # we don't need the scaling coefficient
+  y <- y[-length(y)]
+  
+  J <- length(y) # max level of decomp
+  for(j in 1:J){
+    # set rest of coefficients to NA to equal max num of coeffs at any scale
+    y[[j]] <- c(y[[j]], rep(NA, max(sapply(y, length))-length(y[[j]]) ))
+  }
+  
+  y <- as.data.table(y)
+  y[, k := seq_len(.N)] # position index of wavelet
+  y <- melt(y, id.vars = "k", value.name="w", variable.name="level")
+  y[, level := gsub("d","",level)]
+  
+  return(y)
+}
+
+
 # ===== Haar DWT wavelet coeffs for lm analysis =====
 
 haar_dwt_nondyadic_coeffs <- function(data, variable, max.level){

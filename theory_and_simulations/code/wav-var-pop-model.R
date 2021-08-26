@@ -13,7 +13,22 @@ wav_var_approx <- function(x, u, n.sample, alpha) {
   ) + ((n.sample-1)/n.sample)*alpha^2
 }
 
+# Expected wavelet variance: exact  integrand ------------------------------------------
 
+wav_var_exact <- function(x, expected.crossovers.per.unit.dist, n.pop, n.sample, alpha) {
+  u <- expected.crossovers.per.unit.dist
+  
+  v <- n.pop*u*abs(x[2]-x[1])
+  w <- exp(-(t/n.pop)*(1+v))
+  (
+    (1/n.sample)*(
+      alpha*(1+v*w)/(1+v) + alpha^2*(v*(1-w))/(1+v)
+    )
+    + 
+      ((n.sample-1)/n.sample)*(
+        alpha*(1-w)/(1+v) + alpha^2*(v+w)/(1+v)) 
+  )
+}
 
 # Continuous Haar Wavelet  -----------------------------------------------
 haarCts <- function(y_H,j_H){
@@ -103,46 +118,6 @@ dblRiemann <- function(scale_R, nMesh=100, Nvec_R, genvec_R, n.sample_R){
   return(totalVol/2^scale_R)
 }
 
-# Compute expected wavelet variance on genetic scale ---------------------------------------------
-
-genlist <- list()
-gen <- c("0010","0100","1000")
-
-# loop over generations 
-for(i in 1:3){
-  t <- as.numeric(gen[i])
-  
-  # loop over different population size, sample size, scale
-  
-  n.sample <- 20000
-  n.pop <- Inf
-  scale <- 1:10
-  
-  # make grid of parameters over which we evaluate the function
-  grd <- expand.grid(n.sample=n.sample, n.pop=n.pop, scale=scale, stringsAsFactors = F)
-  grd <- grd[grd$n.pop >= grd$n.sample,] # we only want evaluation where the sample is less than or equal to the population size
-  
-  grd$gen <- rep(t, nrow(grd)) # rep since we are inside the loop for a specific generation
-  
-  grd$variance <- vector(length = nrow(grd)) # this is the vector we fill in the calculation
-  
-  for(q in 1:nrow(grd)){
-    j <- grd[q,]$scale
-    n.sample <- grd[q,]$n.sample
-    n.pop <- grd[q,]$n.pop
-    
-      part1 <- adaptIntegrate(wav_var_approx, n.sample = n.sample, u=1/1024, alpha=0.5, lowerLimit = c(0,0), 
-                              upperLimit = c(2^(j-1),2^(j-1)))
-      part2 <- adaptIntegrate(wav_var_approx, n.sample = n.sample, u=1/1024, alpha=0.5, lowerLimit = c(0,2^(j-1)),
-                              upperLimit = c(2^(j-1),(2^j)))
-    
-    grd$variance[q] <- ((part1$integral - part2$integral)/(2^(2*j-1)))
-  }
-  genlist[[i]] <- grd
-}
-
-dfg <- do.call(rbind.data.frame, genlist)
-
 
 # wvBottleneck evaluation function --------
 # operates on a vector of parameters in a table
@@ -167,12 +142,131 @@ wvBottleneck <- function(d, popSizeModel,epochs){
   return(a)
 }
 
+# ----- Calculate expected wavelet variance for equilibrium population -----
+
+genlist <- list()
+gen <- c("0010","0100","1000")
+
+# loop over generations 
+for(i in 1:3){
+  t <- as.numeric(gen[i])
+  
+  # loop over different population size, sample size, scale
+  
+  n.sample <- 20000
+  n.pop <- 20000
+  #n.sample <- 2*c(0.5, 10, 100, 1000, 10000, 100000)
+  #n.pop <- 2*c(100, 1000, 10000, 100000, Inf)
+  scale <- 1:10
+  
+  # make grid of parameters over which we evaluate the function
+  grd <- expand.grid(n.sample=n.sample, n.pop=n.pop, scale=scale, stringsAsFactors = F)
+  grd <- grd[grd$n.pop >= grd$n.sample,] # we only want evaluation where the sample is less than or equal to the population size
+  
+  grd$gen <- rep(t, nrow(grd)) # rep since we are inside the loop for a specific generation
+  
+  grd$variance <- vector(length = nrow(grd)) # this is the vector we fill in the calculation
+  
+  for(q in 1:nrow(grd)){
+    j <- grd[q,]$scale
+    n.sample <- grd[q,]$n.sample
+    n.pop <- grd[q,]$n.pop
+    
+    if(n.pop == Inf){ # use infinite population approximation
+      part1 <- adaptIntegrate(wav_var_approx, n.sample = n.sample, expected.crossovers.per.unit.dist=1/1024, alpha=0.5, lowerLimit = c(0,0), 
+                              upperLimit = c(2^(j-1),2^(j-1)))
+      part2 <- adaptIntegrate(wav_var_approx, n.sample = n.sample, expected.crossovers.per.unit.dist=1/1024, alpha=0.5, lowerLimit = c(0,2^(j-1)),
+                              upperLimit = c(2^(j-1),(2^j)))
+    } else { # use exact formula
+      part1 <- adaptIntegrate(wav_var_exact, n.sample = n.sample, n.pop = n.pop, expected.crossovers.per.unit.dist=1/1024, alpha=0.5, lowerLimit = c(0,0), 
+                              upperLimit = c(2^(j-1),2^(j-1)))
+      part2 <- adaptIntegrate(wav_var_exact, n.sample = n.sample, n.pop = n.pop, expected.crossovers.per.unit.dist=1/1024, alpha=0.5, lowerLimit = c(0,2^(j-1)),
+                              upperLimit = c(2^(j-1),(2^j)))
+    }
+    grd$variance[q] <- ((part1$integral - part2$integral)/(2^(2*j-1)))
+  }
+  genlist[[i]] <- grd
+}
+
+dfg <- do.call(rbind.data.frame, genlist)
+setDT(dfg)
+ggplot(dfg, aes(x = scale, y  = variance)) + geom_point() + geom_line() + facet_wrap(~gen) + theme(aspect.ratio=1)
+
+
+# ----- Read and format simulation data -----
+file1 <- "theory_and_simulations/results/equilibrium/ancestry_master.txt"
+file2 <- "theory_and_simulations/results/bottleneck/ancestry_master.txt"
+file3 <- "theory_and_simulations/results/add-sel-const-recomb/ancestry_master.txt"
+file4 <- "theory_and_simulations/results/add-sel-periodic-recomb/ancestry_master.txt"
+
+
+a1 <- read.table(file1, row.names = 1)
+rownames(a1) <- paste0("wvEquil_", rownames(a1))
+
+a2 <- read.table(file2, row.names = 1)
+rownames(a2) <- paste0("wvBottleneck_", rownames(a2))
+
+a3 <- read.table(file3, row.names = 1)
+rownames(a3) <- paste0("wvSelConstantRec_", rownames(a3))
+
+a4  <- read.table(file4, row.names = 1)
+rownames(a4) <- paste0("wvSelPeriodicRec_", rownames(a4))
+
+d <- as.data.table(cbind(t(a1), t(a2), t(a3), t(a4)))
+d$position <- 1:1024
+
+# add genetic distance corresponding to variable recombination rate (expected number of crossovers, binomial n*p)
+d$pos_gen <- cumsum(rep(1/1024,1024))
+
+# tidy data
+library(tidyr)
+b  <-  d %>%
+  gather(key = sim_rep_gen,
+         value = freq, -c(position,pos_gen)) %>% 
+  separate(sim_rep_gen, c("sim_rep.id", "gen"), sep = "_gen") %>% 
+  separate(sim_rep.id, c("popModel", "rep.id"), sep = "_replicate")
+setDT(b)
+
+# compute wavelet variance from modwt from simulated data
+wv <- function(x){
+  w <- wave.variance(brick.wall(modwt(x[,freq],
+                                      "haar", n.levels = 10), "haar")
+  )
+  w <- as.data.table(w[1:10,])
+  w[, scale := 1:10]
+}
+
+wvSim <- b[,wv(.SD), by = .(popModel,rep.id, gen)]  
+
+wvSim[, variance := wavevar]
+wvSim[, gen := as.double(gen)]
+wvSim[, type := "sim"]
+dfg[, type := "theory1"]
+dfg[,popModel := "wvEquil"]
+
+plotData <- rbind(wvSim[popModel=="wvEquil",.(gen,scale,variance,type)], dfg[,.(gen,scale,variance,type)])
+
+ggplot(plotData, aes(x = scale, y = variance,color = type)) + facet_wrap(~gen) + geom_point()
+
+wvSim[, propVar := wavevar/sum(wavevar), by = .(gen,popModel, rep.id)]
+
+ggplot(wvSim[gen %in% c(10,100,1000) & popModel != "wvBottleneck"], aes(x = scale, y = variance, color = popModel)) + 
+  geom_point() + geom_line(aes(group=interaction(popModel, rep.id))) + facet_wrap(~gen) + 
+  theme_classic() + 
+  theme(aspect.ratio=1,
+        text=element_text(size=15),
+        legend.position = "none",
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5)) +
+  labs(x = expression(Scale: log[2](Morgans)), y = "Variance") + 
+  scale_x_continuous(breaks = 1:10, labels = -10:-1) +
+  scale_color_manual(values = c("darkcyan", "gray","lightsalmon")) 
+ 
 # Perform Computations ------------------------------------------
 
 # make grid of parameters over which we evaluate the function
 ns <- c(20000) # number of sampled haplotypes
 sc <- 1:10 # scales
-gn <- c(5,10,50,100,500,1000) # generations 
+gn <- c(10,100,1000) # generations 
 #gn <- c(10,100,1000)
 grd1 <- data.table(expand.grid(gen=gn, n.sample=ns, scale=sc, stringsAsFactors = F))
 
@@ -183,6 +277,7 @@ grd1[, wvEquil := wvBottleneck(.SD, popSizeModel=20000, epochs=1000), by = seq_l
 popSizeModel <- c(200,20000)
 epochs <- c(10,990) # durations of epochs after admixture. these should go all the way to the present
 
+
 # calculate wavelet variance under above model 
 grd1[, wvBottleneck := wvBottleneck(.SD, popSizeModel=popSizeModel, epochs=epochs), by = seq_len(nrow(grd1))]
 #grd1[, wvBottleneck := NA]
@@ -190,12 +285,12 @@ grd1[, wvBottleneck := wvBottleneck(.SD, popSizeModel=popSizeModel, epochs=epoch
 # Visualize results ---------------------------------
 grdP <- melt(grd1, measure.vars = c("wvEquil", "wvBottleneck"),
      variable.name = "popModel", 
-     value.name = "var")
+     value.name = "variance")
+grdP[, type := "theory2"]
+grdP[, propVar := variance/sum(variance), by = .(gen,popModel)]
 
-grdP[, propVar := var/sum(var), by = .(gen,popModel)]
-
-grdP[gen %in% c(5,10,50,100,500,1000)] %>% 
-  ggplot(aes(x = scale, y = var, group = popModel, color = popModel)) + #interaction(popModel, n.sample))) + 
+grdP[gen %in% c(10,100,1000)] %>% 
+  ggplot(aes(x = scale, y = variance, group = popModel, color = popModel)) + #interaction(popModel, n.sample))) + 
   geom_point(size=2)+ # aes(shape = popModel)) + 
   geom_line(linetype = 2) + #geom_line(aes(linetype = as.factor(n.sample))) +
   facet_wrap(~gen) + 
@@ -212,76 +307,43 @@ grdP[gen %in% c(5,10,50,100,500,1000)] %>%
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5))
 
 
-# ===== Simulated Data =====
-file1 <- "theory_and_simulations/neutral-const-recomb2/ancestry_master.txt"
 
-a1 <- read.table(file1, row.names = 1)
-rownames(a1) <- paste0("neutral-const-recomb_", rownames(a1))
+plotData <- rbind(plotData,grdP[popModel=="wvEquil", .(gen,scale,variance,type)])
+ggplot(plotData, aes(x = scale, y = variance,color = type)) + facet_wrap(~gen) + geom_point()
 
-d <- as.data.table(t(a1))
-d$position <- 1:1024
 
-# add genetic distance corresponding to variable recombination rate (expected number of crossovers, binomial n*p)
-d$pos_gen <- cumsum(rep(1/1024,1024))
 
-# tidy data
-b  <-  d %>%
-  gather(key = sim_rep_gen,
-         value = freq, -c(position,pos_gen)) %>% 
-  separate(sim_rep_gen, c("sim_rep.id", "gen"), sep = "_gen") %>% 
-  separate(sim_rep.id, c("sim", "rep.id"), sep = "_replicate")
-setDT(b)
 
-# compute wavelet variance from modwt from simulated data
-wv <- function(x){
-  w <- wave.variance(
-    brick.wall(modwt(x[,freq],
-                     "haar", n.levels = 10),
-               wf = "haar"
-               )
-  )
-  w <- as.data.table(w[1:10,])
-  w[, scale := 1:10]
 
-}
-
-wvSim <- b[,wv(.SD), by = .(rep.id, gen)]  
-
-wvSim[,propVar := wavevar/sum(wavevar), by = .(gen, rep.id)]
-wvSim %>% 
-  ggplot(aes(x = scale, y = propVar)) + 
-  geom_point() + 
-  facet_wrap(~gen)
-
-# combine expectation and sim data
-
-head(grdP)
+# ----- combine simulation and theory ----
 head(wvSim)
+head(grdP)
 
-grdP[, propVar := var/sum(var), by = .(gen, n.sample, popModel)]
-grdP[, wavevar := var]
-wvSim[,gen := as.numeric(gen)]
-grdP[, type := "expectation"]
-wvSim[, type := "simulation"]
-
-avgSim <- wvSim[, lapply(.SD, mean), .SDcols = c("wavevar", "propVar"), by = .(gen, scale, type)]
-
-
-cols <- c("gen", "scale", "type", "wavevar", "propVar")
+wvSim[, type := "sim"]
+grdP[, type := "theory"]
+wvSim[,gen:= as.double(gen)]
+allPlotDat <- merge(wvSim, grdP, by = c("gen", "popModel", "scale"))
 
 setDT(dfg)
 
-dfg[,type := "expectation"]
-dfg[, wavevar := variance]
-dfg[, propVar := wavevar/sum(wavevar), by = .(gen)]
-#allDat <- rbind(grdP[popModel == "wvEquil", ..cols], avgSim[, ..cols])
-allDat <- rbind(dfg[,..cols], avgSim[,..cols])
-
-allDat[type == "expectation"] %>%
-  ggplot(aes(x = scale, y = wavevar, group = type)) + 
-  geom_point() + 
-  geom_line(aes(color = type)) + 
-  facet_grid(~gen)
+wvSim[popModel %in% c("wvEquil", "wvBottleneck") & gen %in% c(10,100,1000)] %>%
+  ggplot(aes(x = scale, y = variance)) + #interaction(popModel, n.sample))) + 
+  geom_point(size=1, alpha = 0.3, aes(color = popModel)) + # aes(shape = popModel)) + 
+  geom_line(linetype = 1, aes(group = interaction(rep.id, popModel), color = popModel), alpha = 0.3) + #geom_line(aes(linetype = as.factor(n.sample))) +
+  facet_wrap(~gen) + 
+  theme_classic() + 
+  labs(x = expression(Scale: log[2](Morgans)), 
+       y = "Variance", shape = "",
+       color = "") + #, linetype = "") +
+  scale_color_manual(values = c("lightsalmon","darkcyan")) +
+  scale_x_continuous(breaks = 1:10, labels = -10:-1) +
+  #scale_linetype_discrete(labels = c("n=20")) +
+  theme(aspect.ratio=1,
+        text=element_text(size=15),
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5)) +
+  #geom_point(data = dfg, aes(x = scale, y=var), size = 2) +
+  geom_point(data = grdP, aes(x = scale, y = variance, color = popModel, group = popModel), size = 2) +
+  geom_line(data = grdP, aes(x = scale,y=variance, group = popModel, color = popModel), size=1) 
 
 
 
