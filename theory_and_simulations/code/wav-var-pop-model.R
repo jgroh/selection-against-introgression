@@ -172,40 +172,43 @@ wvBottleneck <- function(d, popSizeModel,epochs){
 # make grid of parameters over which we evaluate the function
 ns <- c(20000) # number of sampled haplotypes
 sc <- 1:10 # scales
-#gn <- c(5,10,50,100,500,1000) # generations 
-gn <- c(10,100,1000)
+gn <- c(5,10,50,100,500,1000) # generations 
+#gn <- c(10,100,1000)
 grd1 <- data.table(expand.grid(gen=gn, n.sample=ns, scale=sc, stringsAsFactors = F))
 
 # calculate wavelet variance under constant pop size
 grd1[, wvEquil := wvBottleneck(.SD, popSizeModel=20000, epochs=1000), by = seq_len(nrow(grd1))]
 
 # population size model of bottleneck. vector of pop size and epochs from time of admixture to present
-popSizeModel <- c(10000,20,10000)
-epochs <- c(50,50,900) # durations of epochs after admixture. these should go all the way to the present
+popSizeModel <- c(200,20000)
+epochs <- c(10,990) # durations of epochs after admixture. these should go all the way to the present
 
 # calculate wavelet variance under above model 
 grd1[, wvBottleneck := wvBottleneck(.SD, popSizeModel=popSizeModel, epochs=epochs), by = seq_len(nrow(grd1))]
-grd1[, wvBottleneck := wvBottleneck(.SD, popSizeModel=popSizeModel, epochs=epochs), by = seq_len(nrow(grd1))]
-grd1[, wvBottleneck := NA]
+#grd1[, wvBottleneck := NA]
 
 # Visualize results ---------------------------------
 grdP <- melt(grd1, measure.vars = c("wvEquil", "wvBottleneck"),
      variable.name = "popModel", 
      value.name = "var")
 
-grdP[gen %in% c(10,100,1000)] %>% 
-  ggplot(aes(x = scale, y = var, group = interaction(popModel, n.sample))) + 
-  geom_point(aes(shape = popModel)) + 
-  geom_line(aes(linetype = as.factor(n.sample))) +
+grdP[, propVar := var/sum(var), by = .(gen,popModel)]
+
+grdP[gen %in% c(5,10,50,100,500,1000)] %>% 
+  ggplot(aes(x = scale, y = var, group = popModel, color = popModel)) + #interaction(popModel, n.sample))) + 
+  geom_point(size=2)+ # aes(shape = popModel)) + 
+  geom_line(linetype = 2) + #geom_line(aes(linetype = as.factor(n.sample))) +
   facet_wrap(~gen) + 
   theme_classic() + 
   labs(x = expression(Scale: log[2](Morgans)), 
-       y = "Variance", shape = "", linetype = "") +
-  scale_color_manual(values = c("black","red")) +
+       y = "Variance", shape = "",
+       color = "") + #, linetype = "") +
+  scale_color_manual(values = c("black","red"), labels = c("equilibrium\n2N=20000\n","bottleneck\ngen1-10: 2N=200\ngen 11-1000: 2N=20000")) +
   scale_x_continuous(breaks = 1:10, labels = -10:-1) +
-  scale_linetype_discrete(labels = c("n=1","n=20")) +
+  #scale_linetype_discrete(labels = c("n=20")) +
   scale_shape_manual(values = c(1,2), labels = c("Equilibrium","Bottleneck\ngens 50-100")) +
   theme(aspect.ratio=1,
+        text=element_text(size=15),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5))
 
 
