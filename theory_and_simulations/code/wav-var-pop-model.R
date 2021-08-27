@@ -145,18 +145,23 @@ wvBottleneck <- function(d, popSizeModel,epochs){
 # ----- Calculate expected wavelet variance for equilibrium population -----
 
 genlist <- list()
-gen <- c("0010","0100","1000")
+gen <- c("0001","0002","0003","0004","0005","0010","0025","0050","0100","0500","1000")
 
 # loop over generations 
-for(i in 1:3){
+for(i in 1:length(gen)){
   t <- as.numeric(gen[i])
   
   # loop over different population size, sample size, scale
   
-  n.sample <- 20000
-  n.pop <- 20000
+  #n.sample <- 20000
+  #n.pop <- 20000
+  
   #n.sample <- 2*c(0.5, 10, 100, 1000, 10000, 100000)
   #n.pop <- 2*c(100, 1000, 10000, 100000, Inf)
+  
+  n.pop <- 2000
+  n.sample <- c(1,2000)
+  
   scale <- 1:10
   
   # make grid of parameters over which we evaluate the function
@@ -188,7 +193,28 @@ for(i in 1:3){
   genlist[[i]] <- grd
 }
 
-dfg <- do.call(rbind.data.frame, genlist)
+dfg <- setDT(do.call(rbind.data.frame, genlist))
+
+
+dfg.long <- dcast(dfg, scale + gen ~ n.sample, value.var= "variance")
+setnames(dfg.long, c("1", "2000"), c("n1","n2000"))
+dfg.long[, d := n1-n2000]
+
+dfg.long[, .(varInd = sum(d)), by = gen] %>% ggplot(aes(x = gen, y = varInd)) +
+  geom_line(size=2) + labs(y = "Variance of individuals' mean ancestry") + theme_classic()
+
+dfg.long[, scale := as.factor(scale)]
+dfg.long %>% ggplot(aes(x = log10(as.numeric(gen)), y = d, group = scale, color= scale)) + 
+  geom_line(size=2) + 
+  scale_color_viridis_d(direction = -1) + 
+  theme_classic() +
+  labs(color = "Level", 
+       y = "Contribution to variance of individual mean ancestry", x = "Log 10 (Generation)")
+
+# examine variance across individuals
+dcast(dfg())
+
+
 setDT(dfg)
 ggplot(dfg, aes(x = scale, y  = variance)) + geom_point() + geom_line() + facet_wrap(~gen) + theme(aspect.ratio=1)
 
