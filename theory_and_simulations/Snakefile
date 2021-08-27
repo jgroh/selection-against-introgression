@@ -8,7 +8,8 @@ sims = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-reco
 
 rule all:
 	input:
-		expand("results/{sim}/ancestry_master.txt", sim=sims)
+		expand("results/{sim}/ancestry_master.txt", sim=sims),
+		expand("results/{sim}/all-variances-master.txt", sim=sims)
 
 rule simulation:
 	input:
@@ -21,7 +22,7 @@ rule all_sim:
 	input:
 		expand("results/{sim}/replicate{rep}_{gen}.trees", sim=sims,rep=reps,gen=gens)
 
-rule ancestry_calc:
+rule avg_ancestry_calc:
 	input:
 		"results/{sim}/{rep_gen}.trees"
 	output:
@@ -29,7 +30,23 @@ rule ancestry_calc:
 	shell:
 		"python3 code/derived-allele-freq.py {input} > {output}"
 
-rule aggregate:
+rule print_haps:
+	input:
+		"results/{sim}/{rep_gen}.trees"
+	output:
+		temp("results/{sim}/{rep_gen}_all_haps.txt")
+	shell:
+		"python3 code/print_haplotypes.py {input} > {output}"
+
+rule dwt_on_haps:
+	input:
+		"results/{sim}/{rep_gen}_all_haps.txt"
+	output:
+		"results/{sim}/{rep_gen}_variances-table.txt"
+	shell:
+		"Rscript --vanilla code/all-variances-table.R {input} {wildcards.rep_gen} {output}"
+
+rule aggregate_mean_ancestry:
 	input:
 		expand("results/{{sim}}/replicate{rep}_{gen}_ancestry.txt", rep=reps, gen=gens)
 	output:
@@ -37,3 +54,10 @@ rule aggregate:
 	shell:
 		"cat {input} > results/{wildcards.sim}/ancestry_master.txt"
 
+rule aggregate_variance_tables:
+	input:
+		expand("results/{{sim}}/replicate{rep}_{gen}_variances-table.txt", rep=reps,gen=gens)
+	output:
+		"results/{sim}/all-variances-master.txt"
+	shell:
+		"Rscript --vanilla code/rbind_variance_tables.R {output} {input}"
