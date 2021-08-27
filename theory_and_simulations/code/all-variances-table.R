@@ -4,6 +4,7 @@ library(waveslim)
 args <- commandArgs(trailingOnly = T)
 file <- args[1]
 rep_gen <- args[2]
+outfile <- args[3]
 
 #file <- "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/equilibrium_test/test_haps.txt"
 
@@ -32,4 +33,4 @@ output <- WV[, c("level", "population", "meanInd")]
 output[, var := v]
 output[, rep_gen := rep_gen]
 
-print(output)
+write.table(output, file = outfile, quote =F, row.names =F, col.names =T, sep = "\t")
