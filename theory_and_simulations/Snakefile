@@ -4,12 +4,12 @@ reps = np.arange(10)
 gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0025","0050","0100","0250","0500","1000"]]
 #gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0050","0100","0250","0500","0750","1000"]]
 #sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb","single-sweep"]
-sims = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb"]
+sims = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb","equilibrium_2n1000"]
 
 rule all:
 	input:
 		expand("results/{sim}/ancestry_master.txt", sim=sims),
-		expand("results/{sim}/all-variances-master.txt", sim=sims)
+		expand("results/{sim}/all-variances-master.txt", sim=["equilibrium_2n1000"])
 
 rule simulation:
 	input:
