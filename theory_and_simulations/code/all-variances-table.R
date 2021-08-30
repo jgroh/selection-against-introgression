@@ -8,20 +8,21 @@ outfile <- args[3]
 
 #file <- "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/equilibrium_test/test_haps.txt"
 
-a <- as.data.table(t(fread(file, header=F)))
+a <- fread(file, header=F)
 
 # calculate exact variance among individuals
-v <- var(unlist(a[, lapply(.SD, mean)]))
+
+v <- var(rowMeans(a))
 
 # calculate wavelet variances for population mean
-d <- dwt(rowMeans(a), "haar", n.levels = 10)
+d <- dwt(colMeans(a), "haar", n.levels = 10)
 WV <- data.table(population = sapply(d[-1], function(x)sum(x^2)/1024), level = 1:10)
 
 # calculate wavelet variances for individuals and append to table
-for(i in names(a)){
-  d <- dwt(unlist(a[,..i]), "haar", n.levels = 10)
+for(i in 1:nrow(a)){
+  d <- dwt(unlist(a[i,]), "haar", n.levels = 10)
   wv.ind <- data.table(x = sapply(d[-1], function(x)sum(x^2)/1024), level = 1:10)
-  setnames(wv.ind, "x", i)
+  setnames(wv.ind, "x", paste0("ind_",i))
   WV <- merge(WV, wv.ind, all =T)
 }
 
