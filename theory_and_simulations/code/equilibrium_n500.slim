@@ -1,0 +1,53 @@
+// selective sweep against introgressed allele at a random locus
+
+initialize() {
+	
+	initializeTreeSeq();
+	defineConstant("L", 1024);
+	defineConstant("N", 500); // recipient population size
+	defineConstant("genomeSize",1e8);
+	defineConstant("alpha", 0.25);//initial mixing proportion = starting freq in F1s
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0);
+	
+	m1.convertToSubstitution = F;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, L-1);
+	defineConstant("baseRate", 1e-8);
+	
+	setSeed(seed);
+	initializeRecombinationRate((genomeSize/L)*baseRate);
+	
+	defineConstant("outPath", "results/equilibrium_n500/");
+}
+
+1 {sim.addSubpop("p1", N);
+	F1s = sample(p1.individuals, asInteger(2*N*alpha));
+	genomes = NULL;
+	for(F1 in F1s)
+	{
+		genomes = c(genomes, F1.genomes[1]);
+	}
+	genomes.addNewMutation(m1,0,0:(L-1));
+
+}
+
+// output
+
+1:1000 late() {
+	
+	if( length(setIntersection(sim.generation, c(1,2,3,4,5,10,25,50,100,500,1000))) > 0)
+	{
+		gLines = NULL;
+		
+		for(gnm in p1.genomes)
+		{
+			
+			g = rep(0,1024);
+			g[gnm.mutations.position] = 1;
+			gLines = paste0(c(gLines, "\n", paste0(g)));
+			
+			writeFile(outPath + "replicate" + seed + "_gen" + sim.generation + "_allHaps.txt", gLines);
+		}
+	}
+}
