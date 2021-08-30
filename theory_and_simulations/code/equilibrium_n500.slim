@@ -36,6 +36,7 @@ initialize() {
 
 1:1000 late() {
 	
+	// select generations for output
 	if( length(setIntersection(sim.generation, c(1,2,3,4,5,10,25,50,100,500,1000))) > 0)
 	{
 		gLines = NULL;
@@ -47,7 +48,16 @@ initialize() {
 			g[gnm.mutations.position] = 1;
 			gLines = paste0(c(gLines, "\n", paste(g,sep=",")));
 			
-			writeFile(outPath + "replicate" + seed + "_gen" + sim.generation + "_allHaps.txt", gLines);
 		}
+		
+		// output all genomes for this generation
+		gString = asString(sim.generation); // haha
+		nc = nchar(gString);
+
+		if(nc < 4)
+		{	gString = paste0(c(rep(0,4-nc),gString));
+		}
+				
+		writeFile(outPath + "replicate" + seed + "_gen" + gString + "_allHaps.txt", gLines);
 	}
 }
