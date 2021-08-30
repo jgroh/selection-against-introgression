@@ -45,7 +45,7 @@ initialize() {
 			
 			g = rep(0,1024);
 			g[gnm.mutations.position] = 1;
-			gLines = paste0(c(gLines, "\n", paste0(g)));
+			gLines = paste0(c(gLines, "\n", paste(g,sep=",")));
 			
 			writeFile(outPath + "replicate" + seed + "_gen" + sim.generation + "_allHaps.txt", gLines);
 		}
