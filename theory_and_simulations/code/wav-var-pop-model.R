@@ -3,43 +3,7 @@ library(ggplot2)
 library(magrittr)
 library(waveslim)
 library(cubature)
-
-# Expected wavelet variance: approximate integrand ------------------------------------------
-# assumes infinite population
-wav_var_approx <- function(x, u, n.sample, alpha) {
-  (1/n.sample)*(
-    alpha*exp(-t*u*abs(x[2]-x[1])) + 
-      (alpha^2)*(1-exp(-t*u*abs(x[2]-x[1])))
-  ) + ((n.sample-1)/n.sample)*alpha^2
-}
-
-# Expected wavelet variance: exact  integrand ------------------------------------------
-
-wav_var_exact <- function(x, expected.crossovers.per.unit.dist, n.pop, n.sample, alpha) {
-  u <- expected.crossovers.per.unit.dist
-  
-  v <- n.pop*u*abs(x[2]-x[1])
-  w <- exp(-(t/n.pop)*(1+v))
-  (
-    (1/n.sample)*(
-      alpha*(1+v*w)/(1+v) + alpha^2*(v*(1-w))/(1+v)
-    )
-    + 
-      ((n.sample-1)/n.sample)*(
-        alpha*(1-w)/(1+v) + alpha^2*(v+w)/(1+v)) 
-  )
-}
-
-# Continuous Haar Wavelet  -----------------------------------------------
-haarCts <- function(y_H,j_H){
-  # define wavlet support 
-  upper <- 2^j_H
-  lower <- 0
-  mid <- upper/2
-  return((y_H < lower)*0 + 
-           (y_H >= lower & y_H < mid)*2^(-j_H/2) + 
-           (y_H >= mid & y_H <= upper)*(-2^(-j_H/2)))
-}
+source("../wavelet_functions.R")
 
 # Transition probability matrix for haplotype state --------------------------------
 m <- function(l_M,N_M,r_M=1/1024,tau_M){
@@ -144,80 +108,21 @@ wvBottleneck <- function(d, popSizeModel,epochs){
 
 # ----- Calculate expected wavelet variance for equilibrium population -----
 
-genlist <- list()
-gen <- c("0001","0002","0003","0004","0005","0010","0025","0050","0100","0500","1000")
+gen <- c("0001","0002","0003","0004","0005","0010","0025","0050","0100","0250","0500","1000")
 
-# loop over generations 
-for(i in 1:length(gen)){
-  t <- as.numeric(gen[i])
-  
-  # loop over different population size, sample size, scale
-  
-  #n.sample <- 20000
-  #n.pop <- 20000
-  
-  #n.sample <- 2*c(0.5, 10, 100, 1000, 10000, 100000)
-  #n.pop <- 2*c(100, 1000, 10000, 100000, Inf)
-  
-  n.pop <- 2000
-  n.sample <- c(1,2000)
-  
-  scale <- 1:10
-  
-  # make grid of parameters over which we evaluate the function
-  grd <- expand.grid(n.sample=n.sample, n.pop=n.pop, scale=scale, stringsAsFactors = F)
-  grd <- grd[grd$n.pop >= grd$n.sample,] # we only want evaluation where the sample is less than or equal to the population size
-  
-  grd$gen <- rep(t, nrow(grd)) # rep since we are inside the loop for a specific generation
-  
-  grd$variance <- vector(length = nrow(grd)) # this is the vector we fill in the calculation
-  
-  for(q in 1:nrow(grd)){
-    j <- grd[q,]$scale
-    n.sample <- grd[q,]$n.sample
-    n.pop <- grd[q,]$n.pop
-    
-    if(n.pop == Inf){ # use infinite population approximation
-      part1 <- adaptIntegrate(wav_var_approx, n.sample = n.sample, expected.crossovers.per.unit.dist=1/1024, alpha=0.5, lowerLimit = c(0,0), 
-                              upperLimit = c(2^(j-1),2^(j-1)))
-      part2 <- adaptIntegrate(wav_var_approx, n.sample = n.sample, expected.crossovers.per.unit.dist=1/1024, alpha=0.5, lowerLimit = c(0,2^(j-1)),
-                              upperLimit = c(2^(j-1),(2^j)))
-    } else { # use exact formula
-      part1 <- adaptIntegrate(wav_var_exact, n.sample = n.sample, n.pop = n.pop, expected.crossovers.per.unit.dist=1/1024, alpha=0.5, lowerLimit = c(0,0), 
-                              upperLimit = c(2^(j-1),2^(j-1)))
-      part2 <- adaptIntegrate(wav_var_exact, n.sample = n.sample, n.pop = n.pop, expected.crossovers.per.unit.dist=1/1024, alpha=0.5, lowerLimit = c(0,2^(j-1)),
-                              upperLimit = c(2^(j-1),(2^j)))
-    }
-    grd$variance[q] <- ((part1$integral - part2$integral)/(2^(2*j-1)))
-  }
-  genlist[[i]] <- grd
-}
+n.pop <- 2000
+n.sample <- c(1,2000)
+scale <- 1:10
 
-dfg <- setDT(do.call(rbind.data.frame, genlist))
+#n.sample <- 20000
+#n.pop <- 20000
+#n.sample <- 2*c(0.5, 10, 100, 1000, 10000, 100000)
+#n.pop <- 2*c(100, 1000, 10000, 100000, Inf)
 
-
-dfg.long <- dcast(dfg, scale + gen ~ n.sample, value.var= "variance")
-setnames(dfg.long, c("1", "2000"), c("n1","n2000"))
-dfg.long[, d := n1-n2000]
-
-dfg.long[, .(varInd = sum(d)), by = gen] %>% ggplot(aes(x = gen, y = varInd)) +
-  geom_line(size=2) + labs(y = "Variance of individuals' mean ancestry") + theme_classic()
-
-dfg.long[, scale := as.factor(scale)]
-dfg.long %>% ggplot(aes(x = log10(as.numeric(gen)), y = d, group = scale, color= scale)) + 
-  geom_line(size=2) + 
-  scale_color_viridis_d(direction = -1) + 
-  theme_classic() +
-  labs(color = "Level", 
-       y = "Contribution to variance of individual mean ancestry", x = "Log 10 (Generation)")
-
-# examine variance across individuals
-dcast(dfg())
-
-
-setDT(dfg)
-ggplot(dfg, aes(x = scale, y  = variance)) + geom_point() + geom_line() + facet_wrap(~gen) + theme(aspect.ratio=1)
-
+dfg <- wavelet_variance_equilbrium(n.pop = 100, 
+                                   n.sample = 1, 
+                                   scale = 1:10, 
+                                   gen = c(1,100,1000), alpha = 0.25)
 
 # ----- Read and format simulation data -----
 file1 <- "theory_and_simulations/results/equilibrium/ancestry_master.txt"
@@ -332,13 +237,8 @@ grdP[gen %in% c(10,100,1000)] %>%
         text=element_text(size=15),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5))
 
-
-
 plotData <- rbind(plotData,grdP[popModel=="wvEquil", .(gen,scale,variance,type)])
 ggplot(plotData, aes(x = scale, y = variance,color = type)) + facet_wrap(~gen) + geom_point()
-
-
-
 
 
 # ----- combine simulation and theory ----
@@ -372,4 +272,57 @@ wvSim[popModel %in% c("wvEquil", "wvBottleneck") & gen %in% c(10,100,1000)] %>%
   geom_line(data = grdP, aes(x = scale,y=variance, group = popModel, color = popModel), size=1) 
 
 
+# ===== Variance across individuals =====
+n.pop <- 1000
+n.sample <- c(1,1000)
+scale <- 1:10
+gen <- gen
+
+expected_wv <- wavelet_variance_equilbrium(n.pop = n.pop, 
+                                           n.sample = c(1,1000), 
+                                           scale = scale, 
+                                           gen = gen,
+                                           alpha = 0.25)
+expected_wv
+
+# single haplotype wav variance term
+ggplot(expected_wv[n.sample==1, .(n1_sum=sum(variance)), by = gen], aes(x = gen, y = n1_sum) )+
+  geom_point()
+# break down by scale
+ggplot(expected_wv[n.sample==1], aes(x=gen, y = variance, color = scale, group = scale)) + geom_line()
+
+# population term
+ggplot(expected_wv[n.sample==1000, .(n1_sum=sum(variance)), by = gen], aes(x = gen, y = n1_sum) )+
+  geom_point()
+# break down by scale
+
+expectedIndVar <- merge(
+  expected_wv[n.sample==1 & scale > 5, .(n1_sum = sum(variance)), by = gen], 
+  expected_wv[n.sample==1000 & scale > 5, .(n1000sum = sum(variance)), by = gen])
+
+ggplot(expectedIndVar, aes(x=gen, y = n1_sum-n1000sum)) + geom_point()
+
+
+all_variances <- fread("results/equilibrium_n500/all-variances-master.txt")
+all_variances[, c("rep", "gen") := tstrsplit(rep_gen, split = "_", fixed=T)][,rep_gen := NULL][]
+all_variances[, gen := as.numeric(gsub("gen","",gen))]
+
+all_variances[level==1, ] %>% 
+  ggplot(aes(x=log(gen), y = indMeanVar)) + geom_point()
+
+empiricalDataTrue <- all_variances[level==1, .(v = mean(indMeanVar)), by = gen]
+empiricalDataWV <- all_variances[, .(x = mean(meanInd_wavVar - population_wavVar)), 
+              by = .(level,gen)][, .(v = sum(x)), by = gen] 
+
+
+expectedIndVar[, v := n1_sum-n1000sum]
+expectedIndVar[, type := "theory"]
+empiricalDataTrue[, type := "True"]
+empiricalDataWV[, type := "empirical wavelets"]
+
+
+plotData <- rbind(expectedIndVar[, c("gen", "type","v")], empiricalDataTrue, empiricalDataWV)
+plotData[type == "empirical wavelets", v:= v/1024]
+ggplot(plotData, aes(x = gen, y = v, group = type, color = type)) + 
+  geom_point() + geom_line()
 
