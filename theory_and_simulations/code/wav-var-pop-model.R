@@ -297,8 +297,8 @@ ggplot(expected_wv[n.sample==1000, .(n1_sum=sum(variance)), by = gen], aes(x = g
 # break down by scale
 
 expectedIndVar <- merge(
-  expected_wv[n.sample==1 & scale > 5, .(n1_sum = sum(variance)), by = gen], 
-  expected_wv[n.sample==1000 & scale > 5, .(n1000sum = sum(variance)), by = gen])
+  expected_wv[n.sample==1 & scale == 10, .(n1_sum = sum(variance)), by = gen], 
+  expected_wv[n.sample==1000 & scale == 10, .(n1000sum = sum(variance)), by = gen])
 
 ggplot(expectedIndVar, aes(x=gen, y = n1_sum-n1000sum)) + geom_point()
 
@@ -311,7 +311,7 @@ all_variances[level==1, ] %>%
   ggplot(aes(x=log(gen), y = indMeanVar)) + geom_point()
 
 empiricalDataTrue <- all_variances[level==1, .(v = mean(indMeanVar)), by = gen]
-empiricalDataWV <- all_variances[, .(x = mean(meanInd_wavVar - population_wavVar)), 
+empiricalDataWV <- all_variances[level == 10, .(x = mean(meanInd_wavVar - population_wavVar)), 
               by = .(level,gen)][, .(v = sum(x)), by = gen] 
 
 
@@ -322,7 +322,6 @@ empiricalDataWV[, type := "empirical wavelets"]
 
 
 plotData <- rbind(expectedIndVar[, c("gen", "type","v")], empiricalDataTrue, empiricalDataWV)
-plotData[type == "empirical wavelets", v:= v/1024]
 ggplot(plotData, aes(x = gen, y = v, group = type, color = type)) + 
   geom_point() + geom_line()
 
