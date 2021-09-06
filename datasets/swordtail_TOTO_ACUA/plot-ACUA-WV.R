@@ -54,28 +54,29 @@ allCor[, scale := as.numeric(scale)]
 
 
 # 2. ===== Ancestry Variance Decomposition, Genetic Scale =========
-lineData <- allVar[scale < 17 & decomp == "pop_mean"]
+lineData <- allVar[scale < 17]
 
-allVar[distance == "genetic" & decomp == "pop_mean"] %>% ggplot(aes(x = scale, y = anc_variance, group = interaction(decomp, year), color = year)) +
-  geom_point(aes(shape = decomp),size=2.2) +
+allVar[distance == "genetic"] %>% ggplot(aes(x = scale, y = anc_variance, group = interaction(decomp, year), color = year)) +
+  geom_point(aes(shape = decomp), size=2.2) +
   geom_line(data = lineData[distance == "genetic"], size=0.5, linetype=2) + 
   labs(x = expression(Scale: log[2](Morgans)), 
        y = "Variance",
        color = "Year", shape = "Signal") +
   scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(-15:-1),"chromosome\nlevel")) + 
-  scale_shape_discrete(labels = c("Mean\nancestry"))+
+  scale_shape_discrete(labels = c("Mean", "Individual"))+
   theme_classic() +
   scale_colour_viridis_d() +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
   geom_segment(aes(x=16.5,xend=17.5,y=-Inf,yend=-Inf),color="black")+
-  theme(text = element_text(size=15),
+  theme(aspect.ratio = 1,
+    text = element_text(size=15),
         axis.line.x = element_blank(),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
         axis.text.y = element_text(size=12),
         axis.ticks.x = element_line(size=c(rep(1,15),0)),
         axis.title.x = element_text(hjust=.4,margin=margin(t=-20)))
 
-# 2.1. ----- Plot proportion ---------------
+l# 2.1. ----- Plot proportion ---------------
 allVar[, propVar := anc_variance/sum(anc_variance), by = .(decomp,distance,year)]
 lineDataProp <- allVar[scale < 17]
   
