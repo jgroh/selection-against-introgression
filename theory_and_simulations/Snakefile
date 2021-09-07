@@ -4,23 +4,31 @@ reps = np.arange(10)
 gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0025","0050","0100","0250","0500","1000"]]
 #gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0050","0100","0250","0500","0750","1000"]]
 #sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb","single-sweep"]
-sims = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb","equilibrium_2n1000"]
+simsA = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb"]
+simsB = ["equilibrium_n500"]
 
 rule all:
 	input:
-		expand("results/{sim}/ancestry_master.txt", sim=sims),
-		expand("results/{sim}/all-variances-master.txt", sim=["equilibrium_2n1000"])
+		expand("results/{sim}/ancestry_master.txt", sim=simsA),
+		"results/equilibrium_n500/all-variances-master.txt" 
 
-rule simulation:
+rule simulation_setA:
 	input:
 	output:
 		expand("results/{{sim}}/replicate{{rep}}_{gen}.trees", gen=gens)
 	shell:
 		"slim -d seed={wildcards.rep} code/{wildcards.sim}.slim"
 
+rule simulation_setB:
+	input:
+	output:
+		expand("results/equilibrium_n500/replicate{{rep}}_{gen}_allHaps.txt", gen = gens)
+	shell:
+		"slim -d seed={wildcards.rep} code/equilibrium_n500.slim"
+
 rule all_sim:
 	input:
-		expand("results/{sim}/replicate{rep}_{gen}.trees", sim=sims,rep=reps,gen=gens)
+		expand("results/{sim}/replicate{rep}_{gen}.trees", sim=simsA,rep=reps,gen=gens)
 
 rule avg_ancestry_calc:
 	input:
@@ -30,19 +38,11 @@ rule avg_ancestry_calc:
 	shell:
 		"python3 code/derived-allele-freq.py {input} > {output}"
 
-rule print_haps:
-	input:
-		"results/{sim}/{rep_gen}.trees"
-	output:
-		temp("results/{sim}/{rep_gen}_all_haps.txt")
-	shell:
-		"python3 code/print_haplotypes.py {input} > {output}"
-
 rule dwt_on_haps:
 	input:
-		"results/{sim}/{rep_gen}_all_haps.txt"
+		"results/equilibrium_n500/{rep_gen}_allHaps.txt"
 	output:
-		"results/{sim}/{rep_gen}_variances-table.txt"
+		"results/equilibrium_n500/{rep_gen}_variances-table.txt"
 	shell:
 		"Rscript --vanilla code/all-variances-table.R {input} {wildcards.rep_gen} {output}"
 
@@ -56,8 +56,8 @@ rule aggregate_mean_ancestry:
 
 rule aggregate_variance_tables:
 	input:
-		expand("results/{{sim}}/replicate{rep}_{gen}_variances-table.txt", rep=reps,gen=gens)
+		expand("results/equilibrium_n500/replicate{rep}_{gen}_variances-table.txt", rep=reps,gen=gens)
 	output:
-		"results/{sim}/all-variances-master.txt"
+		"results/equilibrium_n500/all-variances-master.txt"
 	shell:
 		"Rscript --vanilla code/rbind_variance_tables.R {output} {input}"
