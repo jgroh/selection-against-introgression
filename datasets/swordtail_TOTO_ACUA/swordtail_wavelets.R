@@ -32,7 +32,7 @@ gnomP[,indivFreq := 1 - indivFreq]
 gnomP[,meanFreq := 1 - meanFreq]
 
 # merge ancestry data and genomic features data
-cdsCM[, position := start + 500] # this is the midpoint of the 1kb intervals where I interpolate ancestry
+cdsCM[, position := as.integer(start + 500)] # this is the midpoint of the 1kb intervals where I interpolate ancestry
 gnomP <- merge(gnomP, cdsCM, by = c("chr", "position"))
 
 
