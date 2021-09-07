@@ -10,8 +10,8 @@ rule all:
 		expand("ACUA_{year}/anc_rec_cds_MODWT.RData",year=years),
 		expand("ACUA_{year}/anc_rec_cds_DWT.RData",year=years),
 		expand("ACUA_{year}/chrSignalMeans.RData",year=years),
-		expand("ACUA_{year}/totalVar.RData",year=years),
-		"dwt_lm_plot_data.txt"
+		expand("ACUA_{year}/totalVar.RData",year=years)#,
+#		"dwt_lm_plot_data.txt"
 #		expand("ACUA_{year}/avgFrq_totalCor.RData",year=years)
 
 rule interpolate_ancestry_single_chrom:
