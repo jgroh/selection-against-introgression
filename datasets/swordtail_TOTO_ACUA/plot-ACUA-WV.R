@@ -2,6 +2,8 @@ library(data.table)
 library(tidyverse)
 
 # 1. ===== Load Data =====
+chrLen <- fread("xbir10x_chrlengths.txt")
+(chrLen[, floor(log2(V2/1000))])
 
 loadFrom=function(file, name){e=new.env();load(file,env=e);e[[name]]} 
 
@@ -63,7 +65,7 @@ allVar[distance == "genetic"] %>% ggplot(aes(x = scale, y = anc_variance, group 
        y = "Variance",
        color = "Year", shape = "Signal") +
   scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(-15:-1),"chromosome\nlevel")) + 
-  scale_shape_discrete(labels = c("Mean", "Individual"))+
+  scale_shape_discrete(labels = c("Individual", "Mean"))+
   theme_classic() +
   scale_colour_viridis_d() +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
@@ -76,7 +78,7 @@ allVar[distance == "genetic"] %>% ggplot(aes(x = scale, y = anc_variance, group 
         axis.ticks.x = element_line(size=c(rep(1,15),0)),
         axis.title.x = element_text(hjust=.4,margin=margin(t=-20)))
 
-l# 2.1. ----- Plot proportion ---------------
+# 2.1. ----- Plot proportion ---------------
 allVar[, propVar := anc_variance/sum(anc_variance), by = .(decomp,distance,year)]
 lineDataProp <- allVar[scale < 17]
   
@@ -150,24 +152,29 @@ allVar[distance == "physical"] %>% ggplot(aes(x = scale, y =anc_variance, group 
         axis.ticks.x = element_line(size=c(rep(1,15),0)),
         axis.title.x = element_text(hjust=.4,margin=margin(t=-20)))
 
-# 3.1.1. ----- Ancestry: proportion of variance -----
 
-allVar[decomp == "mean_individual" & distance == "physical"] %>% ggplot(aes(x = scale, y = propVar, group = interaction(decomp, year), color = year)) +
-  geom_point(aes(shape = decomp),size=2.2) +
-  geom_line(data = lineDataProp[decomp == "mean_individual" & distance == "physical"], size=0.5,linetype=2) + 
+allVar[distance == "physical"] %>% ggplot(aes(x = scale, y = anc_variance, group = interaction(decomp, year), color = year)) +
+  geom_point(aes(shape = rev(decomp)),size=2.2) +
+  geom_line(data = lineDataProp[distance == "physical"], size=0.5,linetype=2) + 
   labs(x = expression(Scale: log[2](kbp)), 
-       y = "Proportion of variance",
+       y = "Variance",
        color = "Year", shape = "Signal") +
-  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chromosome\nlevel")) + 
-  scale_shape_discrete(labels = c("Individual","Pop mean"))+
+  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chrom")) + 
+  scale_shape_discrete(labels = c("Sample mean", "Individual"))+
   theme_classic() +
   scale_colour_viridis_d() +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
   geom_segment(aes(x=16.5,xend=17.5,y=-Inf,yend=-Inf),color="black")+
-  theme(axis.line.x = element_blank(),
+  theme(aspect.ratio=1, text=element_text(size=15),
+    axis.line.x = element_blank(),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5),#,
-        axis.ticks.x = element_line(size=c(rep(1,15),0)),
-        axis.title.x = element_text(hjust=.4,margin=margin(t=-20)))
+        axis.ticks.x = element_line(size=c(rep(1,15),0)))
+
+
+
+chrLen[, scale:= floor(log2(V2/1000))]
+ggplot(data=chrLen, aes(x = scale, y = 1)) + geom_boxplot()
+
 
 # 3.2 ----- Rec Var Decomp -----
 
@@ -229,19 +236,21 @@ lineDataCor <- allCor[scale < 17]
 # 4.1. ----- Rec x Ancestry -----
 allCor %>%
   ggplot(aes(x = scale, y = rec_anc_cor, group = year, color = year)) + 
-  geom_point() + 
+  geom_point(size=2.2) + 
   geom_line(data = lineDataCor, size=0.5,linetype=2) + 
   labs(x = expression(Scale: log[2](kbp)), 
-       y = "Pearson correlation coefficient",
+       y = "Wavelet correlation",
        color = "Year") +
-  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chromosome\nlevel")) + 
+  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chrom")) +  
   theme_classic() +
-  theme(text = element_text(size = 15),
-        axis.text.x = element_text(size = 10)) +
-  scale_colour_viridis_d() +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
   geom_segment(aes(x=16.5,xend=17.5,y=-Inf,yend=-Inf),color="black") +
-  theme(axis.line.x = element_blank())
+  scale_color_viridis_d() +
+  theme(aspect.ratio=1, text=element_text(size=15),
+        axis.line.x = element_blank(),
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5),#,
+        axis.ticks.x = element_line(size=c(rep(1,15),0)))
+
 
 # 4.2. ----- CDS x Ancestry -----
 allCor %>%
@@ -308,7 +317,7 @@ mrgd[, norm_cor := contribution/sum(contribution), by = .(year)]
 
 mrgd[scale < 17] %>%
   ggplot() + 
-  geom_bar(aes(fill = reorder(as.factor(scale), desc(as.factor(scale))), x = year, y = norm_cor),
+  geom_bar(aes(fill = reorder(as.factor(scale), desc(as.factor(scale))), x = year, y = contribution),
                position = "stack", stat = "identity", color = "black") + 
   scale_fill_viridis_d(option = "plasma") + 
   labs(x = "Year", 

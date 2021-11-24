@@ -1,0 +1,41 @@
+initialize() {
+	
+	initializeTreeSeq();
+	defineConstant("L", 613171); 
+	defineConstant("N", 1000); // recipient population size
+
+	defineConstant("alpha", 0.1);//initial mixing proportion = starting freq in F1 generation
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0);
+	m1.convertToSubstitution = F;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, L-1);
+
+	
+	// recombination distances between SNPs in the swordtail data
+	rates = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/swordtail_TOTO_ACUA/swordtail_SNP_recMap.txt");
+
+	initializeRecombinationRate(asFloat(rates), 1:(L-1));
+
+}
+
+1 {sim.addSubpop("p1", N);
+	F1s = sample(p1.individuals, asInteger(2*N*alpha));
+	genomes = NULL;
+	for(F1 in F1s)
+	{
+	genomes = c(genomes, F1.genomes[1]);
+	}
+	genomes.addNewMutation(m1,0,0:(L-1));
+	
+}
+
+// output
+
+
+100 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_generation100.trees"; }
+	
+
+200 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_generation200.trees"; }
