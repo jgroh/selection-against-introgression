@@ -180,17 +180,28 @@ plotData <- rbind(wvSim[popModel=="wvEquil",.(gen,scale,variance,type)], dfg[,.(
 ggplot(plotData, aes(x = scale, y = variance,color = type)) + facet_wrap(~gen) + geom_point()
 
 wvSim[, propVar := wavevar/sum(wavevar), by = .(gen,popModel, rep.id)]
+wvSim[, meanPropVar := mean(propVar), by = .(gen, popModel, scale)]
+wvSim[, meanVar := mean(variance), by = .(gen, popModel, scale)]
 
-ggplot(wvSim[gen %in% c(10,100,1000) & popModel != "wvBottleneck"], aes(x = scale, y = variance, color = popModel)) + 
-  geom_point() + geom_line(aes(group=interaction(popModel, rep.id))) + facet_wrap(~gen) + 
+gen.labs <- c("gen 10", "gen 100", "gen 1000")
+names(gen.labs) <- c('10','100','1000')
+
+meanData <- wvSim[gen %in% c(10,100,1000) & popModel != "wvBottleneck"]
+  
+ggplot(wvSim[gen %in% c(10,100,1000) & popModel != "wvBottleneck"], aes(x = scale, y = wavevar, color = popModel)) + 
+  geom_point(size = 0.1, alpha = 0.2) + geom_line(aes(group=interaction(popModel, rep.id )), size=0.4, alpha = 0.2) + 
+  facet_wrap(~gen, labeller = labeller(gen= gen.labs)) + 
   theme_classic() + 
   theme(aspect.ratio=1,
         text=element_text(size=15),
         legend.position = "none",
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5)) +
-  labs(x = expression(Scale: log[2](Morgans)), y = "Variance") + 
+  labs(x = expression(Scale: log[2](Morgans)), y = "Proportion of variance") + 
   scale_x_continuous(breaks = 1:10, labels = -10:-1) +
-  scale_color_manual(values = c("darkcyan", "gray","lightsalmon")) 
+  scale_color_manual(values = c("darkcyan", "black","firebrick1")) + 
+  geom_point(data=meanData, aes(x = scale, y = meanVar))+
+  geom_line(data = meanData, aes(x = scale, y = meanVar), size = 1, linetype=2)
+
  
 # Perform Computations ------------------------------------------
 
@@ -247,29 +258,38 @@ head(grdP)
 
 wvSim[, type := "sim"]
 grdP[, type := "theory"]
+
 wvSim[,gen:= as.double(gen)]
 allPlotDat <- merge(wvSim, grdP, by = c("gen", "popModel", "scale"))
 
+
 setDT(dfg)
 
-wvSim[popModel %in% c("wvEquil", "wvBottleneck") & gen %in% c(10,100,1000)] %>%
+d <- wvSim[popModel %in% c("wvEquil", "wvBottleneck") & gen %in% c(10,100,1000)]
+d[, meanVar := mean(variance), by = .(gen, scale, popModel)]
+d[, propVar := variance/sum(variance), by = .(gen, popModel, type, rep.id)]
+
+d %>%
   ggplot(aes(x = scale, y = variance)) + #interaction(popModel, n.sample))) + 
-  geom_point(size=1, alpha = 0.3, aes(color = popModel)) + # aes(shape = popModel)) + 
-  geom_line(linetype = 1, aes(group = interaction(rep.id, popModel), color = popModel), alpha = 0.3) + #geom_line(aes(linetype = as.factor(n.sample))) +
-  facet_wrap(~gen) + 
+  geom_point(size=.1, alpha = 0.3, aes(color = popModel)) + # aes(shape = popModel)) + 
+  geom_line(linetype = 1, aes(group = interaction(rep.id, popModel), color = popModel), size=0.3, alpha = 0.3) + #geom_line(aes(linetype = as.factor(n.sample))) +
+  facet_wrap(~gen, labeller = labeller(gen= gen.labs)) + 
   theme_classic() + 
   labs(x = expression(Scale: log[2](Morgans)), 
        y = "Variance", shape = "",
        color = "") + #, linetype = "") +
-  scale_color_manual(values = c("lightsalmon","darkcyan")) +
+  scale_color_manual(values = c("firebrick1","darkcyan")) +
   scale_x_continuous(breaks = 1:10, labels = -10:-1) +
   #scale_linetype_discrete(labels = c("n=20")) +
   theme(aspect.ratio=1,
+        legend.position = "none",
         text=element_text(size=15),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5)) +
   #geom_point(data = dfg, aes(x = scale, y=var), size = 2) +
-  geom_point(data = grdP, aes(x = scale, y = variance, color = popModel, group = popModel), size = 2) +
+  #geom_line(data = d, aes(x = scale, y = meanVar, color = popModel))+
+  geom_point(data = grdP, aes(x = scale, y = variance, color = popModel, group = popModel), size = 1) +
   geom_line(data = grdP, aes(x = scale,y=variance, group = popModel, color = popModel), size=1) 
+
 
 
 # ===== Variance across individuals =====

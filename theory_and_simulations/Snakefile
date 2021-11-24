@@ -2,9 +2,10 @@ import numpy as np
 reps = np.arange(10)
 #gens = ["gen" + num for num in ["0010", "0100", "1000"]]
 gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0025","0050","0100","0250","0500","1000"]]
+gens_swordtail = ["gen100", "gen200"]
 #gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0050","0100","0250","0500","0750","1000"]]
 #sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb","single-sweep"]
-simsA = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb"]
+simsA = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb", "swordtail_neutral_n1000"]
 simsB = ["equilibrium_n500"]
 
 rule all:

@@ -32,6 +32,11 @@ recombBed <- rbindlist(
   )
 )
 
+sum(recombBed[median_2Ner >= 0.005, end-start])/sum(recombBed[, end-start])
+recombBed[median_2Ner >= 0.005, median_2Ner := 0.005]
+#hist(log(recombBed[,rep(median_2Ner, end-start)]))
+
+
 # Use regression of total Rho against Morgan lengths to get estimate of 2Ne
 chrRho <- recombBed[, max(sum(rep(median_2Ner,end-start))), by = chr]
 setnames(chrRho, "V1", "totalRho")
@@ -42,6 +47,7 @@ chrGenLen[, Morgan := cM/100]
 z <- lm(totalRho ~ 0 + Morgan, data = chrGenLen) # force intercept through zero
 with(chrGenLen, plot(totalRho ~ Morgan))
 
+summary(z)
 Ne2 <- z$coefficients[1]
 
 # divide Rho values by 2Ne to get r

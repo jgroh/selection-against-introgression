@@ -205,7 +205,7 @@ for(i in 1:10){
   signal <- signal + sin(x*2*pi/2^i)
 }
 signal <- signal - min(signal)
-
+#plot(sin(x*2*pi/2^i))
 const <- 1e-8/mean(exp(signal))
 r <- const*exp(signal)
 
