@@ -1,14 +1,20 @@
 library(data.table)
 options(scipen=999)
 
-chrLen <- fread("xbir10x_chrlengths.txt", col.names = c("chr", "len")) # physical lengths
+# argument 1 is chromosome length file
+# argument 2 is one of the files containing snp positions
 
-par1 <- fread("ancestry-probs-par1_allchrs_ACUA_historical_2018.tsv", nrows=1)
+args <- commandArgs(trailingOnly = TRUE)
+chrLen <- fread(args[1], col.names = c("chr", "len")) # physical lengths
+#chrLen <- fread("xbir10x_chrlengths.txt", col.names = c("chr", "len"))  
+
+par1 <- fread(args[2], nrows=1)
+#par1 <- fread("ancestry-probs-par1_allchrs_ACUA_historical_2018.tsv", nrows=1)
 
 # merge by ID 
 setnames(par1, "V1", "ID")
 
-# we need, for each chromosome, a vector of SNP positions
+# concatenate SNP recombination distances for each chromosome
 
 recVec <- NULL
 
@@ -52,6 +58,4 @@ for(chr in chrLen$chr){
 }
 
 fwrite(list(recVec[-1]), 
-            file = "swordtail_SNP_recMap.txt", 
-            sep = ",")
-
+            file = "swordtail_SNP_recMap_slim.txt")

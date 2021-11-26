@@ -13,7 +13,7 @@ initialize() {
 
 	
 	// recombination distances between SNPs in the swordtail data
-	rates = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/swordtail_TOTO_ACUA/swordtail_SNP_recMap.txt");
+	rates = readFile("/Users/brogroh/selection-against-introgression/datasets/swordtail_TOTO_ACUA/swordtail_SNP_recMap_slim.txt");
 
 	initializeRecombinationRate(asFloat(rates), 1:(L-1));
 
@@ -34,8 +34,8 @@ initialize() {
 
 
 100 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_generation100.trees"; }
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_generation100.trees"); }
 	
 
 200 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_generation200.trees"; }
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_generation200.trees"); }
