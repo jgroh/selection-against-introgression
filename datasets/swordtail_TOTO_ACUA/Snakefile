@@ -10,7 +10,8 @@ rule all:
 		expand("ACUA_{year}/anc_rec_cds_MODWT.RData",year=years),
 		expand("ACUA_{year}/anc_rec_cds_DWT.RData",year=years),
 		expand("ACUA_{year}/chrSignalMeans.RData",year=years),
-		expand("ACUA_{year}/totalVar.RData",year=years)#,
+		expand("ACUA_{year}/totalVar.RData",year=years),
+		"swordtail_SNP_recMap_slim.txt"
 #		"dwt_lm_plot_data.txt"
 #		expand("ACUA_{year}/avgFrq_totalCor.RData",year=years)
 
@@ -119,3 +120,12 @@ rule lm_analysis:
 	threads: 16
 	shell:
 		"Rscript --vanilla lm_dwt_coeffs.R {input.dwt} {output} {threads}"
+
+rule slim_rec_map:
+	input:
+		chrLen="xbir10x_chrlengths.txt",
+		genotypeFile="ancestry-probs-par1_allchrs_ACUA_historical_2018.tsv"
+	output:
+		"swordtail_SNP_recMap_slim.txt"	
+	shell:
+		"Rscript --vanilla swordtail_recomb_map_slim.R {input.chrLen} {input.genotypeFile}"
