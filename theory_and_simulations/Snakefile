@@ -2,7 +2,7 @@ import numpy as np
 reps = np.arange(10)
 #gens = ["gen" + num for num in ["0010", "0100", "1000"]]
 gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0025","0050","0100","0250","0500","1000"]]
-gens_swordtail = ["gens50", "gen100", "gen150", "gen200"]
+gens_swordtail = ["gen100", "gen150", "gen200"]
 #gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0050","0100","0250","0500","0750","1000"]]
 #sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb","single-sweep"]
 simsA = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb", "swordtail_neutral_n1000"]
@@ -12,7 +12,8 @@ sims_swordtail = ["swordtail_neutral"]
 rule all:
 	input:
 		expand("results/{sim}/ancestry_master.txt", sim=simsA),
-		"results/equilibrium_n500/all-variances-master.txt" 
+		"results/equilibrium_n500/all-variances-master.txt",
+        "results/swordtail_neutral/ancestry_master.txt"
 
 rule simulation_setA:
 	input:
@@ -33,7 +34,7 @@ rule simulation_swordtail:
     output:
 		expand("results/swordtail_neutral/replicate{{rep}}_{gen}.trees", gen=gens_swordtail)
 	shell:
-		"slim -d seed={wildcards.rep} code/{wildcards.sim}.slim"
+		"slim -d seed={wildcards.rep} code/swordtail_neutral.slim"
         
 rule all_sim:
 	input:
@@ -65,11 +66,17 @@ rule dwt_on_haps:
 
 rule aggregate_mean_ancestry:
 	input:
-		expand("results/{{sim}}/replicate{rep}_{gen}_ancestry.txt", rep=reps, gen=gens)
+		input1=expand("results/{{sim}}/replicate{rep}_{gen}_ancestry.txt", rep=reps, gen=gens),
+        input2=expand("results/swordtail_neutral/replicate{rep}_{gen}_ancestry.txt", rep=reps, gen=gens_swordtail)
 	output:
-		"results/{sim}/ancestry_master.txt"
+		output1="results/{sim}/ancestry_master.txt",   
+        output2="results/swordtail_neutral/ancestry_master.txt"
 	shell:
-		"cat {input} > results/{wildcards.sim}/ancestry_master.txt"
+		"""
+        cat {input1} > results/{wildcards.sim}/ancestry_master.txt
+        cat {input2} > results/swordtail_neutral/ancestry_master.txt
+        """
+
 
 rule aggregate_variance_tables:
 	input:
