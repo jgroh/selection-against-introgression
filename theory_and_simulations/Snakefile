@@ -2,11 +2,12 @@ import numpy as np
 reps = np.arange(10)
 #gens = ["gen" + num for num in ["0010", "0100", "1000"]]
 gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0025","0050","0100","0250","0500","1000"]]
-gens_swordtail = ["gen100", "gen200"]
+gens_swordtail = ["gens50", "gen100", "gen150", "gen200"]
 #gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0050","0100","0250","0500","0750","1000"]]
 #sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb","single-sweep"]
 simsA = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb", "swordtail_neutral_n1000"]
 simsB = ["equilibrium_n500"]
+sims_swordtail = ["swordtail_neutral"]
 
 rule all:
 	input:
@@ -27,17 +28,32 @@ rule simulation_setB:
 	shell:
 		"slim -d seed={wildcards.rep} code/equilibrium_n500.slim"
 
+rule simulation_swordtail:
+    input:
+    output:
+		expand("results/swordtail_neutral/replicate{{rep}}_{gen}.trees", gen=gens_swordtail)
+	shell:
+		"slim -d seed={wildcards.rep} code/{wildcards.sim}.slim"
+        
 rule all_sim:
 	input:
 		expand("results/{sim}/replicate{rep}_{gen}.trees", sim=simsA,rep=reps,gen=gens)
 
-rule avg_ancestry_calc:
+rule avg_ancestry_calc: # this uses a different function than the rule below for unimportant reasons
 	input:
 		"results/{sim}/{rep_gen}.trees"
 	output:
 		"results/{sim}/{rep_gen}_ancestry.txt"
 	shell:
 		"python3 code/derived-allele-freq.py {input} > {output}"
+
+rule avg_ancestry_calc_swordtail:
+	input:
+		"results/swordtail_neutral/{rep_gen}.trees"
+	output:
+		"results/swordtail_neutral/{rep_gen}_ancestry.txt"
+	shell:
+		"python3 code/ancestry.py {input} > {output}"
 
 rule dwt_on_haps:
 	input:
