@@ -13,35 +13,40 @@ initialize() {
 	
 	
 	// recombination distances between SNPs in the swordtail data
-	rates = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/swordtail_TOTO_ACUA/swordtail_SNP_recMap_slim.txt");
+	//rates = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/swordtail_TOTO_ACUA/swordtail_SNP_recMap_slim.txt");
 	
 	initializeRecombinationRate(asFloat(rates), 1:(L-1));
 	
-	defineConstant("seed", 1);
-	defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/swordtail_neutral");
+	//defineConstant("seed", 1);
+	//defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/swordtail_neutral");
 
 }
 
 1 {sim.addSubpop("p0", N);
 	sim.addSubpop("p1",1);
-	p0.setMigrationRates(p1,0.5);
+	p0.setMigrationRates(p1,alpha);
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
 
 }
 
-//1 late() {p2.setSubpopulationSize(0);}
+1 late() {p1.setSubpopulationSize(0);}
 
 // output
 
-1 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_generation001.trees"); }
+//1 late() {
+//	sim.treeSeqOutput(outPath + "/replicate" + seed + "_generation001.trees"); }
 	
-10 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_generation010.trees"); }
+//2 late() {
+//	sim.treeSeqOutput(outPath + "/replicate" + seed + "_generation002.trees"); }
+	
+
+
 
 100 late() {
 	sim.treeSeqOutput(outPath + "/replicate" + seed + "_generation100.trees"); }
-
+	
+150 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_generation150.trees"); }
 
 200 late() {
 	sim.treeSeqOutput(outPath + "/replicate" + seed + "_generation200.trees"); }
