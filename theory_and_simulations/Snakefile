@@ -2,10 +2,10 @@ import numpy as np
 reps = np.arange(10)
 #gens = ["gen" + num for num in ["0010", "0100", "1000"]]
 gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0025","0050","0100","0250","0500","1000"]]
-gens_swordtail = ["gen100", "gen150", "gen200"]
+gens_swordtail = ["generation" + num for num in ["100", "150", "200"]]
 #gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0050","0100","0250","0500","0750","1000"]]
 #sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb","single-sweep"]
-simsA = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb", "swordtail_neutral_n1000"]
+simsA = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb"]
 simsB = ["equilibrium_n500"]
 sims_swordtail = ["swordtail_neutral"]
 
@@ -30,15 +30,16 @@ rule simulation_setB:
 		"slim -d seed={wildcards.rep} code/equilibrium_n500.slim"
 
 rule simulation_swordtail:
-    input:
-    output:
-		expand("results/swordtail_neutral/replicate{{rep}}_{gen}.trees", gen=gens_swordtail)
+	input:
+	output:
+		expand("results/swordtail_neutral/replicate{{rep}}_{gen}.trees", gen = gens_swordtail)
 	shell:
 		"slim -d seed={wildcards.rep} code/swordtail_neutral.slim"
         
 rule all_sim:
 	input:
-		expand("results/{sim}/replicate{rep}_{gen}.trees", sim=simsA,rep=reps,gen=gens)
+		expand("results/{sim}/replicate{rep}_{gen}.trees", sim=simsA,rep=reps,gen=gens),
+		expand("results/swordtail_neutral/replicate{rep}_{gen}.trees", rep=reps,gen=gens_swordtail)
 
 rule avg_ancestry_calc: # this uses a different function than the rule below for unimportant reasons
 	input:
@@ -52,7 +53,7 @@ rule avg_ancestry_calc_swordtail:
 	input:
 		"results/swordtail_neutral/{rep_gen}.trees"
 	output:
-		"results/swordtail_neutral/{rep_gen}_ancestry.txt"
+		"results/swordtail_neutral/swordtail_{rep_gen}_ancestry.txt"
 	shell:
 		"python3 code/ancestry.py {input} > {output}"
 
@@ -64,19 +65,26 @@ rule dwt_on_haps:
 	shell:
 		"Rscript --vanilla code/all-variances-table.R {input} {wildcards.rep_gen} {output}"
 
+
 rule aggregate_mean_ancestry:
 	input:
-		input1=expand("results/{{sim}}/replicate{rep}_{gen}_ancestry.txt", rep=reps, gen=gens),
-        input2=expand("results/swordtail_neutral/replicate{rep}_{gen}_ancestry.txt", rep=reps, gen=gens_swordtail)
+		input = expand("results/{{sim}}/replicate{rep}_{gen}_ancestry.txt", rep=reps,gen=gens)
 	output:
-		output1="results/{sim}/ancestry_master.txt",   
-        output2="results/swordtail_neutral/ancestry_master.txt"
+		output="results/{sim}/ancestry_master.txt"
 	shell:
 		"""
-        cat {input1} > results/{wildcards.sim}/ancestry_master.txt
-        cat {input2} > results/swordtail_neutral/ancestry_master.txt
+        cat {input} > results/{wildcards.sim}/ancestry_master.txt
         """
 
+rule aggregate_mean_ancestry_swordtail:
+	input:
+		expand("results/swordtail_neutral/swordtail_replicate{rep}_{gen}_ancestry.txt", rep=reps, gen=gens_swordtail)
+	output:
+		output="results/swordtail_neutral/ancestry_master.txt"
+	shell:
+		"""
+        cat {input} > results/swordtail_neutral/ancestry_master.txt
+        """
 
 rule aggregate_variance_tables:
 	input:
