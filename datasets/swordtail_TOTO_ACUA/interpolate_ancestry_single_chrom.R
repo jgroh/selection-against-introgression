@@ -7,7 +7,10 @@ library(magrittr)
 args <- commandArgs(trailingOnly = TRUE)
 year <- args[1]
 chr <- args[2]
+#year <- 2018
+#chr <- "ScyDAA6-10-HRSCAF-60"; chr <- "ScyDAA6-11-HRSCAF-73"; chr <- "ScyDAA6-1107-HRSCAF-1306"; chr <- "ScyDAA6-1196-HRSCAF-1406"; chr <- "ScyDAA6-
 
+  
 # read genotype files 
 # probability homozygous for either ancestry
 par1 <- fread(paste0("ancestry-probs-par1_allchrs_ACUA_historical_",year,".tsv"))
@@ -81,7 +84,11 @@ if(max(rhoMap$end) < chrLen[chromosome==chr,len]){
   }
 
 
-Ne2 <- 75981 # see script allChrMakeBed_LDRecMap.R for Ne calculation
+Ne2 <- 27447 # see script xbir_makeBed_LDRecMap.R for Ne calculation
+
+# cap outlier values 
+rhoMap[rho >= 0.005, rho:= 0.005]
+
 MorganVec <- cumsum(rhoMap[, rep(rho/Ne2, end-start)])
 
 
@@ -92,9 +99,9 @@ chrom[, "Morgan" := MorganVec[position]]
 
 # check number of SNPs per Morgan
 # chrom[,length(unique(position))/max(Morgan)]
-# roughly across chromosomes there are 50,000 SNPs per Morgan. So if we interpolate to M*2^-15, this gives roughly 1 SNP per interpolation window
+# roughly across chromosomes there are 30,000 SNPs per Morgan. So if we interpolate to M*2^-14, this gives roughly 1-2 SNPs per interpolation window
 
-xoutMorgan <- seq(0,max(MorganVec), by = 2^-15)
+xoutMorgan <- seq(0,max(MorganVec), by = 2^-14)
 
 # interpolate individual ancestry at genetic coordinates
 chromAncInterpMorgan <- chrom[, approx(x = Morgan, 
