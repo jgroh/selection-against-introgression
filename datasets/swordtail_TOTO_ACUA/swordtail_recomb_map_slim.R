@@ -18,8 +18,9 @@ setnames(par1, "V1", "ID")
 
 recVec <- NULL
 
-for(chr in chrLen$chr){
-  chromCols <- names(par1)[grep(paste0(chr,":"), names(par1))]
+
+for(chrz in chrLen$chr){
+  chromCols <- names(par1)[grep(paste0(chrz,":"), names(par1))]
   
   l <- strsplit(chromCols, ":", fixed = TRUE)
   SNP_positions <- as.numeric(sapply(l, '[',2))
@@ -27,7 +28,7 @@ for(chr in chrLen$chr){
   rChrom <- fread(
     paste0("LD_recMap/", 
            "LD_map_xbirchmanni-COAC-10x-", 
-           chr, ".post.txt_mod.bed"), col.names = c("chr","start","end","mean_2Ner","V1","median_2Ner","V3"))
+           chrz, ".post.txt_mod.bed"), col.names = c("chr","start","end","mean_2Ner","V1","median_2Ner","V3"))
   
   rChrom <- rChrom[, c("chr", "start", "end", "median_2Ner")]
   
@@ -52,6 +53,8 @@ for(chr in chrLen$chr){
   MorganVec <- cumsum(rChrom[, rep(median_2Ner/27447, end-start)])
   
   MorganPositions <- MorganVec[SNP_positions]
+  
+  #print(c(chrz, length(SNP_positions)/max(MorganVec)))
   
   recVec <- c(recVec, 0.5, diff(MorganPositions))
   #hist(log10(diff(MorganPositions)), xlab = "log10(Morgans) between adjacent SNPs")

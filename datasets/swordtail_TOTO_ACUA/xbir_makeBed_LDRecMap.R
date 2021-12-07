@@ -32,6 +32,7 @@ recombBed <- rbindlist(
   )
 )
 
+# what portion of the genome is above the threshold? 1.6%
 sum(recombBed[median_2Ner >= 0.005, end-start])/sum(recombBed[, end-start])
 recombBed[median_2Ner >= 0.005, median_2Ner := 0.005]
 #hist(log(recombBed[,rep(median_2Ner, end-start)]))
@@ -54,7 +55,7 @@ Ne2 <- z$coefficients[1]
 recombBed[, r := median_2Ner/Ne2][, median_2Ner := NULL]
 
 # write out
-# since this will be map file, needs 5 columns where 5th column is score
+# since this will be the map file (for bedtools), needs 5 columns where 5th column is score
 recombBed[, name := paste0("map-",seq_len(.N))]
 setcolorder(recombBed, c("chr","start","end","name","r"))
 write.table(recombBed, file = "", quote = F, sep = "\t", col.names = F, row.names = F)
