@@ -14,12 +14,14 @@ initialize() {
 	
 	// recombination distances between SNPs in the swordtail data
 	//rates = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/swordtail_TOTO_ACUA/swordtail_SNP_recMap_slim.txt");
+	rates = readFile("/Users/brogroh/selection-against-introgression/datasets/swordtail_TOTO_ACUA/swordtail_SNP_recMap_slim.txt");
 	
 	initializeRecombinationRate(asFloat(rates), 1:(L-1));
 	
 	//defineConstant("seed", 1);
 	//defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/swordtail_neutral");
 
+	defineConstant("outPath", "results/swordtail_neutral");
 }
 
 1 {sim.addSubpop("p0", N);
