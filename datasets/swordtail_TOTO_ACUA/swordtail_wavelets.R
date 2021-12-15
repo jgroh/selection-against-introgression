@@ -3,7 +3,7 @@ library(data.table)
 library(tools)
 library(waveslim)
 library(stringi)
-library(ggplot2)
+#library(ggplot2)
 library(magrittr)
 
 source("../../wavelet_functions.R")
@@ -12,7 +12,7 @@ args <- commandArgs(trailingOnly = TRUE)
 year <- args[1]
 
 scaffFiles <- dir(path=paste0("ACUA_",year),pattern="ScyDAA6*",full.names=T)
-#scaffFiles <- scaffFiles[1:3]
+#scaffFiles <- scaffFiles[1:3] # for testing locally
 scaffs <- basename(file_path_sans_ext(scaffFiles))
 
 # read cds density file
