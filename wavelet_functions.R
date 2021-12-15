@@ -1,3 +1,92 @@
+# ===== Functions for data analysis =====
+
+
+brickWallModwt <- function(x, allcols){
+  b <- brick.wall(modwt(x, "haar", n.levels = floor(log2(length(x)))), "haar")
+  b[setdiff(allcols, names(b))] <- as.double(NA) # coefficients for higher levels not present set to NA
+  return(b[allcols]) # important to return in same order of columns for each group when done as grouped operation using data.table
+}
+#d <- data.table(x = rnorm(100), group = c(rep(1,70), rep(2,30)))
+#maxlevs <- d[, floor(log2(nrow(.SD))), by = group]$V1
+#allcols <- unique(c(paste0("d", 1:max(maxlevs)), paste0("s", maxlevs)))
+#d[,brickWallModwt(x, allcols), by = group]
+
+waveletVarianceModwt <- function(x, allcols, na.condition=0){
+  # compute maximum overlap DWT and remove boundary coefficients for unbiased estimate
+  b <- brick.wall(modwt(x, "haar", n.levels = floor(log2(length(x)))), "haar")
+  m <- mean(b[[length(b)]],na.rm=T)
+  # compute wavelet variance estimates from non-boundary coefficients
+  s <- sapply(b, function(u){mean(u^2, na.rm=T)})
+  # subtract mean squared to obtain scaling variance estimate
+  s[length(s)] <- s[length(s)] - m^2
+  
+  # set variance of higher scales to zero for interpretating the average over chromosomes as being the portion of total genomic variance explained by that scale
+  if(na.condition == 0){
+    s[setdiff(allcols, names(s))] <- 0
+  }
+  
+  # set variance of higher scales to NA for comparing magnitudes of scale variances 
+  if(is.na(na.condition)){
+    s[setdiff(allcols, names(s))] <- NA
+  }
+  
+  return(as.list(s[allcols])) # important to return in same order of columns for each group when done as grouped operation using data.table
+}
+
+haar_dwt_nondyadic_var <- function(x, max.level){
+  u <- x - mean(x)
+  
+  # pad withzeros to next highest power of 2
+  M <- length(u)
+  N <- 2^(ceiling(log2(M)))
+  x <- c(u, rep(mean(u), N - M)) 
+  
+  # haar dwt
+  y <- dwt(x, "haar", n.levels = ceiling(log2(M)))
+  
+  # variance decomp 
+  # var(u) = var(x)*N/M
+  s <- lapply(y, function(v){sum(v^2)/length(u)})
+  
+  # the last component of s will be zero since we subtracted off the mean, so we ignore it
+  s <- s[-length(s)] 
+  # the remaining terms now give the wavelet spectrum.
+  
+  # convert to long format
+  result <- melt(as.data.table(s), measure=1:length(s), variable.name="level", value.name="variance")
+  result[, level := as.numeric(gsub("d","",level))]
+  
+  # add number of wavelets as weighting for averaging over chromosomes
+  result[, n.wavelets := M/2^level]
+  
+  # add zero variance for levels not present up to maxLevel
+  if (!max.level %in% result[,level]){
+    result <- rbind(result,
+                    data.table(level=setdiff(1:max.level, result[,level]),
+                               variance=0,
+                               n.wavelets=0))
+  }
+  
+  return(result)
+  # the sum of the variances over scales should now exactly decompose the total
+  # result[, sum(variance)]
+  # sum((v-mean(v))^2)/length(v)
+}
+
+
+
+
+
+
+
+
+# Example
+#d <- data.table(x =rnorm(100), y = 1:100, group= c(rep(1,30), rep(2,70)))
+#maxlevs <- d[, floor(log2(nrow(.SD))), by = group]$V1
+#allcols <- c(paste0("d", 1:max(maxlevs)), paste0("s", maxlevs))
+#d[, waveletVarianceModwt(x, allcols = allcols), by = group]
+
+
 # Expected wavelet variance: approximate integrand ------------------------------------------
 # assumes infinite population
 wav_var_approx <- function(x, u, n.sample, alpha, t.gens) {
