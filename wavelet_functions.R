@@ -11,7 +11,7 @@ brickWallModwt <- function(x, allcols){
 #allcols <- unique(c(paste0("d", 1:max(maxlevs)), paste0("s", maxlevs)))
 #d[,brickWallModwt(x, allcols), by = group]
 
-waveletVarianceModwt <- function(x, allcols, na.condition=0){
+waveletVarianceModwt <- function(x, allcols, na.condition="zero"){
   # compute maximum overlap DWT and remove boundary coefficients for unbiased estimate
   b <- brick.wall(modwt(x, "haar", n.levels = floor(log2(length(x)))), "haar")
   m <- mean(b[[length(b)]],na.rm=T)
@@ -21,12 +21,12 @@ waveletVarianceModwt <- function(x, allcols, na.condition=0){
   s[length(s)] <- s[length(s)] - m^2
   
   # set variance of higher scales to zero for interpretating the average over chromosomes as being the portion of total genomic variance explained by that scale
-  if(na.condition == 0){
+  if(na.condition == "zero"){
     s[setdiff(allcols, names(s))] <- 0
   }
   
   # set variance of higher scales to NA for comparing magnitudes of scale variances 
-  if(is.na(na.condition)){
+  if(na.condition == "na"){
     s[setdiff(allcols, names(s))] <- NA
   }
   
