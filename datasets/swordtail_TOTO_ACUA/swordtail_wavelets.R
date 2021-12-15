@@ -398,7 +398,7 @@ allVarDecompP[, units := "physical"]
 
 allVarDecomp <- rbind(allVarDecompG, allVarDecompP)
 
-
+save(allVarDecomp, file =  paste0("ACUA_",year,"/ancestry_allVarDecomp.RData"))
 
 
 
