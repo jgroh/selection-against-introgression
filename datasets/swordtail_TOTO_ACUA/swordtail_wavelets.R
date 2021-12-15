@@ -10,6 +10,7 @@ source("../../wavelet_functions.R")
 
 args <- commandArgs(trailingOnly = TRUE)
 year <- args[1]
+#year <- 2018
 
 scaffFiles <- dir(path=paste0("ACUA_",year),pattern="ScyDAA6*",full.names=T)
 #scaffFiles <- scaffFiles[1:3] # for testing locally
@@ -286,10 +287,11 @@ meanWavVarP_Chrs <- gnomP[ID==ID[1], waveletVarianceModwt(meanFreq, allcolsP, na
   melt(., id.vars = "chr", variable.name = "level", value.name = "variance")
 
 # weighted average variance magnitudes per scale across chromosomes (exclude chromosomes without a certain scale present)
-chrWaveletWeightsP <- meanModwtG[!is.na(coefficient), .(n.coeff=nrow(.SD)), by = .(chr, level)]
+chrWaveletWeightsP <- meanModwtP[!is.na(coefficient), .(n.coeff=nrow(.SD)), by = .(chr, level)]
 chrWaveletWeightsP[, wavelet.weight:= n.coeff/sum(n.coeff), by = level][, n.coeff:=NULL][]
-meanWavVarP_Chrs <- merge(meanWavVarP_Chrs, chrWaveletWeightsP)
+meanWavVarP_Chrs <- merge(meanWavVarP_Chrs, chrWaveletWeightsP, all=T) # all=T important so that NA values are not removed
 
+# weighted average over chromosomes
 meanWavVarP_magnitude <- meanWavVarP_Chrs[, .(variance = weighted.mean(variance, wavelet.weight, na.rm=T)), by = level]
 
 # proportion of genomic variance by scale per chromosome 
