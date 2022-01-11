@@ -8,16 +8,56 @@ chrLen <- fread("xbir10x_chrlengths.txt")
 loadFrom=function(file, name){e=new.env();load(file,env=e);e[[name]]} 
 
 
-acua2006var <- data.table(loadFrom("ACUA_2006/ancestry_allVarDecomp.RData", "allVarDecomp")); acua2006var[,year := "2006"]
-acua2008var <- data.table(loadFrom("ACUA_2008/ancestry_allVarDecomp.RData", "allVarDecomp")); acua2008var[,year := "2008"]
-acua2013var <- data.table(loadFrom("ACUA_2013/ancestry_allVarDecomp.RData", "allVarDecomp")); acua2013var[,year := "2013"]
-acua2015var <- data.table(loadFrom("ACUA_2015/ancestry_allVarDecomp.RData", "allVarDecomp")); acua2015var[,year := "2015"]
-acua2018var <- data.table(loadFrom("ACUA_2018/ancestry_allVarDecomp.RData", "allVarDecomp")); acua2018var[,year := "2018"]
+acua2006var <- data.table(loadFrom("ACUA_2006/ancestry_allVarDecomp_noRhoCap.RData", "allVarDecomp")); acua2006var[,year := "2006"]
+acua2008var <- data.table(loadFrom("ACUA_2008/ancestry_allVarDecomp_noRhoCap.RData", "allVarDecomp")); acua2008var[,year := "2008"]
+acua2013var <- data.table(loadFrom("ACUA_2013/ancestry_allVarDecomp_noRhoCap.RData", "allVarDecomp")); acua2013var[,year := "2013"]
+acua2015var <- data.table(loadFrom("ACUA_2015/ancestry_allVarDecomp_noRhoCap.RData", "allVarDecomp")); acua2015var[,year := "2015"]
+acua2018var <- data.table(loadFrom("ACUA_2018/ancestry_allVarDecomp_noRhoCap.RData", "allVarDecomp")); acua2018var[,year := "2018"]
 allVar <- rbindlist(list(acua2006var,acua2008var,acua2013var,acua2015var,acua2018var))
 
+
+# =====plot simulation and real data together ===== 
+simVarDecomp <- loadFrom("varDecomp_simulation_n10000_noRhoCap.RData", "propVarDecomp")
+
+allVar[, data_source := "real"]
+simVarDecomp <- simVarDecomp[, .(propVar = mean(propVar)), by = .(gen, level, data_source)]
+
+allVar[, gen := year]
+sim_and_real <- rbind(simVarDecomp[, .(level, propVar,gen,data_source)], allVar[units == "genetic" & signal == "mean", .(level,propVar, gen, data_source)])
+
+sim_and_real[, alpha:= ifelse(data_source== "real", 1, 0.75)]
+sim_and_real[, level := factor(level, levels = c(paste0("d",1:15), paste0("s", 12:15), "chr"))]
+
+
+lineData <- sim_and_real[!level %in% c("s12","s13","s14","s15","chr")]
+
+ggplot(sim_and_real, aes(x = level, 
+                         y = propVar, 
+                         group = gen, 
+                         color = interaction(data_source, gen))) +
+  geom_point(aes(shape = data_source)) + 
+  geom_line(data = lineData, aes(group=gen,linetype = data_source), size=0.5) + 
+  labs(x = expression(Scale: log[2](Morgans)), 
+       y = "Proportion of total ancestry variance",
+       color = "") +
+  scale_x_discrete(breaks = c(paste0("d",1:14),"s12","s13","s14","chr"), labels = c(as.character(-14:-1), paste0(-3:-1," (scaling var)"), "chromosome")) + 
+  theme_classic() +
+  scale_colour_viridis_d() +
+  #geom_segment(aes(x=.95,xend=13.05,y=-Inf,yend=-Inf),color="black") + 
+  theme(aspect.ratio = 1,
+        text = element_text(size=15),
+        axis.line.x = element_blank(),
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
+        axis.text.y = element_text(size=12),
+        #axis.ticks.x = element_line(size=c(rep(1,15),0)),
+        axis.title.x = element_text(hjust=.4,margin=margin(t=-20)))
+
+
+
+
+# ===== plot real data ====
 levels(allVar$level)
 lineData <- allVar[!level %in% c("s13", "s14", "chr")]
-
 
 allVar[units == "genetic"] %>% ggplot(aes(x = level, y = variance, group = interaction(signal, year), color = year)) +
   geom_point(aes(shape = signal), size=2.2) +
@@ -59,17 +99,20 @@ allVar[units == "genetic"] %>% ggplot(aes(x = level, y = propVar, group = intera
         axis.title.x = element_text(hjust=.4,margin=margin(t=-20)))
 
 # physical units
+
+allVar[, level := factor(level, levels = c(paste0("d",1:15), paste0("s",13:15), "chr"))]
+lineData <- allVar[!level %in% c("s13", "s14", "s15", "chr")]
 allVar[units == "physical"] %>% ggplot(aes(x = level, y = variance, group = interaction(signal, year), color = year)) +
   geom_point(aes(shape = signal), size=2.2) +
   geom_line(data = lineData[units == "physical"], size=0.5, linetype=2) + 
-  labs(x = expression(Scale: log[2](Morgans)), 
+  labs(x = expression(Scale: log[2](kbp)), 
        y = "Variance",
        color = "Year", shape = "Signal") +
-  scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2),"-2 (scaling var)", "chromosome")) + 
+  scale_x_discrete(breaks = c(paste0("d",1:15),"s13","s14","s15","chr"), labels = c(as.character(0:14),"12(scaling)", "13(scaling)", "14(scaling)", "chromosome")) + 
   scale_shape_discrete(labels = c("Individual", "Mean"))+
   theme_classic() +
   scale_colour_viridis_d() +
-  geom_segment(aes(x=.95,xend=13.05,y=-Inf,yend=-Inf),color="black")+
+  geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
   theme(aspect.ratio = 1,
         text = element_text(size=15),
         axis.line.x = element_blank(),
@@ -78,6 +121,25 @@ allVar[units == "physical"] %>% ggplot(aes(x = level, y = variance, group = inte
         axis.ticks.x = element_line(size=c(rep(1,15),0)),
         axis.title.x = element_text(hjust=.4,margin=margin(t=-20)))
 
+
+allVar[units == "physical"] %>% ggplot(aes(x = level, y = propVar, group = interaction(signal, year), color = year)) +
+  geom_point(aes(shape = signal), size=2.2) +
+  geom_line(data = lineData[units == "physical"], size=0.5, linetype=2) + 
+  labs(x = expression(Scale: log[2](kbp)), 
+       y = "Proportion of total genomic variance",
+       color = "Year", shape = "Signal") +
+  scale_x_discrete(breaks = c(paste0("d",1:15),"s13","s14","s15","chr"), labels = c(as.character(0:14),"12(scaling)", "13(scaling)", "14(scaling)", "chromosome")) + 
+  scale_shape_discrete(labels = c("Individual", "Mean"))+
+  theme_classic() +
+  scale_colour_viridis_d() +
+  geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
+  theme(aspect.ratio = 1,
+        text = element_text(size=15),
+        axis.line.x = element_blank(),
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
+        axis.text.y = element_text(size=12),
+        axis.ticks.x = element_line(size=c(rep(1,15),0)),
+        axis.title.x = element_text(hjust=.4,margin=margin(t=-20)))
 
 
 
