@@ -12,7 +12,7 @@ args <- commandArgs(trailingOnly = TRUE)
 year <- args[1]
 #year <- 2018
 
-scaffFiles <- dir(path=paste0("ACUA_",year),pattern="ScyDAA6*",full.names=T)
+scaffFiles <- dir(path=paste0("ACUA_",year),pattern="_noRhoCap.RData",full.names=T)
 #scaffFiles <- scaffFiles[1:3] # for testing locally
 scaffs <- basename(file_path_sans_ext(scaffFiles))
 
@@ -400,7 +400,7 @@ allVarDecompP[, units := "physical"]
 
 allVarDecomp <- rbind(allVarDecompG, allVarDecompP)
 
-save(allVarDecomp, file =  paste0("ACUA_",year,"/ancestry_allVarDecomp.RData"))
+save(allVarDecomp, file =  paste0("ACUA_",year,"/ancestry_allVarDecomp_noRhoCap.RData"))
 
 
 

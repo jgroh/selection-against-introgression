@@ -2,7 +2,7 @@ initialize() {
 	
 	initializeTreeSeq();
 	defineConstant("L", 613171);//171); 
-	defineConstant("N", 1000); // recipient population size
+	defineConstant("N", 10000); // recipient population size
 	
 	defineConstant("alpha", 0.5);//initial mixing proportion 
 	initializeMutationRate(0);
@@ -13,7 +13,7 @@ initialize() {
 	
 	
 	// recombination distances between SNPs in the swordtail data
-	//rates = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/swordtail_TOTO_ACUA/swordtail_SNP_recMap_slim.txt");
+	//rates = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/swordtail_TOTO_ACUA/swordtail_SNP_recMap_slim_noRhoCap.txt");
 	rates = readFile("/Users/brogroh/selection-against-introgression/datasets/swordtail_TOTO_ACUA/swordtail_SNP_recMap_slim.txt");
 	
 	initializeRecombinationRate(asFloat(rates), 1:(L-1));

@@ -84,10 +84,11 @@ if(max(rhoMap$end) < chrLen[chromosome==chr,len]){
   }
 
 
-Ne2 <- 27447 # see script xbir_makeBed_LDRecMap.R for Ne calculation
+#Ne2 <- 27447 # see script xbir_makeBed_LDRecMap.R for Ne calculation
+Ne2 <- 75981
 
 # cap outlier values 
-rhoMap[rho >= 0.005, rho:= 0.005]
+#rhoMap[rho >= 0.005, rho:= 0.005]
 
 MorganVec <- cumsum(rhoMap[, rep(rho/Ne2, end-start)])
 
@@ -116,4 +117,4 @@ chromAncInterpMorgan[, meanFreq := mean(indivFreq),
 
 # 5. Write Output =====
 
-save(chromAnc1kb, chromAncInterpMorgan, file = paste0("ACUA_",year,"/",chr,".RData"))
+save(chromAnc1kb, chromAncInterpMorgan, file = paste0("ACUA_",year,"/",chr,"_noRhoCap.RData"))

@@ -5,13 +5,13 @@ chrs = [s.replace("LD_map_xbirchmanni-COAC-10x-","").replace(".post.txt_mod.bed"
 
 rule all:
 	input:
-		expand("ACUA_{year}/anc_rec_cds_varDecomp.RData",year=years),
-		expand("ACUA_{year}/anc_rec_cds_corDecomp.RData",year=years),
-		expand("ACUA_{year}/anc_rec_cds_MODWT.RData",year=years),
-		expand("ACUA_{year}/anc_rec_cds_DWT.RData",year=years),
-		expand("ACUA_{year}/chrSignalMeans.RData",year=years),
-		expand("ACUA_{year}/totalVar.RData",year=years),
-		"swordtail_SNP_recMap_slim.txt"
+		expand("ACUA_{year}/ancestry_allVarDecomp_noRhoCap.RData", year = years),
+		#expand("ACUA_{year}/anc_rec_cds_varDecomp.RData",year=years),
+		#expand("ACUA_{year}/anc_rec_cds_corDecomp.RData",year=years),
+		#expand("ACUA_{year}/anc_rec_cds_MODWT.RData",year=years),
+		#expand("ACUA_{year}/anc_rec_cds_DWT.RData",year=years),
+		#expand("ACUA_{year}/chrSignalMeans.RData",year=years),
+		#expand("ACUA_{year}/totalVar.RData",year=years),
 #		"dwt_lm_plot_data.txt"
 #		expand("ACUA_{year}/avgFrq_totalCor.RData",year=years)
 
@@ -20,13 +20,13 @@ rule interpolate_ancestry_single_chrom:
 		expand("ancestry-probs-par{par}_allchrs_ACUA_historical_{{year}}.tsv", par=["1","2"]),
 		"LD_recMap/LD_map_xbirchmanni-COAC-10x-{chr}.post.txt_mod.bed"
 	output:
-		"ACUA_{year}/{chr}.RData"
+		"ACUA_{year}/{chr}_noRhoCap.RData"
 	shell:
 		"Rscript --vanilla interpolate_ancestry_single_chrom.R {wildcards.year} {wildcards.chr}"
 
 rule all_year_chr:
 	input:
-		expand("ACUA_{year}/{chr}.RData",year=years,chr=chrs)
+		expand("ACUA_{year}/{chr}_noRhoCap.RData",year=years,chr=chrs)
 
 rule make_kb_bed:
 	input:
@@ -42,7 +42,7 @@ rule make_rec_bed:
 		"cM_lengths_birchmanni10x.txt",
 		expand("LD_recMap/LD_map_xbirchmanni-COAC-10x-{chr}.post.txt_mod.bed",chr=chrs)
 	output:
-		"xbir_LDRecMap.bed"
+		"xbir_LDRecMap_noRhoCap.bed"
 	shell:
 		"Rscript --vanilla xbir_makeBed_LDRecMap.R | sort -k1,1 -k2,2n > {output}"
 
@@ -100,14 +100,15 @@ rule avgFrq_totalCor:
 
 rule combine_chrs_and_run_wavelets:
 	input:
-		expand("ACUA_{{year}}/{chr}.RData",chr=chrs)
+		expand("ACUA_{{year}}/{chr}_noRhoCap.RData",chr=chrs)
 	output:
-		"ACUA_{year}/anc_rec_cds_varDecomp.RData",
-		"ACUA_{year}/anc_rec_cds_corDecomp.RData",
-		"ACUA_{year}/anc_rec_cds_MODWT.RData",
-		"ACUA_{year}/anc_rec_cds_DWT.RData",
-		"ACUA_{year}/chrSignalMeans.RData",
-		"ACUA_{year}/totalVar.RData"
+		"ACUA_{year}/ancestry_allVarDecomp_noRhoCap.RData"
+	#	"ACUA_{year}/anc_rec_cds_varDecomp.RData",
+	#	"ACUA_{year}/anc_rec_cds_corDecomp.RData",
+	#	"ACUA_{year}/anc_rec_cds_MODWT.RData",
+	#	"ACUA_{year}/anc_rec_cds_DWT.RData",
+	#	"ACUA_{year}/chrSignalMeans.RData",
+	#	"ACUA_{year}/totalVar.RData"
 	shell:
 		"Rscript --vanilla swordtail_wavelets.R {wildcards.year}"
 
