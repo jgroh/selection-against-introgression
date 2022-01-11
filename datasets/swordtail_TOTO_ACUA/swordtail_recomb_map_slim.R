@@ -47,10 +47,13 @@ for(chrz in chrLen$chr){
                          median_2Ner=rChrom[end==max(end),median_2Ner]))
   }
   
+  print(max(MorganVec))
   # outliers: set max median_2Ner to 0.005 (see script xbir_makeBed_LDRecMap.R)
-  rChrom[median_2Ner >= 0.005, median_2Ner:= 0.005]
+  #rChrom[median_2Ner >= 0.005, median_2Ner:= 0.005]
 
-  MorganVec <- cumsum(rChrom[, rep(median_2Ner/27447, end-start)])
+  MorganVec <- cumsum(rChrom[, rep(median_2Ner/75981, end-start)])
+  #MorganVec <- cumsum(rChrom[, rep(median_2Ner/27447, end-start)])
+  
   
   MorganPositions <- MorganVec[SNP_positions]
   
