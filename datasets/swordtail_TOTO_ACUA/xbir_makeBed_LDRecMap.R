@@ -33,8 +33,8 @@ recombBed <- rbindlist(
 )
 
 # what portion of the genome is above the threshold? 1.6%
-sum(recombBed[median_2Ner >= 0.005, end-start])/sum(recombBed[, end-start])
-recombBed[median_2Ner >= 0.005, median_2Ner := 0.005]
+#sum(recombBed[median_2Ner >= 0.005, end-start])/sum(recombBed[, end-start])
+#recombBed[median_2Ner >= 0.005, median_2Ner := 0.005]
 #hist(log(recombBed[,rep(median_2Ner, end-start)]))
 
 
