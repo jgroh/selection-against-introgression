@@ -1,4 +1,5 @@
 library(data.table)
+library(ggplot2)
 options(scipen=999)
 
 # Make bed file of recombination per bp recombination rates for X. birchmanni genome =====
@@ -37,6 +38,10 @@ recombBed <- rbindlist(
 #recombBed[median_2Ner >= 0.005, median_2Ner := 0.005]
 #hist(log(recombBed[,rep(median_2Ner, end-start)]))
 
+# ggplot(recombBed, aes(log10(median_2Ner), weight = end-start)) + 
+#   geom_histogram(bins=100) + facet_wrap(~chr) + 
+#   geom_vline(xintercept = log10(0.005), color = "red")  
+#   
 
 # Use regression of total Rho against Morgan lengths to get estimate of 2Ne
 chrRho <- recombBed[, max(sum(rep(median_2Ner,end-start))), by = chr]
