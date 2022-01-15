@@ -8,39 +8,49 @@ chrLen <- fread("xbir10x_chrlengths.txt")
 loadFrom=function(file, name){e=new.env();load(file,env=e);e[[name]]} 
 
 
-acua2006var <- data.table(loadFrom("ACUA_2006/ancestry_allVarDecomp_noRhoCap.RData", "allVarDecomp")); acua2006var[,year := "2006"]
-acua2008var <- data.table(loadFrom("ACUA_2008/ancestry_allVarDecomp_noRhoCap.RData", "allVarDecomp")); acua2008var[,year := "2008"]
-acua2013var <- data.table(loadFrom("ACUA_2013/ancestry_allVarDecomp_noRhoCap.RData", "allVarDecomp")); acua2013var[,year := "2013"]
-acua2015var <- data.table(loadFrom("ACUA_2015/ancestry_allVarDecomp_noRhoCap.RData", "allVarDecomp")); acua2015var[,year := "2015"]
-acua2018var <- data.table(loadFrom("ACUA_2018/ancestry_allVarDecomp_noRhoCap.RData", "allVarDecomp")); acua2018var[,year := "2018"]
+acua2006var <- data.table(loadFrom("ACUA_2006/ancestry_allVarDecomp.RData", "allVarDecomp")); acua2006var[,year := "2006"]
+acua2008var <- data.table(loadFrom("ACUA_2008/ancestry_allVarDecomp.RData", "allVarDecomp")); acua2008var[,year := "2008"]
+acua2013var <- data.table(loadFrom("ACUA_2013/ancestry_allVarDecomp.RData", "allVarDecomp")); acua2013var[,year := "2013"]
+acua2015var <- data.table(loadFrom("ACUA_2015/ancestry_allVarDecomp.RData", "allVarDecomp")); acua2015var[,year := "2015"]
+acua2018var <- data.table(loadFrom("ACUA_2018/ancestry_allVarDecomp.RData", "allVarDecomp")); acua2018var[,year := "2018"]
 allVar <- rbindlist(list(acua2006var,acua2008var,acua2013var,acua2015var,acua2018var))
 
 
 # =====plot simulation and real data together ===== 
-simVarDecomp <- loadFrom("varDecomp_simulation_n10000_noRhoCap.RData", "propVarDecomp")
+simVarDecomp <- loadFrom("varDecomp_simulation_n10000_rhoCap0.005.RData", "allVarDecomp")
+simVarDecomp[units == "2^-14 Morgan", units := "genetic"]
+simVarDecomp[units == "1kb", units := "physical"]
+
 
 allVar[, data_source := "real"]
-simVarDecomp <- simVarDecomp[, .(propVar = mean(propVar)), by = .(gen, level, data_source)]
+
+# average across replicates
+simVarDecomp <- simVarDecomp[, .(propVar = mean(propVar), variance = mean(variance)), by = .(gen, level, data_source, units)]
+simVarDecomp
 
 allVar[, gen := year]
-sim_and_real <- rbind(simVarDecomp[, .(level, propVar,gen,data_source)], allVar[units == "genetic" & signal == "mean", .(level,propVar, gen, data_source)])
+sim_and_real <- rbind(simVarDecomp[, .(level,propVar,variance,gen,data_source,units)], allVar[signal == "mean", .(level,propVar,variance, gen, data_source,units)])
 
 sim_and_real[, alpha:= ifelse(data_source== "real", 1, 0.75)]
 sim_and_real[, level := factor(level, levels = c(paste0("d",1:15), paste0("s", 12:15), "chr"))]
-
+sim_and_real[, levels(level)]
 
 lineData <- sim_and_real[!level %in% c("s12","s13","s14","s15","chr")]
+lineData[, levels(level)]
 
-ggplot(sim_and_real, aes(x = level, 
-                         y = propVar, 
+
+ggplot(sim_and_real[units == "genetic"], aes(x = level, 
+                         y = variance, 
                          group = gen, 
                          color = interaction(data_source, gen))) +
   geom_point(aes(shape = data_source)) + 
-  geom_line(data = lineData, aes(group=gen,linetype = data_source), size=0.5) + 
-  labs(x = expression(Scale: log[2](Morgans)), 
+  geom_line(data = lineData[units == "genetic"], aes(group=gen, linetype = data_source), size=0.5) + 
+  labs(#x = expression(Scale: log[2](Morgans)), 
+        x = expression(Scale: log[2] (kbp)),
        y = "Proportion of total ancestry variance",
        color = "") +
-  scale_x_discrete(breaks = c(paste0("d",1:14),"s12","s13","s14","chr"), labels = c(as.character(-14:-1), paste0(-3:-1," (scaling var)"), "chromosome")) + 
+  #scale_x_discrete(breaks = c(paste0("d",1:14),"s12","s13","s14","chr"), labels = c(as.character(-14:-1), paste0(-3:-1," (scaling var)"), "chromosome")) + 
+  #scale_x_discrete(breaks = c(paste0("d",1:15),"s13","s14","s15","chr"), labels = c(as.character(1:15), paste0(13:15," (scaling var)"), "chromosome")) + 
   theme_classic() +
   scale_colour_viridis_d() +
   #geom_segment(aes(x=.95,xend=13.05,y=-Inf,yend=-Inf),color="black") + 
