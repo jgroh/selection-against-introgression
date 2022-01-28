@@ -17,19 +17,17 @@ allVar <- rbindlist(list(acua2006var,acua2008var,acua2013var,acua2015var,acua201
 
 
 # =====plot simulation and real data together ===== 
-simVarDecomp <- loadFrom("varDecomp_simulation_n10000_rhoCap0.005.RData", "allVarDecomp")
-simVarDecomp[units == "2^-14 Morgan", units := "genetic"]
-simVarDecomp[units == "1kb", units := "physical"]
-
+simVarDecomp <- loadFrom("varDecomp_simulation_rhoCap0.005.RData", "allVarDecomp")
+simVarDecomp <- simVarDecomp[N_diploids == 100]
 
 allVar[, data_source := "real"]
 
 # average across replicates
-simVarDecomp <- simVarDecomp[, .(propVar = mean(propVar), variance = mean(variance)), by = .(gen, level, data_source, units)]
-simVarDecomp
+simVarDecomp <- simVarDecomp[, .(propVar = mean(propVar), variance = mean(variance)), by = .(gen, level, N_diploids,data_source, units)]
+
 
 allVar[, gen := year]
-sim_and_real <- rbind(simVarDecomp[, .(level,propVar,variance,gen,data_source,units)], allVar[signal == "mean", .(level,propVar,variance, gen, data_source,units)])
+sim_and_real <- rbind(simVarDecomp[, .(level,propVar,variance,N_diploids,gen,data_source,units)], allVar[signal == "mean", .(level,propVar,variance,N_diploids=1,gen, data_source,units)])
 
 sim_and_real[, alpha:= ifelse(data_source== "real", 1, 0.75)]
 sim_and_real[, level := factor(level, levels = c(paste0("d",1:15), paste0("s", 12:15), "chr"))]
@@ -41,15 +39,17 @@ lineData[, levels(level)]
 
 ggplot(sim_and_real[units == "genetic"], aes(x = level, 
                          y = variance, 
-                         group = gen, 
+                         group = gen,
                          color = interaction(data_source, gen))) +
   geom_point(aes(shape = data_source)) + 
   geom_line(data = lineData[units == "genetic"], aes(group=gen, linetype = data_source), size=0.5) + 
-  labs(#x = expression(Scale: log[2](Morgans)), 
-        x = expression(Scale: log[2] (kbp)),
-       y = "Proportion of total ancestry variance",
+  labs(x = expression(Scale: log[2](Morgans)), 
+       # x = expression(Scale: log[2] (kbp)),
+       y = "Ancestry variance",
        color = "") +
   #scale_x_discrete(breaks = c(paste0("d",1:14),"s12","s13","s14","chr"), labels = c(as.character(-14:-1), paste0(-3:-1," (scaling var)"), "chromosome")) + 
+  scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2), " -2 (scaling var)", "chromosome")) + 
+  
   #scale_x_discrete(breaks = c(paste0("d",1:15),"s13","s14","s15","chr"), labels = c(as.character(1:15), paste0(13:15," (scaling var)"), "chromosome")) + 
   theme_classic() +
   scale_colour_viridis_d() +
@@ -60,7 +60,7 @@ ggplot(sim_and_real[units == "genetic"], aes(x = level,
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
         axis.text.y = element_text(size=12),
         #axis.ticks.x = element_line(size=c(rep(1,15),0)),
-        axis.title.x = element_text(hjust=.4,margin=margin(t=-20)))
+        axis.title.x = element_text(hjust=0.4,margin=margin(t=-5)))
 
 
 
