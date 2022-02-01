@@ -63,6 +63,20 @@ ggplot(sim_and_real[units == "genetic"], aes(x = level,
         axis.title.x = element_text(hjust=0.4,margin=margin(t=-5)))
 
 
+# ===== correlations =====
+
+acua2018cor <- data.table(loadFrom("ACUA_2018/allCorDecomp_anc_rec_cds.RData", "allCorDecomp_anc_rec_cds"))
+
+ggplot(acua2018cor[!grepl("s", level)], 
+       aes(x=level, y=rec_anc_cor)) +
+  geom_point() + 
+  scale_x_discrete(breaks = c(paste0("d",1:15),"chr"), labels = c(as.character(1:15),  "chrom")) +
+  theme_classic() + 
+  labs(x = expression(Scale: log[2](kb)), y = "Correlation")
+  
+
+
+
 
 
 # ===== plot real data ====
