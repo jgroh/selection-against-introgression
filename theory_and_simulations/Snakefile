@@ -3,17 +3,19 @@ reps = np.arange(10)
 #gens = ["gen" + num for num in ["0010", "0100", "1000"]]
 gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0025","0050","0100","0250","0500","1000"]]
 gens_swordtail = ["generation" + num for num in ["100", "150", "200"]]
+swordtail_N = [10, 100, 1000, 10000]
 #gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0050","0100","0250","0500","0750","1000"]]
 #sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb","single-sweep"]
 simsA = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb"]
 simsB = ["equilibrium_n500"]
 sims_swordtail = ["swordtail_neutral"]
+ruleorder: avg_ancestry_calc_swordtail > avg_ancestry_calc
 
 rule all:
 	input:
 		expand("results/{sim}/ancestry_master.txt", sim=simsA),
 		"results/equilibrium_n500/all-variances-master.txt",
-        "results/swordtail_neutral/ancestry_master.txt"
+        "results/swordtail_neutral/ancestry_master_rhoCap0.005.txt"
 
 rule simulation_setA:
 	input:
@@ -32,14 +34,14 @@ rule simulation_setB:
 rule simulation_swordtail:
 	input:
 	output:
-		expand("results/swordtail_neutral/replicate{{rep}}_{gen}.trees", gen = gens_swordtail)
+		temp(expand("results/swordtail_neutral/swordtail_replicate{{rep}}_{gen}_N{{N}}.trees", gen = gens_swordtail))
 	shell:
-		"slim -d seed={wildcards.rep} code/swordtail_neutral.slim"
+		"slim -d seed={wildcards.rep} -d N={wildcards.N} code/swordtail_neutral.slim"
         
 rule all_sim:
 	input:
 		expand("results/{sim}/replicate{rep}_{gen}.trees", sim=simsA,rep=reps,gen=gens),
-		expand("results/swordtail_neutral/replicate{rep}_{gen}.trees", rep=reps,gen=gens_swordtail)
+		expand("results/swordtail_neutral/replicate{rep}_{gen}_N{N}.trees", rep=reps,gen=gens_swordtail,N=swordtail_N)
 
 rule avg_ancestry_calc: # this uses a different function than the rule below for unimportant reasons
 	input:
@@ -51,9 +53,9 @@ rule avg_ancestry_calc: # this uses a different function than the rule below for
 
 rule avg_ancestry_calc_swordtail:
 	input:
-		"results/swordtail_neutral/{rep_gen}.trees"
+		"results/swordtail_neutral/swordtail_{rep_gen_N}.trees"
 	output:
-		"results/swordtail_neutral/swordtail_{rep_gen}_ancestry.txt"
+		temp("results/swordtail_neutral/swordtail_{rep_gen_N}_ancestry.txt")
 	shell:
 		"python3 code/ancestry.py {input} > {output}"
 
@@ -78,12 +80,12 @@ rule aggregate_mean_ancestry:
 
 rule aggregate_mean_ancestry_swordtail:
 	input:
-		expand("results/swordtail_neutral/swordtail_replicate{rep}_{gen}_ancestry.txt", rep=reps, gen=gens_swordtail)
+		expand("results/swordtail_neutral/swordtail_replicate{rep}_{gen}_N{N}_ancestry.txt", rep=reps, gen=gens_swordtail,N=swordtail_N)
 	output:
-		output="results/swordtail_neutral/ancestry_master.txt"
+		output="results/swordtail_neutral/ancestry_master_rhoCap0.005.txt"
 	shell:
 		"""
-        cat {input} > results/swordtail_neutral/ancestry_master.txt
+        cat {input} > {output}
         """
 
 rule aggregate_variance_tables:

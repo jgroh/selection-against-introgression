@@ -1,11 +1,13 @@
 import numpy as np
 import os
 years = ["2006","2008","2013","2015","2018"]
+#years = "2018"
 chrs = [s.replace("LD_map_xbirchmanni-COAC-10x-","").replace(".post.txt_mod.bed","") for s in os.listdir("LD_recMap")]
 
 rule all:
 	input:
-		expand("ACUA_{year}/ancestry_allVarDecomp_noRhoCap.RData", year = years),
+		expand("ACUA_{year}/wavelet_results.RData", year = years),
+		#expand("ACUA_{year}/allCorDecomp_anc_rec_cds.RData", year = years)
 		#expand("ACUA_{year}/anc_rec_cds_varDecomp.RData",year=years),
 		#expand("ACUA_{year}/anc_rec_cds_corDecomp.RData",year=years),
 		#expand("ACUA_{year}/anc_rec_cds_MODWT.RData",year=years),
@@ -26,7 +28,7 @@ rule interpolate_ancestry_single_chrom:
 
 rule all_year_chr:
 	input:
-		expand("ACUA_{year}/{chr}_noRhoCap.RData",year=years,chr=chrs)
+		expand("ACUA_{year}/{chr}.RData",year=years,chr=chrs)
 
 rule make_kb_bed:
 	input:
@@ -42,7 +44,7 @@ rule make_rec_bed:
 		"cM_lengths_birchmanni10x.txt",
 		expand("LD_recMap/LD_map_xbirchmanni-COAC-10x-{chr}.post.txt_mod.bed",chr=chrs)
 	output:
-		"xbir_LDRecMap_noRhoCap.bed"
+		"xbir_LDRecMap.bed"
 	shell:
 		"Rscript --vanilla xbir_makeBed_LDRecMap.R | sort -k1,1 -k2,2n > {output}"
 
@@ -100,9 +102,11 @@ rule avgFrq_totalCor:
 
 rule combine_chrs_and_run_wavelets:
 	input:
-		expand("ACUA_{{year}}/{chr}_noRhoCap.RData",chr=chrs)
+		expand("ACUA_{{year}}/{chr}.RData",chr=chrs),
+		"xbir_1kb_CDS_and_cM.txt"
 	output:
-		"ACUA_{year}/ancestry_allVarDecomp_noRhoCap.RData"
+		"ACUA_{year}/wavelet_results.RData",
+		#"ACUA_{year}/allCorDecomp_anc_rec_cds.RData"
 	#	"ACUA_{year}/anc_rec_cds_varDecomp.RData",
 	#	"ACUA_{year}/anc_rec_cds_corDecomp.RData",
 	#	"ACUA_{year}/anc_rec_cds_MODWT.RData",
@@ -127,6 +131,6 @@ rule slim_rec_map:
 		chrLen="xbir10x_chrlengths.txt",
 		genotypeFile="ancestry-probs-par1_allchrs_ACUA_historical_2018.tsv"
 	output:
-		"swordtail_SNP_recMap_slim.txt"	
+		"swordtail_SNP_recMap_slim_rhoCap0.005.txt"	
 	shell:
 		"Rscript --vanilla swordtail_recomb_map_slim.R {input.chrLen} {input.genotypeFile}"

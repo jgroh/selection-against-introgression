@@ -2,7 +2,7 @@ initialize() {
 	
 	initializeTreeSeq();
 	defineConstant("L", 613171);//171); 
-	defineConstant("N", 10000); // recipient population size
+	//defineConstant("N", 10000); // recipient population size
 	
 	defineConstant("alpha", 0.5);//initial mixing proportion 
 	initializeMutationRate(0);
@@ -14,7 +14,7 @@ initialize() {
 	
 	// recombination distances between SNPs in the swordtail data
 	//rates = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/swordtail_TOTO_ACUA/swordtail_SNP_recMap_slim_noRhoCap.txt");
-	rates = readFile("/Users/brogroh/selection-against-introgression/datasets/swordtail_TOTO_ACUA/swordtail_SNP_recMap_slim.txt");
+	rates = readFile("/Users/brogroh/selection-against-introgression/datasets/swordtail_TOTO_ACUA/swordtail_SNP_recMap_slim_rhoCap0.005.txt");
 	
 	initializeRecombinationRate(asFloat(rates), 1:(L-1));
 	
@@ -45,10 +45,10 @@ initialize() {
 
 
 100 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_generation100.trees"); }
+	sim.treeSeqOutput(outPath + "/swordtail_replicate" + seed + "_generation100_N" + N + ".trees"); }
 	
 150 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_generation150.trees"); }
+	sim.treeSeqOutput(outPath + "/swordtail_replicate" + seed + "_generation150_N" + N + ".trees"); }
 
 200 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_generation200.trees"); }
+	sim.treeSeqOutput(outPath + "/swordtail_replicate" + seed + "_generation200_N" + N + ".trees"); }
