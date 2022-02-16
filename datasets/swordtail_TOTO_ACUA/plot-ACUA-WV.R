@@ -16,6 +16,11 @@ acua2018var <- data.table(loadFrom("ACUA_2018/ancestry_allVarDecomp.RData", "all
 allVar <- rbindlist(list(acua2006var,acua2008var,acua2013var,acua2015var,acua2018var))
 
 
+load("ACUA_2018/wavcor_results.RData")
+ggplot(wavcor[!grepl("15", level)], aes(x = level, y = pearson.cor.meanFreq.cmTr)) + geom_point()
+data.table(loadFrom("ACUA_2018/wavcor_results.RData")); acua2006var[,year := "2006"]
+
+
 # =====plot simulation and real data together ===== 
 simVarDecomp <- loadFrom("varDecomp_simulation_rhoCap0.005.RData", "allVarDecomp")
 simVarDecomp <- simVarDecomp[N_diploids == 100]
