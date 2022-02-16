@@ -6,8 +6,10 @@ library(magrittr)
 
 args <- commandArgs(trailingOnly = TRUE)
 year <- args[1]
-chr <- args[2]
+recfile <- args[2]
+chr <- args[3]
 #year <- 2018
+#recfile <- "xbir_LDRecMap.bed"
 #chr <- "ScyDAA6-10-HRSCAF-60"; chr <- "ScyDAA6-11-HRSCAF-73"; chr <- "ScyDAA6-1107-HRSCAF-1306"; chr <- "ScyDAA6-1196-HRSCAF-1406"; chr <- "ScyDAA6-
 
   
@@ -20,9 +22,14 @@ par2 <- fread(paste0("ancestry-probs-par2_allchrs_ACUA_historical_",year,".tsv")
 chrLen <- fread("xbir10x_chrlengths.txt", col.names = c("chromosome", "len"))
 
 # read recomb map for focal chromosome 
-rhoMap <- fread(paste0("LD_recMap/LD_map_xbirchmanni-COAC-10x-", chr,".post.txt_mod.bed"), col.names = c("chr","start","end","mean","V1","median","V3")) 
-rhoMap <- rhoMap[, c("chr", "start", "end", "median")]
-setnames(rhoMap, "median", "rho")
+recmap <- fread(recfile, col.names = c("chromosome", "start", "end", "region_id", "r"))
+recmap <- recmap[chromosome == chr]
+
+
+
+# rhoMap <- fread(paste0("LD_recMap/LD_map_xbirchmanni-COAC-10x-", chr,".post.txt_mod.bed"), col.names = c("chr","start","end","mean","V1","median","V3")) 
+# rhoMap <- rhoMap[, c("chr", "start", "end", "median")]
+# setnames(rhoMap, "median", "rho")
 
 
 # 2. Reformat ancestry files =====
@@ -40,7 +47,7 @@ chrom <- melt(chrom, id.vars = "ID", value.name = "postProb")
 
 # separate by chromosome, position, genotype
 chrom[, c("chr", "position", "genotype") := tstrsplit(variable,":",fixed=TRUE)]
-chrom[,variable:=NULL]
+chrom[, variable := NULL]
 chrom[, position := as.integer(position)]
 
 # move genotypes to separate columns
@@ -66,55 +73,66 @@ chromAnc1kb[, "meanFreq" := mean(indivFreq), by = .(chr, position)]
 # chromAnc1kb[position %% 555 == 0,] %>% ggplot(aes(x = position, y = meanFreq)) + geom_point()
 
 
-# 4. Create recombination map ==========
-
-if(min(rhoMap$start) != 0){
-  rhoMap <- rbind(list(chr=rhoMap[1,chr],
-                       start=0,
-                       end=min(rhoMap$start),
-                       rho=rhoMap[start==min(start),rho]),
-                  rhoMap)
-  }
-if(max(rhoMap$end) < chrLen[chromosome==chr,len]){
-  rhoMap <- rbind(rhoMap,
-                  list(chr=rhoMap[1,chr],
-                       start=max(rhoMap$end),
-                       end=chrLen[chromosome==chr,len+1], # add +1 bc bed is zero-indexed
-                       rho=rhoMap[end==max(end),rho]))
-  }
-
-
-#Ne2 <- 27447 # see script xbir_makeBed_LDRecMap.R for Ne calculation
-Ne2 <- 75981
-
-# cap outlier values 
-#rhoMap[rho >= 0.005, rho:= 0.005]
-
-MorganVec <- cumsum(rhoMap[, rep(rho/Ne2, end-start)])
-
-
 # 5. Interpolate ancestry at evenly space genetic distances =====
 
 # assign genetic position of SNPS present in the data
+MorganVec <- cumsum(recmap[, rep(r, end-start)])
 chrom[, "Morgan" := MorganVec[position]]
 
 # check number of SNPs per Morgan
 # chrom[,length(unique(position))/max(Morgan)]
 # roughly across chromosomes there are 30,000 SNPs per Morgan. So if we interpolate to M*2^-14, this gives roughly 1-2 SNPs per interpolation window
 
-xoutMorgan <- seq(0,max(MorganVec), by = 2^-14)
+# midpoints of windows of length 2^-14 Morgans
+xoutMorgan <- seq(2^-15, max(MorganVec), by = 2^-15)
+xoutMorgan <- xoutMorgan[xoutMorgan %% 2^-14 != 0]
 
 # interpolate individual ancestry at genetic coordinates
 chromAncInterpMorgan <- chrom[, approx(x = Morgan, 
                                      y = indivFreq, 
-                                     xout = xoutMorgan, rule = 2), 
-                            by = .(ID,chr)]
+                                     xout = xoutMorgan, rule = 1), 
+                            by = .(ID, chr)]
 setnames(chromAncInterpMorgan, c("x", "y"), c("Morgan","indivFreq"))
+
+# remove NA rows
+chromAncInterpMorgan <- chromAncInterpMorgan[!is.na(indivFreq)]
 
 # compute sample mean
 chromAncInterpMorgan[, meanFreq := mean(indivFreq), 
-                  by = .(chr, Morgan)]
+                     by = .(chr, Morgan)]
+
+# interpolate physical position at right endpoint of genetic windows
+xoutMorganRight <- xoutMorgan + 2^-15
+  
+chromBpInterp <- chrom[, approx(x = Morgan, 
+                                       y = position, 
+                                       xout = xoutMorganRight, rule = 1), 
+                              by = .(ID,chr)]
+setnames(chromBpInterp, c("x", "y"), c("Morgan","bp_right_endpoint"))
+chromBpInterp[, bp_right_endpoint := ceiling(bp_right_endpoint)]
+
+# remove NA rows
+chromBpInterp <- chromBpInterp[!is.na(bp_right_endpoint)]
+
+# get # number of bp between successive interpolation points
+chromBpInterp[, bp_diff := bp_right_endpoint - shift(bp_right_endpoint), by = ID]
+
+# need to replace first value since the diff operation above doesn't work for first row of each individual
+chromBpInterp[, bp_diff := c(chromBpInterp[, bp_right_endpoint[1]], bp_diff[-1]), by = ID]
+
+# merge interpolated ancestry and bp size of windows
+# adjust Morgan values back to center of windows
+chromBpInterp[, Morgan := Morgan - 2^-15]
+
+chromAncInterpMorgan <- merge(chromBpInterp, chromAncInterpMorgan, 
+      by = c("ID", "chr", "Morgan"))
+
+
+# ===== make bed file of genetic windows
+# (these will be combined across chromosomes in a later step)
+genetic_windows_bed <- chromAncInterpMorgan[ID==ID[1], list(chr, bp_left_endpoint = shift(bp_right_endpoint), bp_right_endpoint)]
+genetic_windows_bed[1, bp_left_endpoint := 0]
 
 # 5. Write Output =====
 
-save(chromAnc1kb, chromAncInterpMorgan, file = paste0("ACUA_",year,"/",chr,"_noRhoCap.RData"))
+save(chromAnc1kb, chromAncInterpMorgan, file = paste0("ACUA_", year, "/", chr, "_rhoCap0.005.RData"))
