@@ -126,6 +126,4 @@ rsqrd <- wvlt_lm_rsqrd(data = gnomP[ID==ID[1]], chromosome="chr", yvar = "meanFr
               xvars = c("cmTr", "coding_bp"))
 
 # # ====== Save output =======
-# 
-# 
 save(wavvar_G, wavvar_P, wavcor, rsqrd, file = paste0("ACUA_", year, "/wavelet_results.RData"))
