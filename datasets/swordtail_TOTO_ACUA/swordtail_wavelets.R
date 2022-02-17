@@ -5,14 +5,14 @@ library(waveslim)
 library(stringi)
 library(magrittr)
 
-#source("~/gnomwav/R/correlation_decomp.R")
-#source("~/gnomwav/R/multi_modwts.R")
-#source("~/gnomwav/R/variance_decomp.R")
+source("/Users/brogroh/gnomwav/R/correlation_decomp.R")
+source("/Users/brogroh/gnomwav/R/multi_modwts.R")
+source("/Users/brogroh/gnomwav/R/variance_decomp.R")
 
 # for testing locally
- source("~/workspace/gnomwav/R/correlation_decomp.R")
- source("~/workspace/gnomwav/R/multi_modwts.R")
- source("~/workspace/gnomwav/R/variance_decomp.R")
+#source("~/workspace/gnomwav/R/correlation_decomp.R")
+#source("~/workspace/gnomwav/R/multi_modwts.R")
+#source("~/workspace/gnomwav/R/variance_decomp.R")
 
 args <- commandArgs(trailingOnly = TRUE)
 year <- args[1]
@@ -30,7 +30,6 @@ chrLenP <- fread("xbir10x_chrlengths.txt", col.names = c("chr", "len"))
 scaffFiles <- paste0("ACUA_2018/",paste0(chrLenP$chr, ".RData"))
 # scaffFiles <- dir(path=paste0("ACUA_",year),pattern=".RData",full.names=T) # older version, useful if not all chromosome files present
 
-scaffFiles <- scaffFiles[1:5] # for testing locally
 scaffs <- basename(file_path_sans_ext(scaffFiles))
 
 
@@ -105,13 +104,12 @@ meanWV_G <- gnomG[ID==ID[1], gnom_var_decomp(.SD, chromosome = "chr",
                                              avg.over.chroms = TRUE)]
 
 meanWV_P[, units := "physical"]
-meanWV_P[, signal := NULL]
 meanWV_G[, units := "genetic"]
-meanWV_G[, signal := NULL]
 
 wavvar_G <- merge(meanWV_G, indWV_G)
 wavvar_P <- merge(meanWV_P, indWV_P)
 
+#save(wavvar_G, wavvar_P, file = paste0("ACUA_", year, "/wavvar_results.RData"))
 # # ====== Correlation decomp =====
 # 
 cortbl1 <- gnomP[ID==ID[1], gnom_cor_decomp(data = .SD, chromosome = "chr", signals = c("meanFreq", "cmTr"))]
@@ -120,6 +118,7 @@ cortbl3 <- gnomP[ID==ID[1], gnom_cor_decomp(data = .SD, chromosome = "chr", sign
 
 wavcor <- merge(cortbl3, merge(cortbl1,cortbl2))
 
+#save(wavcor, file = paste0("ACUA_", year, "/wavcor_results.RData"))
 
 # # ===== Linear Model analysis =====
 
@@ -129,4 +128,4 @@ rsqrd <- wvlt_lm_rsqrd(data = gnomP[ID==ID[1]], chromosome="chr", yvar = "meanFr
 # # ====== Save output =======
 # 
 # 
-# save(wavvar, wavcor, rsqrd, file = paste0("ACUA_", year, "/wavelet_results.RData"))
+save(wavvar_G, wavvar_P, wavcor, rsqrd, file = paste0("ACUA_", year, "/wavelet_results.RData"))
