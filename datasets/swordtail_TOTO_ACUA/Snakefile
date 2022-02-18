@@ -4,6 +4,8 @@ years = ["2006","2008","2013","2015","2018"]
 #years = "2018"
 chrs = [s.replace("LD_map_xbirchmanni-COAC-10x-","").replace(".post.txt_mod.bed","") for s in os.listdir("LD_recMap")]
 
+ruleorder: interpolate_ancestry_single_chrom_2018 > interpolate_ancestry_single_chrom
+
 rule all:
 	input:
 		expand("ACUA_{year}/wavelet_results.RData", year = years),
@@ -20,25 +22,48 @@ rule all:
 rule interpolate_ancestry_single_chrom:
 	input: 
 		expand("ancestry-probs-par{par}_allchrs_ACUA_historical_{{year}}.tsv", par=["1","2"]),
+		"xbir_LDRecMap.bed",
 		"LD_recMap/LD_map_xbirchmanni-COAC-10x-{chr}.post.txt_mod.bed"
 	output:
-		"ACUA_{year}/{chr}_noRhoCap.RData"
+		"ACUA_{year}/{chr}.RData"
 	shell:
-		"Rscript --vanilla interpolate_ancestry_single_chrom.R {wildcards.year} {wildcards.chr}"
+		"Rscript --vanilla interpolate_ancestry_single_chrom.R {wildcards.year} xbir_LDRecmap.bed {wildcards.chr}"
 
-rule all_year_chr:
-	input:
-		expand("ACUA_{year}/{chr}.RData",year=years,chr=chrs)
-
-rule make_kb_bed:
-	input:
-		"xbir10x_chrlengths.txt",
+rule interpolate_ancestry_single_chrom_2018:
+# This is written as a separate rule because it produces additional output which only needs to be done once
+	input: 
+		expand("ancestry-probs-par{par}_allchrs_ACUA_historical_2018.tsv", par=["1","2"]),
+		"xbir_LDRecMap.bed",
+		"LD_recMap/LD_map_xbirchmanni-COAC-10x-{chr}.post.txt_mod.bed"
 	output:
-		"xbir_1kb.bed",
+		"ACUA_2018/{chr}_rhoCap0.005.RData",
+		temp("{chr}_genetic_windows.bed"),
+		temp("{chr}_physical_windows.bed")
 	shell:
-		"Rscript --vanilla xbir_makeBed_1kb.R | sort -k1,1 -k2,2n > {output}"
+		"Rscript --vanilla interpolate_ancestry_single_chrom.R 2018 xbir_LDRecmap.bed {wildcards.chr}"
 
-rule make_rec_bed:
+rule combine_window_beds:
+	input:
+		expand("{chr}_{{units}}_windows.bed", chr=chrs)
+	output:
+		"xbir_{units}_unit_windows.bed"
+	shell:
+		"cat {input} | sort -k1,1 -k2,2n > {output}"
+		
+rule all_wavelet_inputs:
+	input:
+		expand("ACUA_{year}/{chr}.RData",year=years,chr=chrs),
+		expand("xbir_r_cds_{units}_unit_windows.txt", units=["physical","genetic"])
+
+#rule make_kb_bed:
+#	input:
+#		"xbir10x_chrlengths.txt",
+#	output:
+#		"xbir_1kb.bed",
+#	shell:
+#		"Rscript --vanilla xbir_makeBed_1kb.R | sort -k1,1 -k2,2n > {output}"
+
+rule make_rec_map_bed:
 	input:
 		"xbir10x_chrlengths.txt",
 		"cM_lengths_birchmanni10x.txt",
@@ -48,49 +73,49 @@ rule make_rec_bed:
 	shell:
 		"Rscript --vanilla xbir_makeBed_LDRecMap.R | sort -k1,1 -k2,2n > {output}"
 
-rule make_CDS_bed:
+rule make_cds_bed:
 	input:
 		"xiphophorus_birchmanni_10x_12Sep2018_yDAA6.gtf" 
 	output:
-		"xbir_CDS.bed"
+		"xbir_cds_regions.bed"
 	shell:
 		"""
 		grep 'CDS' {input} | cut -f1,4,5 | awk '{{print $1 "\t" $2-1 "\t" $3}}' |\\
 		sort -k1,1 -k2,2n | bedtools merge -i stdin > {output}
 		"""
 
-rule calculate_cm_per_kb: 
+rule calculate_r_per_window: 
 	input:
-		"xbir_1kb.bed",
+		"xbir_{units}_unit_windows.bed",
 		"xbir_LDRecMap.bed"
 	output:
-		"xbir_1kb_rec.bed"
+		"xbir_r_{units}_unit_windows.bed"
 	shell:
-		# This gets the weighted mean of r for 1kb windows, the awk statement converts to cM
+		# This gets the weighted mean of r for physical or genetic unit windows
 		"""
-		bedmap --echo --delim "\t" --wmean --sci xbir_1kb.bed xbir_LDRecMap.bed |\\
-		awk '{{print $1 "\t" $2 "\t" $3 "\t" ($3-$2)*$4*100}}' > {output}
+		bedmap --echo --delim "\t" --wmean --sci xbir_{wildcards.units}_unit_windows.bed xbir_LDRecMap.bed > {output}
 		"""
 
-rule cds_per_kb:
+rule calculate_cds_per_window:
 	input:
-		A="xbir_1kb.bed",
-		B="xbir_CDS.bed"
+		A="xbir_{units}_unit_windows.bed",
+		B="xbir_cds_regions.bed"
 	output:
-		"xbir_1kb_CDS.bed"
+		"xbir_cds_{units}_unit_windows.bed"
 	shell:
 		"""
-		bedtools coverage -a {input.A} -b {input.B} | cut -f1-3,5 |\\
+		bedtools coverage -a {input.A} -b {input.B} | cut -f1-3,7 |\\
 		sort -k1,1 -k2,2n > {output}
 		"""
-rule cds_and_cm_per_kb:
+
+rule combine_r_cds_beds:
 	input:
-		A="xbir_1kb_CDS.bed",
-		B="xbir_1kb_rec.bed"
+		A="xbir_cds_{units}_unit_windows.bed",
+		B="xbir_r_{units}_unit_windows.bed"
 	output:
-		"xbir_1kb_CDS_and_cM.txt"
+		"xbir_r_cds_{units}_unit_windows.txt"
 	shell:
-		"Rscript --vanilla merge_cds_and_cm_1kb.R"
+		"Rscript --vanilla merge_r_cds_beds.R {wildcards.units}"
 
 rule avgFrq_totalCor:
 	input:
@@ -103,7 +128,7 @@ rule avgFrq_totalCor:
 rule combine_chrs_and_run_wavelets:
 	input:
 		expand("ACUA_{{year}}/{chr}.RData",chr=chrs),
-		"xbir_1kb_CDS_and_cM.txt"
+		expand("xbir_r_cds_{units}_unit_windows.txt", units=["physical", "genetic"])
 	output:
 		"ACUA_{year}/wavelet_results.RData",
 		#"ACUA_{year}/allCorDecomp_anc_rec_cds.RData"
