@@ -156,4 +156,4 @@ if (year == 2018){
 
 # 5. Write out interpolated files =====
 
-save(chromAnc1kb, chromAncInterpMorgan, file = paste0("ACUA_", year, "/", chr, "_rhoCap0.005.RData"))
+save(chromAnc1kb, chromAncInterpMorgan, file = paste0("ACUA_", year, "/", chr, ".RData"))
