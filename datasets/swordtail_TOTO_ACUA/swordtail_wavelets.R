@@ -28,7 +28,7 @@ p_features <- fread("xbir_r_cds_physical_unit_windows.txt")
 chrLenP <- fread("xbir10x_chrlengths.txt", col.names = c("chr", "len"))
 
 # interpolated ancestry files for each chromosome
-scaffFiles <- paste0("ACUA_2018/",paste0(chrLenP$chr, ".RData"))
+scaffFiles <- paste0("ACUA_", year, "/", paste0(chrLenP$chr, ".RData"))
 # scaffFiles <- dir(path=paste0("ACUA_",year),pattern=".RData",full.names=T) # older version, useful if not all chromosome files present
 # scaffFiles <- scaffFiles[1:4] # for testing interactively
 
