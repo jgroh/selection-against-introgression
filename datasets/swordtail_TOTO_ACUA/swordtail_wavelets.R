@@ -30,7 +30,7 @@ chrLenP <- fread("xbir10x_chrlengths.txt", col.names = c("chr", "len"))
 # interpolated ancestry files for each chromosome
 scaffFiles <- paste0("ACUA_", year, "/", paste0(chrLenP$chr, ".RData"))
 # scaffFiles <- dir(path=paste0("ACUA_",year),pattern=".RData",full.names=T) # older version, useful if not all chromosome files present
-# scaffFiles <- scaffFiles[1:3] # for testing interactively
+# scaffFiles <- scaffFiles[1:4] # for testing interactively
 
 scaffs <- basename(file_path_sans_ext(scaffFiles))
 
@@ -144,10 +144,10 @@ gnomP[ID==ID[1], cds_r_res := residuals(lm(cds_density~r))]
 gnomP[ID==ID[1], cds_log10r_res := residuals(lm(cds_density~log10r))]
 
 cortbl2P <- gnomP[ID==ID[1], gnom_cor_decomp(data = .SD, chromosome = "chr", signals = c("frq_r_res", "cds_r_res"))]
-setnames(cortbl2P, old = oldnames, new = paste0(oldnames, ".meanFreq_cdsDensity.resid-r"))
+setnames(cortbl2P, old = oldnames, new = paste0(oldnames, ".meanFreq_cdsDensity.resid_r"))
 
 cortbl2.1P <- gnomP[ID==ID[1], gnom_cor_decomp(data = .SD, chromosome = "chr", signals = c("frq_log10r_res", "cds_log10r_res"))]
-setnames(cortbl2.1P, old = oldnames, new = paste0(oldnames, ".meanFreq_cdsDensity.resid-log10r"))
+setnames(cortbl2.1P, old = oldnames, new = paste0(oldnames, ".meanFreq_cdsDensity.resid_log10r"))
 
 # for correlation between recombination and gene density, use straight up correlation
 cortbl3P <- gnomP[ID==ID[1], gnom_cor_decomp(data = .SD, chromosome = "chr", signals = c("r", "cds_density"))]
@@ -180,10 +180,10 @@ gnomG[ID==ID[1], cds_r_res := residuals(lm(cds_density~r))]
 gnomG[ID==ID[1], cds_log10r_res := residuals(lm(cds_density~log10r))]
 
 cortbl2G <- gnomG[ID==ID[1], gnom_cor_decomp(data = .SD, chromosome = "chr", signals = c("frq_r_res", "cds_r_res"))]
-setnames(cortbl2G, old = oldnames, new = paste0(oldnames, ".meanFreq_cdsDensity.resid-r"))
+setnames(cortbl2G, old = oldnames, new = paste0(oldnames, ".meanFreq_cdsDensity.resid_r"))
 
 cortbl2.1G <- gnomG[ID==ID[1], gnom_cor_decomp(data = .SD, chromosome = "chr", signals = c("frq_log10r_res", "cds_log10r_res"))]
-setnames(cortbl2.1G, old = oldnames, new = paste0(oldnames, ".meanFreq_cdsDensity.resid-log10r"))
+setnames(cortbl2.1G, old = oldnames, new = paste0(oldnames, ".meanFreq_cdsDensity.resid_log10r"))
 
 # for correlation between recombination and gene density, use straight up correlation
 cortbl3G <- gnomG[ID==ID[1], gnom_cor_decomp(data = .SD, chromosome = "chr", signals = c("r", "cds_density"))]
@@ -205,11 +205,11 @@ old <- c("rsqrd", "ci95_lower", "ci95_upper")
 # ----physical units
 rsqrd1_p <- wvlt_lm_rsqrd(data = gnomP[ID==ID[1]], chromosome="chr", yvar = "meanFreq",
                          xvars = c("r", "cds_density"))
-setnames(rsqrd1_p, old, paste0(old, "-r_cds"))
+setnames(rsqrd1_p, old, paste0(old, ".r_cds"))
 
 rsqrd2_p <- wvlt_lm_rsqrd(data = gnomP[ID==ID[1]], chromosome="chr", yvar = "meanFreq",
               xvars = c("log10r", "cds_density"))
-setnames(rsqrd2_p, old, paste0(old, "-log10r_cds"))
+setnames(rsqrd2_p, old, paste0(old, ".log10r_cds"))
 
 rsqrd_p <- merge(rsqrd1_p, rsqrd2_p)
 rsqrd_p[, units := "physical"]
@@ -217,11 +217,11 @@ rsqrd_p[, units := "physical"]
 # ---- genetic units
 rsqrd1_g <- wvlt_lm_rsqrd(data = gnomG[ID==ID[1]], chromosome="chr", yvar = "meanFreq",
                           xvars = c("r", "cds_density"))
-setnames(rsqrd1_g, old, paste0(old, "-r_cds"))
+setnames(rsqrd1_g, old, paste0(old, ".r_cds"))
 
 rsqrd2_g <- wvlt_lm_rsqrd(data = gnomG[ID==ID[1]], chromosome="chr", yvar = "meanFreq",
                           xvars = c("log10r", "cds_density"))
-setnames(rsqrd2_g, old, paste0(old, "-log10r_cds"))
+setnames(rsqrd2_g, old, paste0(old, ".log10r_cds"))
 
 rsqrd_g <- merge(rsqrd1_g, rsqrd2_g)
 rsqrd_g[, units := "genetic"]
