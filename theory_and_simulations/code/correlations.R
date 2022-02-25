@@ -64,7 +64,7 @@ setDT(b)
 
 #====== Calculate total correlations and covariances
 # (and average over replicates)
-totalcors <- b[, .(cor = cor(freq,log10(recomb))), by = .(sim, rep.id, gen)]
+totalcors <- b[, .(cor = cor(freq, log10(recomb))), by = .(sim, rep.id, gen)]
 totalcovs <- b[, .(cov = cov(log10(recomb), freq)), by = .(rep.id, gen, sim)]
 
 totalcors[, z := 0.5*log((1+cor)/(1-cor))]
@@ -73,7 +73,7 @@ avg.cors <- totalcors[, .(cor = (exp(2*mean(z))-1)/(exp(2*mean(z))+1)), by = .(g
 avg.covs <- totalcovs[, .(cov = mean(cov)), by = .(gen, sim)]
 
 # plot total correlations
-ggplot(totalcors, aes(x = log10(as.numeric(gen)), y = cor)) + 
+ggplot(totalcors, aes(x = gen, y = cor)) + 
   geom_line(aes(group = rep.id),  color = 'gray', alpha = 0.5) + 
   geom_point(color = 'gray', alpha = 0.5) + 
   theme_classic() + 
@@ -82,38 +82,13 @@ ggplot(totalcors, aes(x = log10(as.numeric(gen)), y = cor)) +
   labs(x = expression(log[10] (Generation)), 
        y = "Total correlation") + 
   theme(aspect.ratio=1,
-        text=element_text(size=13)) + facet_wrap(~sim) 
-
-# # ----- standardize by variance ??
-meanFreqs <- b[, .(meanFreq = mean(freq)), by = .(sim, rep.id, gen)]
-
-totalcors <- merge(totalcors, meanFreqs)
-totalcors[, normcor := cor/sqrt(meanFreq*(1-meanFreq))]
-
-ggplot(totalcors, aes(cor, normcor)) + geom_point()
-
-#totalcors[, normz := 0.5*log((1+normcor)/(1-normcor))]
-
-#totalcors[normcor > 1, normz := 3]
-#totalcors[normcor < -1, normz := -3]
-
-avg.normcors <- totalcors[, .(normcor = mean(normcor)), by = .(gen, sim)]
-
-# plot normalized total correlations
-ggplot(totalcors, aes(x = log10(as.numeric(gen)), y = normcor)) +
-  geom_line(aes(group = rep.id),  color = 'gray', alpha = 0.5) +
-  geom_point(color = 'gray', alpha = 0.5) +
-  theme_classic() +
-  geom_line(data = avg.normcors, size = 2) +
-  geom_point(data = avg.normcors, size = 2) +
-  labs(x = expression(log[10] (Generation)),
-       y = "Normalized correlation") +
-  theme(aspect.ratio=1,
-        text=element_text(size=13)) + facet_wrap(~sim)
+        text=element_text(size=13),
+        axis.text.x = element_text(angle=90)) + facet_wrap(~sim) 
 
 
 # ===== compute wavelet correlations
 b[, chr := 1]
+# note this throws a warning because there is no chromosome-level variance as there is only a single chromosome
 gcd <- b[, gnom_cor_decomp(data = .SD, 
                     chromosome = "chr", 
                     signals = c("recomb", "freq"),
@@ -126,22 +101,65 @@ ggplot(gcd[level != "chr"],
        aes(x = log10(gen), y = cor, group = interaction(level, rep.id), color = level)) +
   facet_wrap(~sim) + geom_point() + geom_line()
 
-
 # ---- average over replicates
 
 # transform correlations
-gcd[, z := 0.5*log((1+cor)/(1-cor))]
+fisherz <- function(x){0.5*log((1+x)/(1-x))}
+invfisherz <- function(x){ (exp(2*x)-1)/(exp(2*x)+1) }
+
+gcd[, z := fisherz(cor)]
 gcd[cor > 0.999, z:= 5]
 gcd[cor < -0.999, z:=-5]
 
 # average over transformed values, then reconvert
-gcdm <- gcd[, .(cor = (exp(2*mean(z))-1)/(exp(2*mean(z))+1)), by = .(gen, sim, level)]
+gcdm <- gcd[, .(cor = invfisherz(mean(z)) ), by = .(gen, sim, level)]
+
+# compute confidence intervals on transformed scale then reconvert
+se <- function(x){sd(x)/sqrt(length(x))}
+gcdci <- gcd[, .(lower = mean(z) - 1.96*se(z), 
+                 upper = mean(z) + 1.96*se(z)),
+             by = .(gen,sim,level) ]
+gcdci <- gcdci[, lapply(.SD, invfisherz),
+               .SDcols = c("lower", "upper"), 
+      by = .(gen, sim, level)]
+
+# combine means and cis
+gcdm <- merge(gcdm, gcdci, by = c("gen", "sim", "level"))
 
 # plot
 gcdm[, gen := as.numeric(gen)]
+
 ggplot(gcdm[level != "chr"], 
        aes(x = log10(gen), y = cor, group = level, color = level)) +
+  geom_errorbar(aes(ymin=lower, ymax=upper))+
   facet_wrap(~sim) + geom_point() + geom_line()
+
+
+# ===== Wavelet covariances ====
+
+w <- b[, multi_modwts(.SD, chromosome = "chr", signals = c("freq", "recomb"), rm.boundary = T),
+  by = .(sim, rep.id, gen)]
+
+meanFreq <- b[, .(p = mean(freq)), by = .(sim,gen)]
+meanFreq[, gen := as.numeric(gen)]
+
+covtbl <- w[, .(cov = cov(coefficient.freq, coefficient.recomb)), by = .(sim,rep.id,gen,level)]
+covtbl[, gen := as.numeric(gen)]
+
+covtblm <- covtbl[, .(cov = mean(cov)), by = .(sim,gen,level)]
+covtblm <- merge(covtblm, meanFreq)
+
+ggplot(covtblm, 
+       aes(x = log10(gen), y = cov, group = level, color = level)) +
+  #geom_errorbar(aes(ymin=lower, ymax=upper))+
+  facet_wrap(~sim) + geom_point() + geom_line()
+
+ggplot(covtblm, 
+       aes(x = log10(gen), y = cov/sqrt(p*(1-p)), group = level, color = level)) +
+  #geom_errorbar(aes(ymin=lower, ymax=upper))+
+  facet_wrap(~sim) + geom_point() + geom_line()
+
+
 
 # ===== Stacked Barplot of contribution to correlation =====
 
@@ -161,7 +179,7 @@ gcdm[, propvar.freq := variance.freq/totalvar.freq]
 gcdm[, contribution := cor*sqrt(propvar.freq*propvar.recomb)]
 
 
-ggplot(gcdm) +
+ggplot(gcdm[lower > 0 | upper < 0]) +
   geom_bar(aes(fill = level, x = as.factor(gen),
                y = contribution), position = "stack",
            stat = "identity", color = "black") +
@@ -173,14 +191,6 @@ ggplot(gcdm) +
   theme_classic() + facet_wrap(~sim, scales = "free_y") + 
   theme(aspect.ratio = 1, 
         axis.text.x = element_text(angle = 90))
-
-
-
-
-
-
-
-
 
 
 
