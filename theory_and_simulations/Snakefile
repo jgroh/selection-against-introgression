@@ -1,5 +1,5 @@
 import numpy as np
-reps = np.arange(10)
+reps = np.arange(20)
 #gens = ["gen" + num for num in ["0001", "0002", "0005", "0010", "0050", "0100", "0500", "1000"]]
 gens = ["gen" + num for num in ["0001", "0002", "0011", "0100", "0101", "0111", "0500","0501", "0511", "1001"]]
 #gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0025","0050","0100","0250","0500","1000"]]
@@ -9,20 +9,20 @@ swordtail_N = [10, 100, 1000, 10000]
 #sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb","single-sweep"]
 simsA = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb"]
 simsB = ["equilibrium_n500"]
-sims_sel_epochs = ["add-sel-periodic-recomb_gen" + epoch for epoch in ["1-1000", "1-10","100-110","500-510"]]
+sims_sel_pulses = ["add-sel-periodic-recomb_gen" + g for g in ["1-1000", "1","100","500"]]
 sims_swordtail = ["swordtail_neutral"]
 ruleorder: avg_ancestry_calc_swordtail > avg_ancestry_calc
 
 rule all:
 	input:
-		expand("results/{sim}/ancestry_master.txt", sim=sims_sel_epochs)
+		expand("results/{sim}/ancestry_master.txt", sim=sims_sel_pulses)
 #		"results/equilibrium_n500/all-variances-master.txt",
 #        "results/swordtail_neutral/ancestry_master_rhoCap0.005.txt"
 
 rule simulation_setA:
 	input:
 	output:
-		expand("results/{{sim}}/replicate{{rep}}_{gen}.trees", gen=gens)
+		temp(expand("results/{{sim}}/replicate{{rep}}_{gen}.trees", gen=gens))
 	shell:
 		"slim -d seed={wildcards.rep} code/{wildcards.sim}.slim"
 
@@ -43,14 +43,14 @@ rule simulation_swordtail:
 rule all_sim:
 	input:
 		#expand("results/{sim}/replicate{rep}_{gen}.trees", sim=simsA,rep=reps,gen=gens),
-		expand("results/{sim}/replicate{rep}_{gen}.trees", sim=sims_sel_epochs,rep=reps,gen=gens)
+		expand("results/{sim}/replicate{rep}_{gen}.trees", sim=sims_sel_pulses,rep=reps,gen=gens)
 		#expand("results/swordtail_neutral/replicate{rep}_{gen}_N{N}.trees", rep=reps,gen=gens_swordtail,N=swordtail_N)
 
 rule avg_ancestry_calc: # this uses a different function than the rule below for unimportant reasons
 	input:
 		"results/{sim}/{rep_gen}.trees"
 	output:
-		"results/{sim}/{rep_gen}_ancestry.txt"
+		temp("results/{sim}/{rep_gen}_ancestry.txt")
 	shell:
 		"python3 code/derived-allele-freq.py {input} > {output}"
 
