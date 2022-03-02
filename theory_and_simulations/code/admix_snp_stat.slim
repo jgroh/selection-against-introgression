@@ -1,0 +1,45 @@
+// template script for varying recombination rate
+
+initialize() {
+	
+	initializeTreeSeq();
+	defineConstant("L", 1000);
+	defineConstant("alpha", 0.25);
+	defineConstant("genomeSize", 1e8); //genome will be 1 Morgan in length
+	defineConstant("N", 1000); // population size
+	initializeMutationRate(1e-7); // actual mutations
+	initializeMutationType("m1", 0.5, "f", 0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, L-1);
+	defineConstant("baseRate", 1e-8);
+	initializeRecombinationRate((genomeSize/L)*baseRate);
+	
+	defineConstant("outPath", "results/admix_snp_stat/");
+
+}
+
+1 {sim.addSubpop("p0", N); }
+
+// burnin of 10N generations for ancestral population before split (expected height of coalescent tree is 4N)
+10000 { sim.addSubpopSplit("p1", N, p0); }
+
+//introduce migration once expected value of Fst is 0.2 (for N of 1000, T = 1000)
+
+11000 { p0.setMigrationRates(p1, alpha); }
+
+11001 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0001.trees");
+}
+
+11010 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0010.trees");
+}
+
+11100 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0100.trees");
+}
+
+12000 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen1000.trees");
+}
+
