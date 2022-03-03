@@ -22,22 +22,29 @@ acua2015wc <- data.table(loadFrom("ACUA_2015/wavelet_results.RData", "wavcor"));
 acua2018wc <- data.table(loadFrom("ACUA_2018/wavelet_results.RData", "wavcor")); acua2018wc[,year := "2018"]
 wavcor <- rbindlist(list(acua2006wc,acua2008wc,acua2013wc,acua2015wc,acua2018wc))
 
+acua2006rs <- data.table(loadFrom("ACUA_2006/wavelet_results.RData", "rsqrd")); acua2006rs[,year := "2006"]
+acua2008rs <- data.table(loadFrom("ACUA_2008/wavelet_results.RData", "rsqrd")); acua2008rs[,year := "2008"]
+acua2013rs <- data.table(loadFrom("ACUA_2013/wavelet_results.RData", "rsqrd")); acua2013rs[,year := "2013"]
+acua2015rs <- data.table(loadFrom("ACUA_2015/wavelet_results.RData", "rsqrd")); acua2015rs[,year := "2015"]
+acua2018rs <- data.table(loadFrom("ACUA_2018/wavelet_results.RData", "rsqrd")); acua2018rs[,year := "2018"]
+rsqrd <- rbindlist(list(acua2006rs,acua2008rs,acua2013rs,acua2015rs,acua2018rs))
 
 
 
 
-# ===== plot wav var ====
+# ===== plot wav cor ====
 wavcor[, level := factor(level, levels = c(paste0("d", 1:15), paste0("s", 13:15), "chr"))]
 
-ggplot(wavcor[units == "physical"], aes(x = level, y = cor_log10r_cdsDensity, group = year, color = year)) +
+ggplot(wavcor[units == "physical"], aes(x = level, y = cor_jack.meanFreq_r, group = year, color = year)) +
   geom_point() +
+  geom_errorbar(aes(ymin=lower95ci.meanFreq_r, ymax=upper95ci.meanFreq_r))+
   #scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2), "-2s", "chromosome")) + 
   scale_x_discrete(breaks = c(paste0("d",1:15),"s13","s14","s15","chr"), labels = c(as.character(1:15), "13s","14s","15s", "chromosome")) + 
   labs(#x = expression(Scale: log[2]("Morgan")), 
     x = expression(Scale: log[2]("1kb")), 
-    #y = "Pearson cor (mean freq, CDS density)") +
-  #y = "Pearson cor (mean freq, log10 r)" ) + 
-  y = "Pearson cor (log10 r, CDS density)" ) + 
+   # y = "Pearson cor (mean freq, CDS density)") +
+  y = "Pearson cor (mean freq, r)" ) + 
+  #y = "Pearson cor (log10 r, CDS density)" ) + 
   theme_classic() +
   theme(aspect.ratio = 1,
         text = element_text(size=15),
@@ -49,19 +56,19 @@ ggplot(wavcor[units == "physical"], aes(x = level, y = cor_log10r_cdsDensity, gr
 
 # =====
 
-# ===== plot correlations
+# ===== plot r squared
 
 
-wavcor <- loadFrom("ACUA_2018/wavelet_results.RData", "wavcor")
-wavcor[, level := factor(level, levels = c(paste0("d", 1:15), paste0("s", 13:15), "chr"))]
+rsqrd[, level := factor(level, levels = c(paste0("d", 1:15), paste0("s", 13:15), "chr"))]
 
-ggplot(wavcor[units == "physical"], aes(x = level, y = cor_meanFreq_cdsDensity))+ # y = cor_meanFreq_log10r)) + 
+ggplot(rsqrd[units == "genetic"], aes(x = level, y = `rsqrd-r_cds`, group = year, color = year)) + # y = cor_meanFreq_log10r)) + 
   geom_point() + 
-  #scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2), "-2s", "chromosome")) + 
-  scale_x_discrete(breaks = c(paste0("d",1:15),"s13","s14","s15","chr"), labels = c(as.character(1:15), "13s","14s","15s", "chromosome")) + 
-  labs(#x = expression(Scale: log[2]("Morgan")), 
-        x = expression(Scale: log[2]("1kb")), 
-       y = "Pearson cor (mean freq, CDS density)") +
+  geom_errorbar(aes(ymin = `ci95_lower-r_cds`, ymax= `ci95_upper-r_cds`)) +
+  scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2), "-2s", "chromosome")) + 
+  #scale_x_discrete(breaks = c(paste0("d",1:15),"s13","s14","s15","chr"), labels = c(as.character(1:15), "13s","14s","15s", "chromosome")) + 
+  labs(x = expression(Scale: log[2]("Morgan")), 
+        #x = expression(Scale: log[2]("1kb")), 
+       y = "R squared") +
        #y = "Pearson cor (mean freq, log10 r)" ) + 
   theme_classic() +
   theme(aspect.ratio = 1,
