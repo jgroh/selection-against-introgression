@@ -1,10 +1,9 @@
 initialize() {
 	
-	initializeTreeSeq();
 	defineConstant("alpha", 0.25);
 	defineConstant("genomeSize", 1e8); //genome will be 1 Morgan in length
 	defineConstant("N", 1000); // population size
-	initializeMutationRate(1e-8); // actual mutations
+	initializeMutationRate(1e-8); 
 	initializeMutationType("m1", 0.5, "f", 0);
 	m1.mutationStackPolicy = "f";
 	initializeGenomicElementType("g1", m1, 1.0);
@@ -27,7 +26,7 @@ initialize() {
 	sim.addSubpop("p2", N); 
 	p2.setMigrationRates(c(p0,p1), c(alpha, 1-alpha)); }
 	
-110001 late() {
+11001 late() {
 
 	pos = sim.mutations.position;
 	f_all = sim.mutationFrequencies(NULL);
@@ -35,54 +34,82 @@ initialize() {
 	f1 = sim.mutationFrequencies(p1);
 	f2 = sim.mutationFrequencies(p2);
 	
-	filter = f_all > 0.05 & f0-f1 > 0.1;
+	filter = f_all > 0.05 & abs(f0-f1) > 0.05;
 	snp_stat = (f2-f0)/(f1-f0) ;
 	
-	writeFile(outpath + "replicate" + seed + "_gen0001", c(paste(snp_stat[filter], sep = "\t"), paste(pos[filter],sep = "\t") ) );
+	tbl = cbind(asFloat(pos[filter]), snp_stat[filter], asFloat(rep(1, length(filter[filter==T]))));
+
+	output = "";
+	for (n in 0:(nrow(tbl)-1) )
+	{
+	output = c(output, paste(tbl[n,]));
+	}
 	
+	writeFile(outPath + "replicate" + seed + "_gen0001.txt", output);
 }
 
 11010 late() {
-	
+
 	pos = sim.mutations.position;
 	f_all = sim.mutationFrequencies(NULL);
 	f0 = sim.mutationFrequencies(p0);
 	f1 = sim.mutationFrequencies(p1);
 	f2 = sim.mutationFrequencies(p2);
 	
-	filter = f_all > 0.05 & f0-f1 > 0.1;
+	filter = f_all > 0.05 & abs(f0-f1) > 0.05;
 	snp_stat = (f2-f0)/(f1-f0) ;
 	
-	writeFile(outpath + "replicate" + seed + "_gen0010", c(paste(snp_stat[filter], sep = "\t"), paste(pos[filter],sep = "\t") ) );
+	tbl = cbind(asFloat(pos[filter]), snp_stat[filter], asFloat(rep(1, length(filter[filter==T]))));
+
+	output = "";
+	for (n in 0:(nrow(tbl)-1) )
+	{
+	output = c(output, paste(tbl[n,]));
+	}
 	
+	writeFile(outPath + "replicate" + 0 + "_gen0010.txt", output);
 }
 
 11100 late() {
-	
+
 	pos = sim.mutations.position;
 	f_all = sim.mutationFrequencies(NULL);
 	f0 = sim.mutationFrequencies(p0);
 	f1 = sim.mutationFrequencies(p1);
 	f2 = sim.mutationFrequencies(p2);
 	
-	filter = f_all > 0.05 & f0-f1 > 0.1;
+	filter = f_all > 0.05 & abs(f0-f1) > 0.05;
 	snp_stat = (f2-f0)/(f1-f0) ;
 	
-	writeFile(outpath + "replicate" + seed + "_gen0100", c(paste(snp_stat[filter], sep = "\t"), paste(pos[filter],sep = "\t") ) );
+	tbl = cbind(asFloat(pos[filter]), snp_stat[filter], asFloat(rep(1, length(filter[filter==T]))));
+
+	output = "";
+	for (n in 0:(nrow(tbl)-1) )
+	{
+	output = c(output, paste(tbl[n,]));
+	}
 	
+	writeFile(outPath + "replicate" + 0 + "_gen0100.txt", output);
 }
 
 12000 late() {
-	
+
 	pos = sim.mutations.position;
 	f_all = sim.mutationFrequencies(NULL);
 	f0 = sim.mutationFrequencies(p0);
 	f1 = sim.mutationFrequencies(p1);
 	f2 = sim.mutationFrequencies(p2);
 	
-	filter = f_all > 0.05 & f0-f1 > 0.1;
+	filter = f_all > 0.05 & abs(f0-f1) > 0.05;
 	snp_stat = (f2-f0)/(f1-f0) ;
 	
-	writeFile(outpath + "replicate" + seed + "_gen1000", c(paste(snp_stat[filter], sep = "\t"), paste(pos[filter],sep = "\t") ) );
+	tbl = cbind(asFloat(pos[filter]), snp_stat[filter], asFloat(rep(1, length(filter[filter==T]))));
+
+	output = "";
+	for (n in 0:(nrow(tbl)-1) )
+	{
+	output = c(output, paste(tbl[n,]));
+	}
 	
+	writeFile(outPath + "replicate" + 0 + "_gen1000.txt", output);
 }
