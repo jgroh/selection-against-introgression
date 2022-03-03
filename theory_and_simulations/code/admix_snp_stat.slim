@@ -1,18 +1,16 @@
-// template script for varying recombination rate
-
 initialize() {
 	
 	initializeTreeSeq();
-	defineConstant("L", 1000);
 	defineConstant("alpha", 0.25);
 	defineConstant("genomeSize", 1e8); //genome will be 1 Morgan in length
 	defineConstant("N", 1000); // population size
-	initializeMutationRate(1e-7); // actual mutations
+	initializeMutationRate(1e-8); // actual mutations
 	initializeMutationType("m1", 0.5, "f", 0);
+	m1.mutationStackPolicy = "f";
 	initializeGenomicElementType("g1", m1, 1.0);
-	initializeGenomicElement(g1, 0, L-1);
+	initializeGenomicElement(g1, 0, genomeSize-1);
 	defineConstant("baseRate", 1e-8);
-	initializeRecombinationRate((genomeSize/L)*baseRate);
+	initializeRecombinationRate(baseRate);
 	
 	defineConstant("outPath", "results/admix_snp_stat/");
 
@@ -25,21 +23,66 @@ initialize() {
 
 //introduce migration once expected value of Fst is 0.2 (for N of 1000, T = 1000)
 
-11000 { p0.setMigrationRates(p1, alpha); }
+11000 { 
+	sim.addSubpop("p2", N); 
+	p2.setMigrationRates(c(p0,p1), c(alpha, 1-alpha)); }
+	
+110001 late() {
 
-11001 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0001.trees");
+	pos = sim.mutations.position;
+	f_all = sim.mutationFrequencies(NULL);
+	f0 = sim.mutationFrequencies(p0);
+	f1 = sim.mutationFrequencies(p1);
+	f2 = sim.mutationFrequencies(p2);
+	
+	filter = f_all > 0.05 & f0-f1 > 0.1;
+	snp_stat = (f2-f0)/(f1-f0) ;
+	
+	writeFile(outpath + "replicate" + seed + "_gen0001", c(paste(snp_stat[filter], sep = "\t"), paste(pos[filter],sep = "\t") ) );
+	
 }
 
 11010 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0010.trees");
+	
+	pos = sim.mutations.position;
+	f_all = sim.mutationFrequencies(NULL);
+	f0 = sim.mutationFrequencies(p0);
+	f1 = sim.mutationFrequencies(p1);
+	f2 = sim.mutationFrequencies(p2);
+	
+	filter = f_all > 0.05 & f0-f1 > 0.1;
+	snp_stat = (f2-f0)/(f1-f0) ;
+	
+	writeFile(outpath + "replicate" + seed + "_gen0010", c(paste(snp_stat[filter], sep = "\t"), paste(pos[filter],sep = "\t") ) );
+	
 }
 
 11100 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0100.trees");
+	
+	pos = sim.mutations.position;
+	f_all = sim.mutationFrequencies(NULL);
+	f0 = sim.mutationFrequencies(p0);
+	f1 = sim.mutationFrequencies(p1);
+	f2 = sim.mutationFrequencies(p2);
+	
+	filter = f_all > 0.05 & f0-f1 > 0.1;
+	snp_stat = (f2-f0)/(f1-f0) ;
+	
+	writeFile(outpath + "replicate" + seed + "_gen0100", c(paste(snp_stat[filter], sep = "\t"), paste(pos[filter],sep = "\t") ) );
+	
 }
 
 12000 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen1000.trees");
+	
+	pos = sim.mutations.position;
+	f_all = sim.mutationFrequencies(NULL);
+	f0 = sim.mutationFrequencies(p0);
+	f1 = sim.mutationFrequencies(p1);
+	f2 = sim.mutationFrequencies(p2);
+	
+	filter = f_all > 0.05 & f0-f1 > 0.1;
+	snp_stat = (f2-f0)/(f1-f0) ;
+	
+	writeFile(outpath + "replicate" + seed + "_gen1000", c(paste(snp_stat[filter], sep = "\t"), paste(pos[filter],sep = "\t") ) );
+	
 }
-
