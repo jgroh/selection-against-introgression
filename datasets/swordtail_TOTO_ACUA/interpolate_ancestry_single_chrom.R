@@ -60,6 +60,18 @@ setnames(chromAnc1kb, c("x","y"), c("position", "indivFreq"))
 # average over individuals to get sample mean
 chromAnc1kb[, "meanFreq" := mean(indivFreq), by = .(chr, position)]
 
+# distance to closest snp,
+pos_real <- chrom[ID==ID[1], .(position, id = "real")]
+pos_interp <- chromAnc1kb[ID==ID[1], .(position, id = "interp")]
+
+pos_real[, marker := position]
+setattr(pos_real, "sorted", "position")  # let data.table know that w is sorted
+setkey(pos_real, position) # sorts the data
+dist_to_marker <- pos_real[J(pos_interp), roll = "nearest"][, .(position, dist_to_marker = abs(position-marker))]
+
+chromAnc1kb <- merge(chromAnc1kb, dist_to_marker, by = "position")
+
+
 # plot thinned sample mean ancestry
 # chromAnc1kb[seq(1, nrow(chromAnc1kb), by = 1000)] %>% ggplot(aes(x = position, y = meanFreq)) + geom_point()
 
@@ -87,6 +99,19 @@ setnames(chromAncInterpMorgan, c("x", "y"), c("Morgan","indivFreq"))
 # compute sample mean
 chromAncInterpMorgan[, meanFreq := mean(indivFreq), 
                      by = .(chr, Morgan)]
+
+
+# distance to closest snp
+pos_real <- chrom[ID==ID[1], .(Morgan, id = "real")]
+pos_interp <- chromAncInterpMorgan[ID==ID[1], .(Morgan, id = "interp")]
+
+pos_real[, marker := Morgan]
+setattr(pos_real, "sorted", "Morgan")  # let data.table know that w is sorted
+setkey(pos_real, Morgan) # sorts the data
+dist_to_marker <- pos_real[J(pos_interp), roll = "nearest"][, .(Morgan, dist_to_marker = abs(Morgan-marker))]
+
+chromAncInterpMorgan <- merge(chromAncInterpMorgan, dist_to_marker, by = "Morgan")
+
 
 # 5. ===== Calculate Recombination Rate of genetic windows 
 # interpolate physical position at right endpoint of genetic windows
