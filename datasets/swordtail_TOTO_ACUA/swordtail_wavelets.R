@@ -15,7 +15,7 @@ source("/Users/brogroh/gnomwav/R/variance_decomp.R")
 
 args <- commandArgs(trailingOnly = TRUE)
 year <- args[1]
-#year <- 2018
+#year <- 2013
 
 # ===== Read and format data =====
 
@@ -101,13 +101,13 @@ indWV_P[, units := "physical"]
 
 # ------ mean ancestry, recombination, gene density -----
 meanWV_P <- gnomP[ID==ID[1], gnom_var_decomp(.SD, chromosome = "chr", 
-                                   signals = c("meanFreq", "cds_density", "r", "log10r"),
+                                   signals = c("meanFreq", "cds_density", "r", "log10r", "dist_to_marker"),
                                    rm.boundary = TRUE, 
                                    avg.over.chroms = TRUE)]
 
 # ------ mean ancestry, recombination, gene density -----
 meanWV_G <- gnomG[ID==ID[1], gnom_var_decomp(.SD, chromosome = "chr", 
-                                             signals = c("meanFreq", "cds_density", "r", "log10r"),
+                                             signals = c("meanFreq", "cds_density", "r", "log10r", "dist_to_marker"),
                                              rm.boundary = TRUE, 
                                              avg.over.chroms = TRUE)]
 
