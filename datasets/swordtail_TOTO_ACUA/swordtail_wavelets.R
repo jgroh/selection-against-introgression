@@ -200,30 +200,29 @@ wavcor <- rbind(wavcorG, wavcorP)
 
 
 # # ===== Linear Model analysis =====
-old <- c("rsqrd", "ci95_lower", "ci95_upper")
 
 # ----physical units
 rsqrd1_p <- wvlt_lm_rsqrd(data = gnomP[ID==ID[1]], chromosome="chr", yvar = "meanFreq",
                          xvars = c("r", "cds_density"))
-setnames(rsqrd1_p, old, paste0(old, ".r_cds"))
+rsqrd1_p[, model := "r_cdsDensity"]
 
 rsqrd2_p <- wvlt_lm_rsqrd(data = gnomP[ID==ID[1]], chromosome="chr", yvar = "meanFreq",
               xvars = c("log10r", "cds_density"))
-setnames(rsqrd2_p, old, paste0(old, ".log10r_cds"))
+rsqrd2_p[, model := "log10r_cdsDensity"]
 
-rsqrd_p <- merge(rsqrd1_p, rsqrd2_p)
+rsqrd_p <- rbind(rsqrd1_p, rsqrd2_p)
 rsqrd_p[, units := "physical"]
 
 # ---- genetic units
 rsqrd1_g <- wvlt_lm_rsqrd(data = gnomG[ID==ID[1]], chromosome="chr", yvar = "meanFreq",
                           xvars = c("r", "cds_density"))
-setnames(rsqrd1_g, old, paste0(old, ".r_cds"))
+rsqrd1_g[, model := "r_cdsDensity"]
 
 rsqrd2_g <- wvlt_lm_rsqrd(data = gnomG[ID==ID[1]], chromosome="chr", yvar = "meanFreq",
                           xvars = c("log10r", "cds_density"))
-setnames(rsqrd2_g, old, paste0(old, ".log10r_cds"))
+rsqrd2_g[, model := "log10r_cdsDensity"]
 
-rsqrd_g <- merge(rsqrd1_g, rsqrd2_g)
+rsqrd_g <- rbind(rsqrd1_g, rsqrd2_g)
 rsqrd_g[, units := "genetic"]
 
 
