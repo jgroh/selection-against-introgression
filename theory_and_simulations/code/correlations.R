@@ -7,29 +7,29 @@ library(tidyverse)
 library(data.table)
 
 
-g1_10 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen1-10/ancestry_master.txt"
+g1 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen1/ancestry_master.txt"
 g1_1000 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen1-1000/ancestry_master.txt"
-g100_110 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen100-110/ancestry_master.txt"
-g500_510 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen500-510/ancestry_master.txt"
+g100 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen100/ancestry_master.txt"
+g500 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen500/ancestry_master.txt"
 
-g1_10 <- read.table(g1_10, row.names = 1)
-rownames(g1_10) <- paste0("g1_10_", rownames(g1_10))
+g1 <- read.table(g1, row.names = 1)
+rownames(g1) <- paste0("g1_", rownames(g1))
 
 g1_1000 <- read.table(g1_1000, row.names = 1)
 rownames(g1_1000) <- paste0("g1_1000_", rownames(g1_1000))
 
-g100_110 <- read.table(g100_110, row.names = 1)
-rownames(g100_110) <- paste0("g100_110_", rownames(g100_110))
+g100 <- read.table(g100, row.names = 1)
+rownames(g100) <- paste0("g100_", rownames(g100))
 
-g500_510 <- read.table(g500_510, row.names = 1)
-rownames(g500_510) <- paste0("g500_510_", rownames(g500_510))
+g500 <- read.table(g500, row.names = 1)
+rownames(g500) <- paste0("g500_", rownames(g500))
 
 
 
 # combine data sets from simulations
 #all.sim <- rbind.data.frame(a1,a2,a3)
 
-all.sim <- rbind.data.frame(g1_10,g1_1000,g100_110,g500_510)
+all.sim <- rbind.data.frame(g1,g100,g500,g1_1000)
 
 # reformat data for calculation and plotting
 a <- as.data.frame(t(all.sim))
@@ -77,7 +77,7 @@ ggplot(totalcors, aes(x = gen, y = cor)) +
   geom_line(aes(group = rep.id),  color = 'gray', alpha = 0.5) + 
   geom_point(color = 'gray', alpha = 0.5) + 
   theme_classic() + 
-  geom_line(data = avg.cors, size = 2) + 
+  geom_line(data = avg.cors, aes(group = 1), size = 2) + 
   geom_point(data = avg.cors, size = 2) + 
   labs(x = expression(log[10] (Generation)), 
        y = "Total correlation") + 
@@ -87,17 +87,17 @@ ggplot(totalcors, aes(x = gen, y = cor)) +
 
 
 # ===== compute wavelet correlations
-b[, chr := 1]
+
 # note this throws a warning because there is no chromosome-level variance as there is only a single chromosome
-gcd <- b[, gnom_cor_decomp(data = .SD, 
-                    chromosome = "chr", 
+gcd <- b[, cor_tbl(data = .SD, 
+                    chromosome = NA, 
                     signals = c("recomb", "freq"),
                     rm.boundary = TRUE), 
   by = .(rep.id, gen, sim)]
 
 # plot all replicates
 gcd[, gen := as.numeric(gen)]
-ggplot(gcd[level != "chr"], 
+ggplot(gcd, 
        aes(x = log10(gen), y = cor, group = interaction(level, rep.id), color = level)) +
   facet_wrap(~sim) + geom_point() + geom_line()
 
@@ -137,7 +137,7 @@ ggplot(gcdm[level != "chr"],
 
 # ===== Wavelet covariances ====
 
-w <- b[, multi_modwts(.SD, chromosome = "chr", signals = c("freq", "recomb"), rm.boundary = T),
+w <- b[, multi_modwts(.SD, chromosome = NA, signals = c("freq", "recomb"), rm.boundary = T),
   by = .(sim, rep.id, gen)]
 
 meanFreq <- b[, .(p = mean(freq)), by = .(sim,gen)]
