@@ -1,13 +1,16 @@
 import numpy as np
-reps = np.arange(20)
+reps = np.arange(10)
 #gens = ["gen" + num for num in ["0001", "0002", "0005", "0010", "0050", "0100", "0500", "1000"]]
-gens = ["gen" + num for num in ["0001", "0002", "0011", "0100", "0101", "0111", "0500","0501", "0511", "1001"]]
+#gens = ["gen" + num for num in ["0001", "0002", "0100", "0101", "0500","0501", "1001"]]
+#gens = ["gen" + num for num in ["0001","0002", "0100","0101", "0500", "0501", "1001"]]
 #gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0025","0050","0100","0250","0500","1000"]]
-gens_swordtail = ["generation" + num for num in ["100", "150", "200"]]
-swordtail_N = [10, 100, 1000, 10000]
+gens = ["gen" + num for num in ["0000", "0001","0002","0010","0100","1000"]]
+#gens_swordtail = ["generation" + num for num in ["100", "150", "200"]]
+gens_swordtail = ["generation" + num for num in ["100"]]
+swordtail_N = [1000, 10000]
 #gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0050","0100","0250","0500","0750","1000"]]
 #sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb","single-sweep"]
-simsA = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb"]
+simsA = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb", "admix_snp_stat"]
 simsB = ["equilibrium_n500"]
 sims_sel_pulses = ["add-sel-periodic-recomb_gen" + g for g in ["1-1000", "1","100","500"]]
 sims_swordtail = ["swordtail_neutral"]
@@ -15,9 +18,10 @@ ruleorder: avg_ancestry_calc_swordtail > avg_ancestry_calc
 
 rule all:
 	input:
-		expand("results/{sim}/ancestry_master.txt", sim=sims_sel_pulses)
+		expand("results/{sim}/ancestry_master.txt", sim=simsA)
+		#expand("results/{sim}/ancestry_master.txt", sim=sims_swordtail)
+		#expand("results/{sim}/ancestry_master.txt", sim=sims_sel_pulses)
 #		"results/equilibrium_n500/all-variances-master.txt",
-#        "results/swordtail_neutral/ancestry_master_rhoCap0.005.txt"
 
 rule simulation_setA:
 	input:
@@ -25,6 +29,10 @@ rule simulation_setA:
 		temp(expand("results/{{sim}}/replicate{{rep}}_{gen}.trees", gen=gens))
 	shell:
 		"slim -d seed={wildcards.rep} code/{wildcards.sim}.slim"
+
+rule allSim:
+	input:
+		expand("results/{sim}/replicate{rep}_{gen}.trees", sim=sims_sel_pulses, rep=reps, gen=gens)
 
 rule simulation_setB:
 	input:
@@ -46,7 +54,23 @@ rule all_sim:
 		expand("results/{sim}/replicate{rep}_{gen}.trees", sim=sims_sel_pulses,rep=reps,gen=gens)
 		#expand("results/swordtail_neutral/replicate{rep}_{gen}_N{N}.trees", rep=reps,gen=gens_swordtail,N=swordtail_N)
 
-rule avg_ancestry_calc: # this uses a different function than the rule below for unimportant reasons
+rule admix_snp_stat:
+	input:
+	output:
+		temp(expand("results/admix_snp_stat/replicate{{rep}}_{gen}.txt", gen=gens))
+	shell:
+		"slim -d seed={wildcards.rep} code/admix_snp_stat.slim"
+
+rule combn_snp_stat:
+	input:
+		expand("results/admix_snp_stat/replicate{rep}_{gen}.txt", rep=reps, gen=gens)
+	output:
+		"results/admix_snp_stat/ancestry_master_snp_stat.txt"
+	shell:
+		"cat {input} > {output}"
+			
+
+rule avg_ancestry_calc: 
 	input:
 		"results/{sim}/{rep_gen}.trees"
 	output:
@@ -56,11 +80,19 @@ rule avg_ancestry_calc: # this uses a different function than the rule below for
 
 rule avg_ancestry_calc_swordtail:
 	input:
-		"results/swordtail_neutral/swordtail_{rep_gen_N}.trees"
+		"results/swordtail_neutral/swordtail_{rep_gen}.trees"
 	output:
-		temp("results/swordtail_neutral/swordtail_{rep_gen_N}_ancestry.txt")
+		temp("results/swordtail_neutral/swordtail_{rep_gen}_ancestry.txt")
 	shell:
-		"python3 code/ancestry.py {input} > {output}"
+		"python3 code/derived-allele-freq.py {input} > {output}"
+
+#rule avg_ancestry_calc_swordtail:
+#	input:
+#		"results/swordtail_neutral/swordtail_{rep_gen_N}.trees"
+#	output:
+#		temp("results/swordtail_neutral/swordtail_{rep_gen_N}_ancestry.txt")
+#	shell:
+#		"python3 code/ancestry.py {input} > {output}"
 
 rule dwt_on_haps:
 	input:
@@ -85,7 +117,7 @@ rule aggregate_mean_ancestry_swordtail:
 	input:
 		expand("results/swordtail_neutral/swordtail_replicate{rep}_{gen}_N{N}_ancestry.txt", rep=reps, gen=gens_swordtail,N=swordtail_N)
 	output:
-		output="results/swordtail_neutral/ancestry_master_rhoCap0.005.txt"
+		output="results/swordtail_neutral/ancestry_master.txt"
 	shell:
 		"""
         cat {input} > {output}

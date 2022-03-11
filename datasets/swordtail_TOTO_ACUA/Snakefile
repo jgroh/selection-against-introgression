@@ -36,7 +36,7 @@ rule interpolate_ancestry_single_chrom_2018:
 		"xbir_LDRecMap.bed",
 		"LD_recMap/LD_map_xbirchmanni-COAC-10x-{chr}.post.txt_mod.bed"
 	output:
-		"ACUA_2018/{chr}_rhoCap0.005.RData",
+		"ACUA_2018/{chr}.RData",
 		temp("{chr}_genetic_windows.bed"),
 		temp("{chr}_physical_windows.bed")
 	shell:
