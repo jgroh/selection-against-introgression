@@ -88,7 +88,6 @@ ggplot(totalcors, aes(x = gen, y = cor)) +
 
 # ===== compute wavelet correlations
 
-# note this throws a warning because there is no chromosome-level variance as there is only a single chromosome
 gcd <- b[, cor_tbl(data = .SD, 
                     chromosome = NA, 
                     signals = c("recomb", "freq"),
@@ -100,6 +99,10 @@ gcd[, gen := as.numeric(gen)]
 ggplot(gcd, 
        aes(x = log10(gen), y = cor, group = interaction(level, rep.id), color = level)) +
   facet_wrap(~sim) + geom_point() + geom_line()
+ggplot(gcd, 
+       aes(x = log10(gen), y = cor, group = interaction(level, rep.id), color = level)) +
+  facet_wrap(~sim) + geom_point() + geom_line()
+
 
 # ---- average over replicates
 
@@ -129,7 +132,7 @@ gcdm <- merge(gcdm, gcdci, by = c("gen", "sim", "level"))
 # plot
 gcdm[, gen := as.numeric(gen)]
 
-ggplot(gcdm[level != "chr"], 
+ggplot(gcdm, 
        aes(x = log10(gen), y = cor, group = level, color = level)) +
   geom_errorbar(aes(ymin=lower, ymax=upper))+
   facet_wrap(~sim) + geom_point() + geom_line()
@@ -152,7 +155,7 @@ covtblm <- merge(covtblm, meanFreq)
 ggplot(covtblm, 
        aes(x = log10(gen), y = cov, group = level, color = level)) +
   #geom_errorbar(aes(ymin=lower, ymax=upper))+
-  facet_wrap(~sim) + geom_point() + geom_line()
+  facet_wrap(~sim, scales = "free_y") + geom_point() + geom_line()
 
 ggplot(covtblm, 
        aes(x = log10(gen), y = cov/sqrt(p*(1-p)), group = level, color = level)) +
@@ -163,9 +166,10 @@ ggplot(covtblm,
 
 # ===== Stacked Barplot of contribution to correlation =====
 
-wv <- b[, gnom_var_decomp(.SD, chromosome = "chr", signals = c("recomb", "freq")),
+wv <- b[, gnom_var_decomp(.SD, chromosome = NA, signals = c("recomb", "freq")),
                       by = .(sim, rep.id, gen)]
 
+# average variance across replicates
 wv <- wv[, lapply(.SD, mean), .SDcols = c("variance.recomb", "variance.freq"),
    by = .(sim, gen, level)]
 wv[, gen := as.numeric(gen)]
@@ -179,7 +183,7 @@ gcdm[, propvar.freq := variance.freq/totalvar.freq]
 gcdm[, contribution := cor*sqrt(propvar.freq*propvar.recomb)]
 
 
-ggplot(gcdm[lower > 0 | upper < 0]) +
+ggplot(gcdm) +
   geom_bar(aes(fill = level, x = as.factor(gen),
                y = contribution), position = "stack",
            stat = "identity", color = "black") +
