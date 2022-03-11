@@ -130,7 +130,6 @@ file2 <- "theory_and_simulations/results/bottleneck/ancestry_master.txt"
 file3 <- "theory_and_simulations/results/add-sel-const-recomb/ancestry_master.txt"
 file4 <- "theory_and_simulations/results/add-sel-periodic-recomb/ancestry_master.txt"
 
-
 a1 <- read.table(file1, row.names = 1)
 rownames(a1) <- paste0("wvEquil_", rownames(a1))
 

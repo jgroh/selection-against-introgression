@@ -14,6 +14,8 @@ acua2013var <- data.table(loadFrom("ACUA_2013/wavelet_results.RData", "wavvar"))
 acua2015var <- data.table(loadFrom("ACUA_2015/wavelet_results.RData", "wavvar")); acua2015var[,year := "2015"]
 acua2018var <- data.table(loadFrom("ACUA_2018/wavelet_results.RData", "wavvar")); acua2018var[,year := "2018"]
 wavvar <- rbindlist(list(acua2006var,acua2008var,acua2013var,acua2015var,acua2018var))
+wavvarm <- melt(wavvar, id.vars = c("units", "year","level"))
+
 
 acua2006wc <- data.table(loadFrom("ACUA_2006/wavelet_results.RData", "wavcor")); acua2006wc[,year := "2006"]
 acua2008wc <- data.table(loadFrom("ACUA_2008/wavelet_results.RData", "wavcor")); acua2008wc[,year := "2008"]
@@ -30,18 +32,63 @@ acua2018rs <- data.table(loadFrom("ACUA_2018/wavelet_results.RData", "rsqrd")); 
 rsqrd <- rbindlist(list(acua2006rs,acua2008rs,acua2013rs,acua2015rs,acua2018rs))
 
 
+# ==== wav var
+
+lineData1 <- wavvar[!level %in% c("s13", "s14", "s15", "chr")]
+lineData2 <- wavvarm[!level %in% c("s13", "s14", "s15", "chr")]
+
+wavvarm[, level := factor(level, levels = c(paste0("d", 1:15), "s13", "s14", "s15", "chr"))]
+
+wavvarm[units == "physical" & variable %in% c("variance.meanFreq", "variance.indivFreq")] %>% 
+  ggplot(aes(x = level, y = value, group = year, color = year)) +
+  geom_point(size=2.2, aes(shape = variable)) +
+  geom_line(data = lineData2[units == "physical" & variable %in% c("variance.meanFreq", "variance.indivFreq")], 
+            aes(group = interaction(variable, year)), size=0.5) + 
+  labs(#x = expression(Scale: log[2](Morgans)), 
+      x = expression(Scale: log[2](kb)),
+       y = "Variance",
+       color = "Year", shape = "Signal") +
+  #scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2),"-2 (scaling var)", "chromosome")) + 
+  scale_x_discrete(breaks = c(paste0("d",1:15),"s13", "s14", "s15", "chr"), labels = c(as.character(0:14),"13 (scaling var)", "14 (scaling var)", "15 (scaling var)", "chromosome")) + 
+  scale_shape_discrete(labels = c("Mean ancestry", "Individual ancestry"))+
+  theme_classic() +
+  scale_colour_viridis_d() +
+  #geom_segment(aes(x=.95,xend=13.05,y=-Inf,yend=-Inf),color="black")+
+  theme(aspect.ratio = 1,
+        text = element_text(size=15),
+        #axis.line.x = element_blank(),
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
+        axis.text.y = element_text(size=12),
+        #axis.ticks.x = element_line(size=c(rep(1,15),0)),
+        axis.title.x = element_text(hjust=.4,margin=margin(t=-20)))
+
+# distance to marker
+wavvarm[units == "genetic" & variable == "variance.dist_to_marker" & year == 2018] %>%
+  ggplot(aes(x = level, y = value)) + 
+  geom_point() +
+    labs(x = expression(Scale: log[2](Morgans)), 
+      #x = expression(Scale: log[2](kb)),
+      y = "Variance") + 
+  scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2),"-2s", "chromosome")) 
+  
+
+
+
+
+
+
 
 
 # ===== plot wav cor ====
 wavcor[, level := factor(level, levels = c(paste0("d", 1:15), paste0("s", 13:15), "chr"))]
 
-ggplot(wavcor[units == "physical"], aes(x = level, y = cor_jack.meanFreq_r, group = year, color = year)) +
+ggplot(wavcor[units == "genetic" & year == "2018"], aes(x = level, y = cor_jack.meanFreq_r, group = year))+ #, color = year)) +
   geom_point() +
   geom_errorbar(aes(ymin=lower95ci.meanFreq_r, ymax=upper95ci.meanFreq_r))+
-  #scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2), "-2s", "chromosome")) + 
-  scale_x_discrete(breaks = c(paste0("d",1:15),"s13","s14","s15","chr"), labels = c(as.character(1:15), "13s","14s","15s", "chromosome")) + 
-  labs(#x = expression(Scale: log[2]("Morgan")), 
-    x = expression(Scale: log[2]("1kb")), 
+  scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2), "-2s", "chromosome")) + 
+  #scale_x_discrete(breaks = c(paste0("d",1:15),"s13","s14","s15","chr"), labels = c(as.character(0:14), "12s","13s","14s", "chromosome")) + 
+  labs(x = expression(Scale: log[2]("Morgan")), 
+    #x = expression(Scale: log[2]("1kb")), 
    # y = "Pearson cor (mean freq, CDS density)") +
   y = "Pearson cor (mean freq, r)" ) + 
   #y = "Pearson cor (log10 r, CDS density)" ) + 
@@ -49,8 +96,7 @@ ggplot(wavcor[units == "physical"], aes(x = level, y = cor_jack.meanFreq_r, grou
   theme(aspect.ratio = 1,
         text = element_text(size=15),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
-        axis.text.y = element_text(size=12),
-        axis.title.x = element_text(hjust=.4,margin=margin(t=-20)))
+        axis.text.y = element_text(size=12))
 
 
 
@@ -61,9 +107,10 @@ ggplot(wavcor[units == "physical"], aes(x = level, y = cor_jack.meanFreq_r, grou
 
 rsqrd[, level := factor(level, levels = c(paste0("d", 1:15), paste0("s", 13:15), "chr"))]
 
-ggplot(rsqrd[units == "genetic"], aes(x = level, y = `rsqrd-r_cds`, group = year, color = year)) + # y = cor_meanFreq_log10r)) + 
+ggplot(rsqrd[units == "genetic" & year == "2018" & variable == "coefficient.log10r" & model == "log10r_cdsDensity"], 
+       aes(x = level, y = direct_estimate, group = year)) + #, color = year)) + # y = cor_meanFreq_log10r)) + 
   geom_point() + 
-  geom_errorbar(aes(ymin = `ci95_lower-r_cds`, ymax= `ci95_upper-r_cds`)) +
+  geom_errorbar(aes(ymin = jn_bc_estimate - 1.96*jn_se, ymax= jn_bc_estimate + 1.96*jn_se)) +
   scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2), "-2s", "chromosome")) + 
   #scale_x_discrete(breaks = c(paste0("d",1:15),"s13","s14","s15","chr"), labels = c(as.character(1:15), "13s","14s","15s", "chromosome")) + 
   labs(x = expression(Scale: log[2]("Morgan")), 
@@ -77,84 +124,23 @@ ggplot(rsqrd[units == "genetic"], aes(x = level, y = `rsqrd-r_cds`, group = year
         axis.text.y = element_text(size=12),
         axis.title.x = element_text(hjust=.4,margin=margin(t=-20)))
 
-  
-  
+
 # ===== Stacked barplot =====
 
 allwav <- merge(wavcor, wavvar, by  = c("units", "level", "year"))
 
-allwav[, contribution := cor_meanFreq_log10r*sqrt(propvar.meanFreq*propvar.log10r)]
+allwav[, contribution := cor_jack.meanFreq_r*sqrt(propvar.meanFreq*propvar.r)]
 
-
+allwav[, levels := factor(level, levels = c("chr", "s13", paste0("d", 15:1)))]
 ggplot(allwav[units == "genetic"]) +
   geom_bar(aes(fill = level, x = year, y = contribution), position = "stack", stat = "identity", color = "black") +
   scale_fill_viridis_d(option = "plasma", direction = -1, 
-                       labels = labels = c(as.character(-14:-2), "-2s", "chromosome")) + 
+                       labels  = c(as.character(-14:-2), "-2s", "chromosome")) + 
   labs(x = "Year", 
        y = "Contribution to correlation",
        fill = expression(Scale: log[2](Morgan))) + 
   theme_classic() +
   theme(aspect.ratio = 1)
-
-
-
-# ===== plot real data ====
-# ----- genetic scale -----
-
-levels(allVar[units == "genetic", unique(level)])
-lineDataG <- allVar[!level %in% c("s13", "chr")]
-
-allVar[units == "genetic"] %>% ggplot(aes(x = level, y = variance.meanFreq, group = year, color = year)) +
-  geom_point(size=2.2) +
-  geom_line(data = lineData[units == "genetic"], size=0.5, linetype=2) + 
-  labs(x = expression(Scale: log[2](Morgans)), 
-       y = "Variance",
-       color = "Year") +#, #shape = "Signal") +
-  scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2),"-2 (scaling var)", "chromosome")) + 
-  scale_shape_discrete(labels = c("Individual", "Mean"))+
-  theme_classic() +
-  scale_colour_viridis_d() +
-  geom_segment(aes(x=.95,xend=13.05,y=-Inf,yend=-Inf),color="black")+
-  theme(aspect.ratio = 1,
-        text = element_text(size=15),
-        axis.line.x = element_blank(),
-        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
-        axis.text.y = element_text(size=12),
-        axis.ticks.x = element_line(size=c(rep(1,15),0)),
-        axis.title.x = element_text(hjust=.4,margin=margin(t=-20)))
-
-
-allVar[units == "genetic"] %>% ggplot(aes(x = level, y = propVar, group = interaction(signal, year), color = year)) +
-  geom_point(aes(shape = signal), size=2.2) +
-  geom_line(data = lineData[units == "genetic"], size=0.5, linetype=2) + 
-  labs(x = expression(Scale: log[2](Morgans)), 
-       y = "Proportion of genome-wide variance",
-       color = "Year", shape = "Signal") +
-  scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2),"-2 (scaling var)", "chromosome")) + 
-  scale_shape_discrete(labels = c("Individual", "Mean"))+
-  theme_classic() +
-  scale_colour_viridis_d() +
-  geom_segment(aes(x=.95,xend=13.05,y=-Inf,yend=-Inf),color="black")+
-  theme(aspect.ratio = 1,
-        text = element_text(size=15),
-        axis.line.x = element_blank(),
-        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
-        axis.text.y = element_text(size=12),
-        axis.ticks.x = element_line(size=c(rep(1,15),0)),
-        axis.title.x = element_text(hjust=.4,margin=margin(t=-20)))
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
