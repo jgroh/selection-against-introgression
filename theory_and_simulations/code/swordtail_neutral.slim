@@ -25,15 +25,13 @@ initialize() {
 }
 
 1 {sim.addSubpop("p0", N);
-	F1s = sample(p0.individuals, asInteger(2*N*alpha));
-	genomes = NULL;
-	for(F1 in F1s);
-	{
-	genomes = c(genomes, F1.genomes[1]);
-	}
-	genomes.addNewMutation(m1,0,0:(L-1));
+	sim.addSubpop("p1",1);
+	p0.setMigrationRates(p1,alpha);
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+
 }
 
+1 late() {p1.setSubpopulationSize(0);}
 
 // output
 
@@ -49,8 +47,8 @@ initialize() {
 100 late() {
 	sim.treeSeqOutput(outPath + "/swordtail_replicate" + seed + "_generation100_N" + N + ".trees"); }
 	
-//150 late() {
-//	sim.treeSeqOutput(outPath + "/swordtail_replicate" + seed + "_generation150_N" + N + ".trees"); }
+150 late() {
+	sim.treeSeqOutput(outPath + "/swordtail_replicate" + seed + "_generation150_N" + N + ".trees"); }
 
-//200 late() {
-//	sim.treeSeqOutput(outPath + "/swordtail_replicate" + seed + "_generation200_N" + N + ".trees"); }
+200 late() {
+	sim.treeSeqOutput(outPath + "/swordtail_replicate" + seed + "_generation200_N" + N + ".trees"); }
