@@ -24,33 +24,30 @@ initialize() {
 	defineConstant("outPath", "results/swordtail_neutral");
 }
 
-1 {sim.addSubpop("p0", N);
-	F1s = sample(p0.individuals, asInteger(2*N*alpha));
-	genomes = NULL;
-	for(F1 in F1s);
-	{
-	genomes = c(genomes, F1.genomes[1]);
-	}
-	genomes.addNewMutation(m1,0,0:(L-1));
+1 {
+	sim.addSubpop("p0", N);
+	sim.addSubpop("p1",1);
+	p0.setMigrationRates(p1, alpha);
+
+	// this may be critical see 17.5 in slim manual
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);	
 }
 
+1 late() {p1.setSubpopulationSize(0);}
 
 // output
 
-//1 late() {
-//	sim.treeSeqOutput(outPath + "/replicate" + seed + "_generation001.trees"); }
+// gen 3 late output are F2s. i.e. 1 generation removed from initial mixing according to theory	
+// this is because after setting migration rates in early gen1, individuals in late gen 1 consist of a mixture of pure individuals
+// so individuals in gen 2 will contain F1s
+3 late() {
+	sim.treeSeqOutput(outPath + "/swordtail_replicate" + seed + "_generation0001_N" + N + ".trees"); }
 	
-//2 late() {
-//	sim.treeSeqOutput(outPath + "/replicate" + seed + "_generation002.trees"); }
-	
+13 late() {
+	sim.treeSeqOutput(outPath + "/swordtail_replicate" + seed + "_generation0010_N" + N + ".trees"); }
 
+103 late() {
+	sim.treeSeqOutput(outPath + "/swordtail_replicate" + seed + "_generation0100_N" + N + ".trees"); }
 
-
-100 late() {
-	sim.treeSeqOutput(outPath + "/swordtail_replicate" + seed + "_generation100_N" + N + ".trees"); }
-	
-//150 late() {
-//	sim.treeSeqOutput(outPath + "/swordtail_replicate" + seed + "_generation150_N" + N + ".trees"); }
-
-//200 late() {
-//	sim.treeSeqOutput(outPath + "/swordtail_replicate" + seed + "_generation200_N" + N + ".trees"); }
+1003 late() {
+	sim.treeSeqOutput(outPath + "/swordtail_replicate" + seed + "_generation1000_N" + N + ".trees"); }
