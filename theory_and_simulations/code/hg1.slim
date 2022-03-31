@@ -1,0 +1,69 @@
+initialize() {
+	initializeTreeSeq();
+	defineConstant("N1", 1000);
+	defineConstant("N2", 1000);
+	defineConstant("s", 0.4);
+	defineConstant("alpha", 0.5);
+
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/hg1/");
+
+	// number of windows present in rec map
+	defineConstant("L", 23600);
+	initializeGenomicElement(g1, 0, L-1);
+
+	// read recombination map for hg1
+	lines = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/human/Kong_etal_recmaps/hg1_recmap.txt");
+	rates = NULL;
+	ends = NULL;
+	
+	for (line in lines)
+	{	
+		components = strsplit(line, "\t");
+		ends = c(ends, asInteger(components[0]));
+		rates = c(rates, asFloat(components[1]));
+	}
+	ends = ends - min(ends);
+	ends = asInteger(ends/10000) + 1; 
+	ends = c(ends[1:(size(ends)-1)] - 2, L-1); // see SLiM manual section 6.1.2: this converts to zero based indexing and shifts from starts to ends
+	
+	rates = rates*0.01; // since each position in the simulation represents a 10kb window, this rescales recombination to a per window rate equivalent to 1e-8 per bp
+	
+	initializeRecombinationRate(rates, ends);
+}
+
+1 {
+	sim.addSubpop("p1", N1);
+	sim.addSubpop("p2", N2); 
+	
+	// the donor population carries 100 deleterious loci 
+	p2.individuals.genomes.addNewMutation(m1, 0, asInteger(seq(0, L-1, by = L/100))); 
+
+	p1.setMigrationRates(p2,alpha);
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+}
+
+1 late() {p2.setSubpopulationSize(0);}
+
+//calculate fitness
+1:1000 late() {
+	inds = p1.individuals;
+	introgressed = inds.countOfMutationsOfType(m1);
+	// an individual homozygous for all 100 deleterious loci experiences a fitness reduction of 0.4
+	inds.fitnessScaling = 1.0 - (introgressed/(200))*s;
+}
+
+
+// output: gen 3 late are F2 offspring
+3 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_F2.trees"); }
+11 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_F10.trees"); }
+101 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_F100.trees"); }
+1001 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_F1000.trees"); }
+

@@ -32,7 +32,6 @@ initialize() {
 	// this may be critical see 17.5 in slim manual
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);	
 }
-
 1 late() {p1.setSubpopulationSize(0);}
 
 // output
@@ -51,3 +50,4 @@ initialize() {
 
 1003 late() {
 	sim.treeSeqOutput(outPath + "/swordtail_replicate" + seed + "_generation1000_N" + N + ".trees"); }
+

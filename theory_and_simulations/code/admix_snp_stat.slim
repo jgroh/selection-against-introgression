@@ -1,9 +1,9 @@
 initialize() {
 	
+	defineConstant("N", 1000);
 	defineConstant("alpha", 0.5);
 	defineConstant("genomeSize", 1e8);
-	initializeMutationRate(1e-8); 
-	initializeMutationType("m1", 0.5, "f", 0);
+	initializeMutationRate(0); 
 	m1.mutationStackPolicy = "f";
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, genomeSize-1);
@@ -14,35 +14,19 @@ initialize() {
 
 }
 
-1 {sim.addSubpop("p0", 10000); }
+1 {sim.addSubpop("p0", N); }
 
-// burnin of 10N generations for ancestral population before split (expected height of coalescent tree is 4N)
-100000 { sim.addSubpopSplit("p1", 10000, p0); }
 
-//introduce migration once expected value of Fst is 0.2 (for N of 10000, T = 10000)
+//introduce migration once expected value of Fst is 0.2 (N=T)
 
-110000 { 
+s1 { 
 	sim.addSubpop("p2", 10000); 
 	p2.setMigrationRates(c(p0,p1), c(alpha, 1-alpha)); 
 
-	// initial allele frequencies
-	pos = sim.mutations.position;
-	f0 = sim.mutationFrequencies(p0);
-	f1 = sim.mutationFrequencies(p1);
-	f2 = asFloat(rep(-1, length(pos)));	
-
-	tbl = cbind(asFloat(pos), f0, f1, f2, asFloat(rep(1, length(pos))), asFloat(rep(seed, length(pos))));
-
-	output = "";
-	for (n in 0:(nrow(tbl)-1) )
-	{
-	output = c(output, paste(tbl[n,]));
-	}
-	
-	writeFile(outPath + "replicate" + seed + "_gen0000.txt", output);
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0001.trees"); }
 }
 	
-110001 late() {
+s2 late() {
 
 	pos = sim.mutations.position;
 	f0 = sim.mutationFrequencies(p0);
@@ -57,77 +41,6 @@ initialize() {
 	output = c(output, paste(tbl[n,]));
 	}
 	
-	writeFile(outPath + "replicate" + seed + "_gen0001.txt", output);
+	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0010.trees"); }
 }
 
-110002 late() {
-
-	pos = sim.mutations.position;
-	f0 = sim.mutationFrequencies(p0);
-	f1 = sim.mutationFrequencies(p1);
-	f2 = sim.mutationFrequencies(p2);
-	
-	tbl = cbind(asFloat(pos), f0, f1, f2, asFloat(rep(2, length(pos))), asFloat(rep(seed, length(pos))));
-
-	output = "";
-	for (n in 0:(nrow(tbl)-1) )
-	{
-	output = c(output, paste(tbl[n,]));
-	}
-	
-	writeFile(outPath + "replicate" + seed + "_gen0002.txt", output);
-}
-
-110010 late() {
-
-	pos = sim.mutations.position;
-	f0 = sim.mutationFrequencies(p0);
-	f1 = sim.mutationFrequencies(p1);
-	f2 = sim.mutationFrequencies(p2);
-	
-	tbl = cbind(asFloat(pos), f0, f1, f2, asFloat(rep(10, length(pos))), asFloat(rep(seed, length(pos))));
-
-	output = "";
-	for (n in 0:(nrow(tbl)-1) )
-	{
-	output = c(output, paste(tbl[n,]));
-	}
-	
-	writeFile(outPath + "replicate" + seed + "_gen0010.txt", output);
-}
-
-110100 late() {
-
-	pos = sim.mutations.position;
-	f0 = sim.mutationFrequencies(p0);
-	f1 = sim.mutationFrequencies(p1);
-	f2 = sim.mutationFrequencies(p2);
-	
-	tbl = cbind(asFloat(pos), f0, f1, f2, asFloat(rep(100, length(pos))), asFloat(rep(seed, length(pos))));
-
-	output = "";
-	for (n in 0:(nrow(tbl)-1) )
-	{
-	output = c(output, paste(tbl[n,]));
-	}
-	
-	writeFile(outPath + "replicate" + seed + "_gen0100.txt", output);
-}
-
-112000 late() {
-
-	pos = sim.mutations.position;
-	f0 = sim.mutationFrequencies(p0);
-	f1 = sim.mutationFrequencies(p1);
-	f2 = sim.mutationFrequencies(p2);
-	
-	tbl = cbind(asFloat(pos), f0, f1, f2, asFloat(rep(1000, length(pos))), asFloat(rep(seed, length(pos))));
-
-	output = "";
-	for (n in 0:(nrow(tbl)-1) )
-	{
-	output = c(output, paste(tbl[n,]));
-	}
-	
-	writeFile(outPath + "replicate" + seed + "_gen1000.txt", output);
-}

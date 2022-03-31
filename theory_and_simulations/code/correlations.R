@@ -7,37 +7,56 @@ library(tidyverse)
 library(data.table)
 
 
-g1 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen1/ancestry_master.txt"
-g1_1000 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen1-1000/ancestry_master.txt"
-g100 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen100/ancestry_master.txt"
-g500 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen500/ancestry_master.txt"
+# g1 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen1/ancestry_master.txt"
+# g1_1000 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen1-1000/ancestry_master.txt"
+# g100 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen100/ancestry_master.txt"
+# g500 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen500/ancestry_master.txt"
+# 
+# g1 <- read.table(g1, row.names = 1)
+# rownames(g1) <- paste0("g1_", rownames(g1))
+# 
+# g1_1000 <- read.table(g1_1000, row.names = 1)
+# rownames(g1_1000) <- paste0("g1_1000_", rownames(g1_1000))
+# 
+# g100 <- read.table(g100, row.names = 1)
+# rownames(g100) <- paste0("g100_", rownames(g100))
+# 
+# g500 <- read.table(g500, row.names = 1)
+# rownames(g500) <- paste0("g500_", rownames(g500))
 
-g1 <- read.table(g1, row.names = 1)
-rownames(g1) <- paste0("g1_", rownames(g1))
+g1_10 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen1-10/ancestry_master.txt"
+g1_1000 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen1-1000/ancestry_master.txt"
+g100_110 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen100-110/ancestry_master.txt"
+g500_510 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen500-510/ancestry_master.txt"
+
+g1_10 <- read.table(g1_10, row.names = 1)
+rownames(g1_10) <- paste0("g1_10_", rownames(g1_10))
 
 g1_1000 <- read.table(g1_1000, row.names = 1)
 rownames(g1_1000) <- paste0("g1_1000_", rownames(g1_1000))
 
-g100 <- read.table(g100, row.names = 1)
-rownames(g100) <- paste0("g100_", rownames(g100))
+g100_110 <- read.table(g100_110, row.names = 1)
+rownames(g100_110) <- paste0("g100_110_", rownames(g100_110))
 
-g500 <- read.table(g500, row.names = 1)
-rownames(g500) <- paste0("g500_", rownames(g500))
+g500_510 <- read.table(g500_510, row.names = 1)
+rownames(g500_510) <- paste0("g500_510_", rownames(g500_510))
 
 
 
 # combine data sets from simulations
 #all.sim <- rbind.data.frame(a1,a2,a3)
 
-all.sim <- rbind.data.frame(g1,g100,g500,g1_1000)
+#all.sim <- rbind.data.frame(g1,g100,g500,g1_1000)
+all.sim <- rbind.data.frame(g1_10,g100_110,g500_510,g1_1000)
+
 
 # reformat data for calculation and plotting
 a <- as.data.frame(t(all.sim))
-a$pos_absolute <- 1:1000
+a$pos_absolute <- 1:1024
 
 # create vector that describes recombination landscape (only applies to sims 3, 4)
-x <- 1:1000
-signal <- rep(0,1000)
+x <- 1:1024
+signal <- rep(0,1024)
 for(i in 1:10){
   signal <- signal + sin(x*2*pi/2^i)
 }
@@ -52,54 +71,102 @@ r <- const*exp(signal)
 a$recomb <- r
 
 # add genetic distance corresponding to variable recombination rate (expected number of crossovers, binomial n*p)
-a$pos_gen <- cumsum((1e8/1000)*r)
+a$pos_gen <- cumsum((1e8/1024)*r)
 
 # tidy data
 b  <-  a %>%
   gather(key = sim_rep_gen,
-         value = freq, -c(pos_absolute,recomb,pos_gen)) %>% 
-  separate(sim_rep_gen, c("sim_rep.id", "gen"), sep = "_gen") %>% 
+         value = freq, -c(pos_absolute,recomb,pos_gen)) %>%
+  separate(sim_rep_gen, c("sim_rep.id", "gen"), sep = "_gen") %>%
   separate(sim_rep.id, c("sim", "rep.id"), sep = "_replicate")
 setDT(b)
 
+# ===== interpolate =====
+i1 <- b[, approx(y = freq,
+                x = pos_gen,
+                rule = 2,
+                xout = seq(2^-10, 1, by = 2^-10)), by = .(sim, rep.id, gen)]
+setnames(i1, c("x","y"), c("Morgan", "freq"))
+i1 <- i1[!is.na(freq)]
+
+i2 <- b[, approx(y = pos_absolute,
+                 x = pos_gen,
+                 rule = 2,
+                 xout = seq(2^-10, 1, by = 2^-10)), by = .(sim, rep.id, gen)]
+setnames(i2, c("x","y"), c("Morgan", "pos"))
+i2 <- i2[!is.na(pos)]
+
+i2[, bp_diff := c(diff(pos)[1],diff(pos)), by = .(sim, rep.id, gen)]
+i2[, recomb := 1/bp_diff]
+intrp <- merge(i1, i2)
+
+
 #====== Calculate total correlations and covariances
 # (and average over replicates)
-totalcors <- b[, .(cor = cor(freq, log10(recomb))), by = .(sim, rep.id, gen)]
-totalcovs <- b[, .(cov = cov(log10(recomb), freq)), by = .(rep.id, gen, sim)]
 
-totalcors[, z := 0.5*log((1+cor)/(1-cor))]
+# ----- for physical scale
+totalcors_p <- b[, .(cor = cor(freq, recomb)), by = .(sim, rep.id, gen)]
+totalcovs_p <- b[, .(cov = cov(recomb, freq)), by = .(rep.id, gen, sim)]
 
-avg.cors <- totalcors[, .(cor = (exp(2*mean(z))-1)/(exp(2*mean(z))+1)), by = .(gen, sim)]
-avg.covs <- totalcovs[, .(cov = mean(cov)), by = .(gen, sim)]
+totalcors_p[, z := 0.5*log((1+cor)/(1-cor))]
+
+avg.cors_p <- totalcors_p[, .(cor = (exp(2*mean(z))-1)/(exp(2*mean(z))+1)), by = .(gen, sim)]
+avg.covs_p <- totalcovs_p[, .(cov = mean(cov)), by = .(gen, sim)]
 
 # plot total correlations
-ggplot(totalcors, aes(x = gen, y = cor)) + 
-  geom_line(aes(group = rep.id),  color = 'gray', alpha = 0.5) + 
-  geom_point(color = 'gray', alpha = 0.5) + 
-  theme_classic() + 
-  geom_line(data = avg.cors, aes(group = 1), size = 2) + 
-  geom_point(data = avg.cors, size = 2) + 
-  labs(x = expression(log[10] (Generation)), 
-       y = "Total correlation") + 
+ggplot(totalcors_p, aes(x = gen, y = cor)) +
+  geom_line(aes(group = rep.id),  color = 'gray', alpha = 0.5) +
+  geom_point(color = 'gray', alpha = 0.5) +
+  theme_classic() +
+  geom_line(data = avg.cors_p, aes(group = 1), size = 2) +
+  geom_point(data = avg.cors_p, size = 2) +
+  labs(x = expression(log[10] (Generation)),
+       y = "Total correlation") +
   theme(aspect.ratio=1,
         text=element_text(size=13),
-        axis.text.x = element_text(angle=90)) + facet_wrap(~sim) 
+        axis.text.x = element_text(angle=90)) + facet_wrap(~sim)
+
+# ----- for genetic scale
+totalcors_g <- intrp[, .(cor = cor(freq, recomb)), by = .(sim, rep.id, gen)]
+totalcovs_g <- intrp[, .(cov = cov(recomb, freq)), by = .(rep.id, gen, sim)]
+
+totalcors_g[, z := 0.5*log((1+cor)/(1-cor))]
+
+avg.cors_g <- totalcors_g[, .(cor = (exp(2*mean(z))-1)/(exp(2*mean(z))+1)), by = .(gen, sim)]
+avg.covs_g <- totalcovs_g[, .(cov = mean(cov)), by = .(gen, sim)]
+
+# plot total correlations
+ggplot(totalcors_g, aes(x = gen, y = cor)) +
+  geom_line(aes(group = rep.id),  color = 'gray', alpha = 0.5) +
+  geom_point(color = 'gray', alpha = 0.5) +
+  theme_classic() +
+  geom_line(data = avg.cors_g, aes(group = 1), size = 2) +
+  geom_point(data = avg.cors_g, size = 2) +
+  labs(x = "Generation",
+       y = "Total correlation") +
+  theme(aspect.ratio=1,
+        text=element_text(size=13),
+        axis.text.x = element_text(angle=90)) + facet_wrap(~sim)
 
 
 # ===== compute wavelet correlations
 
-# note this throws a warning because there is no chromosome-level variance as there is only a single chromosome
-gcd <- b[, cor_tbl(data = .SD, 
-                    chromosome = NA, 
+# ----- physical scale -----
+gcd_p <- b[, cor_tbl(data = .SD,
+                    chromosome = NA,
                     signals = c("recomb", "freq"),
-                    rm.boundary = TRUE), 
+                    rm.boundary = TRUE),
   by = .(rep.id, gen, sim)]
 
 # plot all replicates
-gcd[, gen := as.numeric(gen)]
-ggplot(gcd, 
+gcd_p[, gen := as.numeric(gen)]
+ggplot(gcd_p,
        aes(x = log10(gen), y = cor, group = interaction(level, rep.id), color = level)) +
   facet_wrap(~sim) + geom_point() + geom_line()
+ggplot(gcd_p,
+       aes(x = log10(gen), y = cor, group = interaction(level, rep.id), color = level)) +
+  facet_wrap(~sim) + geom_point() + geom_line()
+
 
 # ---- average over replicates
 
@@ -107,32 +174,76 @@ ggplot(gcd,
 fisherz <- function(x){0.5*log((1+x)/(1-x))}
 invfisherz <- function(x){ (exp(2*x)-1)/(exp(2*x)+1) }
 
-gcd[, z := fisherz(cor)]
-gcd[cor > 0.999, z:= 5]
-gcd[cor < -0.999, z:=-5]
+gcd_p[, z := fisherz(cor)]
+gcd_p[cor > 0.999, z:= 5]
+gcd_p[cor < -0.999, z:=-5]
 
 # average over transformed values, then reconvert
-gcdm <- gcd[, .(cor = invfisherz(mean(z)) ), by = .(gen, sim, level)]
+gcdm_p <- gcd_p[, .(cor = invfisherz(mean(z)) ), by = .(gen, sim, level)]
 
 # compute confidence intervals on transformed scale then reconvert
 se <- function(x){sd(x)/sqrt(length(x))}
-gcdci <- gcd[, .(lower = mean(z) - 1.96*se(z), 
+gcdci_p <- gcd_p[, .(lower = mean(z) - 1.96*se(z),
                  upper = mean(z) + 1.96*se(z)),
              by = .(gen,sim,level) ]
-gcdci <- gcdci[, lapply(.SD, invfisherz),
-               .SDcols = c("lower", "upper"), 
+gcdci_p <- gcdci_p[, lapply(.SD, invfisherz),
+               .SDcols = c("lower", "upper"),
       by = .(gen, sim, level)]
 
 # combine means and cis
-gcdm <- merge(gcdm, gcdci, by = c("gen", "sim", "level"))
+gcdm_p <- merge(gcdm_p, gcdci_p, by = c("gen", "sim", "level"))
 
 # plot
-gcdm[, gen := as.numeric(gen)]
+gcdm_p[, gen := as.numeric(gen)]
 
-ggplot(gcdm[level != "chr"], 
+ggplot(gcdm_p,
        aes(x = log10(gen), y = cor, group = level, color = level)) +
   geom_errorbar(aes(ymin=lower, ymax=upper))+
   facet_wrap(~sim) + geom_point() + geom_line()
+
+
+
+# ----- genetic scale -----
+gcd_g <- intrp[, cor_tbl(data = .SD,
+                     chromosome = NA,
+                     signals = c("recomb", "freq"),
+                     rm.boundary = TRUE),
+           by = .(rep.id, gen, sim)]
+
+# plot all replicates
+gcd_g[, gen := as.numeric(gen)]
+ggplot(gcd_g,
+       aes(x = log10(gen), y = cor, group = interaction(level, rep.id), color = level)) +
+  facet_wrap(~sim) + geom_point() + geom_line()
+
+
+# ---- average over replicates
+gcd_g[, z := fisherz(cor)]
+gcd_g[cor > 0.999, z:= 5]
+gcd_g[cor < -0.999, z:=-5]
+
+# average over transformed values, then reconvert
+gcdm_g <- gcd_g[, .(cor = invfisherz(mean(z)) ), by = .(gen, sim, level)]
+
+# compute confidence intervals on transformed scale then reconvert
+gcdci_g <- gcd_g[, .(lower = mean(z) - 1.96*se(z),
+                     upper = mean(z) + 1.96*se(z)),
+                 by = .(gen,sim,level) ]
+gcdci_g <- gcdci_g[, lapply(.SD, invfisherz),
+                   .SDcols = c("lower", "upper"),
+                   by = .(gen, sim, level)]
+
+# combine means and cis
+gcdm_g <- merge(gcdm_g, gcdci_g, by = c("gen", "sim", "level"))
+
+# plot
+gcdm_g[, gen := as.numeric(gen)]
+
+ggplot(gcdm_g,
+       aes(x = log10(gen), y = cor, group = level, color = level)) +
+  geom_errorbar(aes(ymin=lower, ymax=upper))+
+  facet_wrap(~sim) + geom_point() + geom_line()
+
 
 
 # ===== Wavelet covariances ====
@@ -143,54 +254,118 @@ w <- b[, multi_modwts(.SD, chromosome = NA, signals = c("freq", "recomb"), rm.bo
 meanFreq <- b[, .(p = mean(freq)), by = .(sim,gen)]
 meanFreq[, gen := as.numeric(gen)]
 
-covtbl <- w[, .(cov = cov(coefficient.freq, coefficient.recomb)), by = .(sim,rep.id,gen,level)]
+covtbl <- w[, .(cov = mean(coefficient.freq*coefficient.recomb)), by = .(sim,rep.id,gen,level)]
 covtbl[, gen := as.numeric(gen)]
 
 covtblm <- covtbl[, .(cov = mean(cov)), by = .(sim,gen,level)]
 covtblm <- merge(covtblm, meanFreq)
 
-ggplot(covtblm, 
+ggplot(covtblm,
        aes(x = log10(gen), y = cov, group = level, color = level)) +
   #geom_errorbar(aes(ymin=lower, ymax=upper))+
-  facet_wrap(~sim) + geom_point() + geom_line()
+  facet_wrap(~sim, scales = "free_y") + geom_point() + geom_line()
 
-ggplot(covtblm, 
-       aes(x = log10(gen), y = cov/sqrt(p*(1-p)), group = level, color = level)) +
+# ----- genetic scale
+
+w_g <- intrp[, multi_modwts(.SD, chromosome = NA, signals = c("freq", "recomb"), rm.boundary = T),
+       by = .(sim, rep.id, gen)]
+
+meanFreq_g <- b[, .(p = mean(freq)), by = .(sim,gen)]
+meanFreq_g[, gen := as.numeric(gen)]
+
+covtbl_g <- w_g[, .(cov = mean(coefficient.freq*coefficient.recomb)), by = .(sim,rep.id,gen,level)]
+covtbl_g[, gen := as.numeric(gen)]
+
+covtblm_g <- covtbl_g[, .(cov = mean(cov)), by = .(sim,gen,level)]
+covtblm_g <- merge(covtblm_g, meanFreq_g)
+
+ggplot(covtblm_g[ level != "s10"],
+       aes(x = log10(gen), y = cov, group = level, color = level)) +
   #geom_errorbar(aes(ymin=lower, ymax=upper))+
-  facet_wrap(~sim) + geom_point() + geom_line()
+  facet_wrap(~sim, scales = "free_y") + geom_point() + geom_line() +
+scale_color_viridis_d(option = "plasma", direction = -1,
+                     labels = as.character(-10:-1)) + 
+  labs(x = expression(log[10](gen)), y = "Covariance", color = expression(Scale: log[2](Morgan))) +
+  theme_classic() + facet_wrap(~sim, scales = "free_y") +
+  theme(aspect.ratio = 1,
+        axis.text.x = element_text(angle = 90))
+
+
+
 
 
 
 # ===== Stacked Barplot of contribution to correlation =====
 
-wv <- b[, gnom_var_decomp(.SD, chromosome = "chr", signals = c("recomb", "freq")),
+# ----- physical scale ----
+wv_p <- b[, gnom_var_decomp(.SD, chromosome = NA, signals = c("recomb", "freq")),
                       by = .(sim, rep.id, gen)]
 
-wv <- wv[, lapply(.SD, mean), .SDcols = c("variance.recomb", "variance.freq"),
+# average variance across replicates
+wv_p <- wv_p[, lapply(.SD, mean), .SDcols = c("variance.recomb", "variance.freq"),
    by = .(sim, gen, level)]
-wv[, gen := as.numeric(gen)]
-gcdm <- merge(gcdm, wv)
+wv_p[, gen := as.numeric(gen)]
+gcdm_p <- merge(gcdm_p, wv_p)
 
-gcdm[, c("totalvar.recomb", "totalvar.freq") := lapply(.SD, sum), 
+gcdm_p[, c("totalvar.recomb", "totalvar.freq") := lapply(.SD, sum),
      .SDcols = c("variance.recomb", "variance.freq"), by = .(gen, sim)]
 
-gcdm[, propvar.recomb := variance.recomb/totalvar.recomb]
-gcdm[, propvar.freq := variance.freq/totalvar.freq]
-gcdm[, contribution := cor*sqrt(propvar.freq*propvar.recomb)]
+gcdm_p[, propvar.recomb := variance.recomb/totalvar.recomb]
+gcdm_p[, propvar.freq := variance.freq/totalvar.freq]
+gcdm_p[, contribution := cor*sqrt(propvar.freq*propvar.recomb)]
 
 
-ggplot(gcdm[lower > 0 | upper < 0]) +
+ggplot(gcdm_p) +
   geom_bar(aes(fill = level, x = as.factor(gen),
                y = contribution), position = "stack",
            stat = "identity", color = "black") +
-  scale_fill_viridis_d(option = "plasma", direction = -1, 
-                       labels = c(as.character(1:9), "9 (scaling)")) + labs(x = "Gen", 
+  scale_fill_viridis_d(option = "plasma", direction = -1,
+                       labels = c(as.character(1:9), "9 (scaling)")) + labs(x = "Gen",
        y = "Contribution",
        fill = "Scale: log[2](100 kb)") +
-       #fill = expression(Scale: log[2](Morgan))) + 
-  theme_classic() + facet_wrap(~sim, scales = "free_y") + 
-  theme(aspect.ratio = 1, 
+       #fill = expression(Scale: log[2](Morgan))) +
+  theme_classic() + facet_wrap(~sim, scales = "free_y") +
+  theme(aspect.ratio = 1,
         axis.text.x = element_text(angle = 90))
+
+
+
+# ----- genetic scale -----
+wv_g <- intrp[, gnom_var_decomp(.SD, chromosome = NA, signals = c("recomb", "freq")),
+          by = .(sim, rep.id, gen)]
+
+# average variance across replicates
+wv_g <- wv_g[, lapply(.SD, mean), .SDcols = c("variance.recomb", "variance.freq"),
+             by = .(sim, gen, level)]
+wv_g[, gen := as.numeric(gen)]
+gcdm_g <- merge(gcdm_g, wv_g)
+
+gcdm_g[, c("totalvar.recomb", "totalvar.freq") := lapply(.SD, sum),
+       .SDcols = c("variance.recomb", "variance.freq"), by = .(gen, sim)]
+
+gcdm_g[, propvar.recomb := variance.recomb/totalvar.recomb]
+gcdm_g[, propvar.freq := variance.freq/totalvar.freq]
+gcdm_g[, contribution := cor*sqrt(propvar.freq*propvar.recomb)]
+
+
+ggplot(gcdm_g[!level %in% c("s10") ]) +
+  geom_bar(aes(fill = level, x = as.factor(gen),
+               y = contribution), position = "stack",
+           stat = "identity", color = "black") +
+  scale_fill_viridis_d(option = "plasma", direction = -1,
+                       labels = as.character(-10:-1)) + 
+  labs(x = "Gen", y = "Contribution", fill = expression(Scale: log[2](Morgan))) +
+  theme_classic() + facet_wrap(~sim) +
+  theme(aspect.ratio = 1,
+        axis.text.x = element_text(angle = 90))
+
+
+
+
+
+
+
+
 
 
 
@@ -200,10 +375,10 @@ ggplot(gcdm[lower > 0 | upper < 0]) +
 
 # a1 <- read.table(file1, row.names = 1)
 # rownames(a1) <- paste0("neutral_", rownames(a1))
-# 
+#
 # a2 <- read.table(file2, row.names = 1)
 # rownames(a2) <- paste0("sel-const-recomb_", rownames(a2))
-# 
+#
 # a3 <- read.table(file3, row.names = 1)
 # rownames(a3) <- paste0("sel-periodic-recomb_", rownames(a3))
 
@@ -217,32 +392,32 @@ ggplot(gcdm[lower > 0 | upper < 0]) +
 
 
 
-freq.modwt <- b[, brick.wall(wf= "haar", 
-               modwt(freq, wf="haar", n.levels = 10)), 
+freq.modwt <- b[, brick.wall(wf= "haar",
+               modwt(freq, wf="haar", n.levels = 10)),
   by = .(sim, rep.id, gen)] %>%
-  melt(value.name = "freq.coefficient", 
+  melt(value.name = "freq.coefficient",
        variable.name = "level",
        id.vars = c("sim", "rep.id", "gen"))
 freq.modwt[, pos := seq_len(.N), by = .(sim, rep.id, gen)]
 
-rec.modwt <- b[, brick.wall(wf= "haar", 
-                             modwt(recomb, wf="haar", n.levels = 10)), 
+rec.modwt <- b[, brick.wall(wf= "haar",
+                             modwt(recomb, wf="haar", n.levels = 10)),
                 by = .(sim, rep.id, gen)] %>%
-  melt(value.name = "rec.coefficient", 
+  melt(value.name = "rec.coefficient",
        variable.name = "level",
        id.vars = c("sim", "rep.id", "gen"))
 rec.modwt[, pos := seq_len(.N), by = .(sim, rep.id, gen)]
 
 allmodwt <- merge(freq.modwt, rec.modwt, by = c("sim", "rep.id", "gen", "level", "pos"))
 
-wv_freq <- b[, wave.variance(brick.wall(wf= "haar", 
-               modwt(freq, wf="haar", n.levels = 10))), 
-  by = .(sim, rep.id, gen)] 
+wv_freq <- b[, wave.variance(brick.wall(wf= "haar",
+               modwt(freq, wf="haar", n.levels = 10))),
+  by = .(sim, rep.id, gen)]
 wv_freq[, level := seq_len(.N), by = .(sim,rep.id,gen)]
 
-wv_rec <- b[, wave.variance(brick.wall(wf= "haar", 
-                                       modwt(recomb, wf="haar", n.levels = 10))), 
-            by = .(sim, rep.id, gen)] 
+wv_rec <- b[, wave.variance(brick.wall(wf= "haar",
+                                       modwt(recomb, wf="haar", n.levels = 10))),
+            by = .(sim, rep.id, gen)]
 wv_rec[, level := seq_len(.N), by = .(sim,rep.id,gen)]
 
 
@@ -267,7 +442,7 @@ allcor[cor < -0.999, z:=-5]
 avg.cors <- allcor[level %in% 1:9, .(avg.cor = (exp(2*mean(z))-1)/(exp(2*mean(z))+1)), by = .(sim, gen, level)]
 avg.cors[, level := as.factor(level)]
 
-ggplot(avg.cors, aes(x= gen, y = avg.cor, group = level, color = level)) + 
+ggplot(avg.cors, aes(x= gen, y = avg.cor, group = level, color = level)) +
   scale_color_viridis_d(direction=-1) +
   geom_point() + geom_line() + facet_wrap(~sim)
 
@@ -340,9 +515,9 @@ WV[, propVarRecomb := recVar/totVarRecomb]
 # double check that variance calculations make sense
 WV[, level := as.factor(level)]
 WV[, level := factor(level, levels = 1:10)]
-WV[sim == "g1" & level != 11] %>% ggplot(aes(x = level, y = ancVar, color = rep.id)) + 
+WV[sim == "g1" & level != 11] %>% ggplot(aes(x = level, y = ancVar, color = rep.id)) +
   facet_wrap(~gen, scales = "free_y") +
-  geom_point() + geom_line(aes(group = rep.id)) 
+  geom_point() + geom_line(aes(group = rep.id))
 
 # geometric mean of proportion of var
 WV[, varWeight := sqrt(propVarFreq*propVarRecomb)]
@@ -387,28 +562,28 @@ lblr <- function(variable, value){
 }
 
 # plot cor components
-ggplot(corcomponents, aes(x = log10(as.numeric(gen)), 
-                          y = value, group = variable, color = variable)) + 
+ggplot(corcomponents, aes(x = log10(as.numeric(gen)),
+                          y = value, group = variable, color = variable)) +
          geom_point() + geom_line() + facet_wrap(~sim) +
   theme_classic()+
   scale_colour_brewer(type = "qual", palette = "Set2",
                       labels = c("Covariance", "Ancestry variance")) +
-  labs(x = expression(log[10] (Generation)), 
+  labs(x = expression(log[10] (Generation)),
        y = "Value") +
   theme(aspect.ratio=1,
-        text=element_text(size=13)) + facet_wrap(~sim, labeller=lblr) 
+        text=element_text(size=13)) + facet_wrap(~sim, labeller=lblr)
 
 
-plotA <- ggplot(cors, aes(x = log10(as.numeric(gen)), y = cor)) + 
-  geom_line(aes(group = rep.id),  color = 'gray', alpha = 0.5) + geom_point(color = 'gray',alpha = 0.5) + 
-  theme_classic() + 
-  geom_line(data = avg.cors, size = 2) + geom_point(data = avg.cors, size = 2) + 
-  labs(x = expression(log[10] (Generation)), 
-       y = "Total correlation") + 
+plotA <- ggplot(cors, aes(x = log10(as.numeric(gen)), y = cor)) +
+  geom_line(aes(group = rep.id),  color = 'gray', alpha = 0.5) + geom_point(color = 'gray',alpha = 0.5) +
+  theme_classic() +
+  geom_line(data = avg.cors, size = 2) + geom_point(data = avg.cors, size = 2) +
+  labs(x = expression(log[10] (Generation)),
+       y = "Total correlation") +
   theme(aspect.ratio=1,
-        text=element_text(size=13)) + facet_wrap(~sim, labeller=lblr) 
+        text=element_text(size=13)) + facet_wrap(~sim, labeller=lblr)
 plotA
- 
+
 # decompose correlation by level
 rho <- W[, .(rho = sum(wFreq*wRecomb, na.rm=T)/sqrt(sum(wFreq^2, na.rm=T)*sum(wRecomb^2,na.rm=T))), by = .(gen, level, sim, rep.id)]
 rho <- allmodwt[, .(rho = cov(freq.coefficient,rec.coefficient)/sqrt(var(freq.coefficient)*var(rec.coefficient))), by = .(gen, level, sim, rep.id)]
@@ -447,19 +622,19 @@ txt <- textGrob("*", gp=gpar(fontsize=13, fontface="bold"))
 avg.rho
 plotB <- avg.rho[level %in% paste0("d", 1:9)] %>%
   ggplot(aes(x = log10(as.numeric(gen)), y = rho, color = level))  +
-  geom_point() + geom_line(aes(group = level)) + 
-  scale_color_viridis_d(direction = -1, labels = -10:-1) + 
+  geom_point() + geom_line(aes(group = level)) +
+  scale_color_viridis_d(direction = -1, labels = -10:-1) +
   theme_classic() +
-  theme(aspect.ratio =1, 
+  theme(aspect.ratio =1,
         text = element_text(size = 13),
-        plot.caption = element_text(size=20))+ #, 
-        #legend.position = "non") + 
+        plot.caption = element_text(size=20))+ #,
+        #legend.position = "non") +
   labs(color = expression(Scale: log[2](Morgans)),
-       x = expression(log[10] (Generation)), 
-       y = expression(paste("\u03c1 ( ", w[x], " , ", w[y], ")"))) + annotation_logticks(sides = "b") + 
-  annotation_custom(txt,xmin=log10(2),xmax=log10(2),ymin=-.9,ymax=-.9) + 
+       x = expression(log[10] (Generation)),
+       y = expression(paste("\u03c1 ( ", w[x], " , ", w[y], ")"))) + annotation_logticks(sides = "b") +
+  annotation_custom(txt,xmin=log10(2),xmax=log10(2),ymin=-.9,ymax=-.9) +
   coord_cartesian(clip = "off") + facet_wrap(~sim, labeller = lblr) + #, scales = "free_y") +
-  scale_fill_viridis_d(labels = -1:-10) 
+  scale_fill_viridis_d(labels = -1:-10)
   #annotate(geom="text", x=log10(2), y=-.6, label="*", size = 15)
 plotB
 
@@ -475,20 +650,20 @@ corPlotData[, abs.contribution := abs(contribution)/sum.abs.contribution]
 corPlotData <- corPlotData[gen != "0001"]
 corPlotData[, level := factor(level, levels = 10:1)]
 
-plotC.leg <- corPlotData %>% 
-  ggplot(aes(x = gen, fill = level, y = abs.contribution)) + 
+plotC.leg <- corPlotData %>%
+  ggplot(aes(x = gen, fill = level, y = abs.contribution)) +
   geom_bar(position = "stack", stat = "identity") +
-  theme_classic() + 
+  theme_classic() +
   facet_wrap(~sim) +
   theme(aspect.ratio = 1,
-        text = element_text(size = 13), 
+        text = element_text(size = 13),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5),
         legend.title.align=0.5) + # ,
     #legend.direction = "horizontal") +
-  scale_fill_viridis_d(labels = -1:-10) + 
-  labs(fill = expression(Scale: log[2](Morgans)), 
-       x = "Generation", y = "Contribution to total correlation")  
-  #scale_x_discrete(labels = c(2,3,4,5,10,25,50,100,250,500,1000)) 
+  scale_fill_viridis_d(labels = -1:-10) +
+  labs(fill = expression(Scale: log[2](Morgans)),
+       x = "Generation", y = "Contribution to total correlation")
+  #scale_x_discrete(labels = c(2,3,4,5,10,25,50,100,250,500,1000))
   #theme(legend.position="bottom",
   #    legend.spacing.x = unit(0, 'cm'))#+
 plotC.leg
@@ -497,18 +672,18 @@ leg <- ggpubr::get_legend(plotC.leg)
 #leg <- as_ggplot(leg)
 
 
-plotC <- corPlotData %>% 
-  ggplot(aes(x = gen, fill = level, y = abs.contribution)) + 
+plotC <- corPlotData %>%
+  ggplot(aes(x = gen, fill = level, y = abs.contribution)) +
   geom_bar(position = "stack", stat = "identity") +
-  theme_classic() + 
+  theme_classic() +
   theme(aspect.ratio = 1,
-        text = element_text(size = 13), 
+        text = element_text(size = 13),
         legend.position = "",
-        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5)) + 
-  scale_fill_viridis_d(labels = -1:-10) + 
-  labs(fill = expression(Scale: log[2](Morgans)), 
-       x = "Generation", y = "Contribution to total correlation") + 
-  scale_x_discrete(labels = c(2,3,4,5,10,25,50,100,250,500,1000)) 
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5)) +
+  scale_fill_viridis_d(labels = -1:-10) +
+  labs(fill = expression(Scale: log[2](Morgans)),
+       x = "Generation", y = "Contribution to total correlation") +
+  scale_x_discrete(labels = c(2,3,4,5,10,25,50,100,250,500,1000))
 
 
 library(ggpubr)
