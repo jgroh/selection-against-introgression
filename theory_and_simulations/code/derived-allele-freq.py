@@ -17,6 +17,9 @@ def allele_frequencies(ts, sample_sets=None):
 # Load the .trees file
 ts = pyslim.load(sys.argv[1])
 
+#subsample = np.random.choice(ts.samples(), size = 1000, replace = False)
+#ts = ts.simplify(subsample)
+
 # define set of samples for calculation
 allset = [ts.samples(p) for p in range(ts.num_populations)]
 popset = [allset[0]]
