@@ -24,22 +24,22 @@ library(data.table)
 # g500 <- read.table(g500, row.names = 1)
 # rownames(g500) <- paste0("g500_", rownames(g500))
 
-g1_10 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen1-10/ancestry_master.txt"
+g1_100 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen1-100/ancestry_master.txt"
 g1_1000 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen1-1000/ancestry_master.txt"
-g100_110 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen100-110/ancestry_master.txt"
-g500_510 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen500-510/ancestry_master.txt"
+g100_200 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen100-200/ancestry_master.txt"
+g500_600 <- "theory_and_simulations/results/add-sel-periodic-recomb_gen500-600/ancestry_master.txt"
 
-g1_10 <- read.table(g1_10, row.names = 1)
-rownames(g1_10) <- paste0("g1_10_", rownames(g1_10))
+g1_100 <- read.table(g1_100, row.names = 1)
+rownames(g1_100) <- paste0("g1_100_", rownames(g1_100))
 
 g1_1000 <- read.table(g1_1000, row.names = 1)
 rownames(g1_1000) <- paste0("g1_1000_", rownames(g1_1000))
 
-g100_110 <- read.table(g100_110, row.names = 1)
-rownames(g100_110) <- paste0("g100_110_", rownames(g100_110))
+g100_200 <- read.table(g100_200, row.names = 1)
+rownames(g100_200) <- paste0("g100_200_", rownames(g100_200))
 
-g500_510 <- read.table(g500_510, row.names = 1)
-rownames(g500_510) <- paste0("g500_510_", rownames(g500_510))
+g500_600 <- read.table(g500_600, row.names = 1)
+rownames(g500_600) <- paste0("g500_600_", rownames(g500_600))
 
 
 
@@ -47,7 +47,7 @@ rownames(g500_510) <- paste0("g500_510_", rownames(g500_510))
 #all.sim <- rbind.data.frame(a1,a2,a3)
 
 #all.sim <- rbind.data.frame(g1,g100,g500,g1_1000)
-all.sim <- rbind.data.frame(g1_10,g100_110,g500_510,g1_1000)
+all.sim <- rbind.data.frame(g1_100,g100_200,g500_600,g1_1000)
 
 
 # reformat data for calculation and plotting
@@ -196,7 +196,7 @@ gcdm_p <- merge(gcdm_p, gcdci_p, by = c("gen", "sim", "level"))
 # plot
 gcdm_p[, gen := as.numeric(gen)]
 
-ggplot(gcdm_p,
+ggplot(gcdm_p[level != "s10"],
        aes(x = log10(gen), y = cor, group = level, color = level)) +
   geom_errorbar(aes(ymin=lower, ymax=upper))+
   facet_wrap(~sim) + geom_point() + geom_line()
@@ -239,11 +239,15 @@ gcdm_g <- merge(gcdm_g, gcdci_g, by = c("gen", "sim", "level"))
 # plot
 gcdm_g[, gen := as.numeric(gen)]
 
-ggplot(gcdm_g,
+ggplot(gcdm_g[level != "s10"],
        aes(x = log10(gen), y = cor, group = level, color = level)) +
   geom_errorbar(aes(ymin=lower, ymax=upper))+
-  facet_wrap(~sim) + geom_point() + geom_line()
-
+  facet_wrap(~sim) + geom_point() + geom_line() + 
+  scale_color_viridis_d(option = "plasma", direction = -1,
+                        labels = as.character(-10:-1)) + 
+  labs(x = expression(log[10](gen)), y = "Correlation", color = expression(Scale: log[2](Morgan))) +
+  theme_classic() + facet_wrap(~sim, scales = "free_y")  +
+  theme(aspect.ratio=1)
 
 
 # ===== Wavelet covariances ====
@@ -260,7 +264,7 @@ covtbl[, gen := as.numeric(gen)]
 covtblm <- covtbl[, .(cov = mean(cov)), by = .(sim,gen,level)]
 covtblm <- merge(covtblm, meanFreq)
 
-ggplot(covtblm,
+ggplot(covtblm[level != "s10"],
        aes(x = log10(gen), y = cov, group = level, color = level)) +
   #geom_errorbar(aes(ymin=lower, ymax=upper))+
   facet_wrap(~sim, scales = "free_y") + geom_point() + geom_line()
@@ -348,7 +352,7 @@ gcdm_g[, propvar.freq := variance.freq/totalvar.freq]
 gcdm_g[, contribution := cor*sqrt(propvar.freq*propvar.recomb)]
 
 
-ggplot(gcdm_g[!level %in% c("s10") ]) +
+ggplot(gcdm_g[!level %in% c("s10") & lower > 0]) +
   geom_bar(aes(fill = level, x = as.factor(gen),
                y = contribution), position = "stack",
            stat = "identity", color = "black") +
@@ -359,6 +363,8 @@ ggplot(gcdm_g[!level %in% c("s10") ]) +
   theme(aspect.ratio = 1,
         axis.text.x = element_text(angle = 90))
 
+gcdm_norm <- gcdm_g[lower > 0, .( contribution_norm = contribution/sum(contribution)), by = .(sim, gen)]
+gcdm_norm[is.nan(contribution_norm), conttribution_norm := 0]
 
 
 
