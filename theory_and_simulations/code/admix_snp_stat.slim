@@ -1,46 +1,50 @@
 initialize() {
 	
-	defineConstant("N", 1000);
+	initializeTreeSeq();
+	defineConstant("N", 10000);
 	defineConstant("alpha", 0.5);
 	defineConstant("genomeSize", 1e8);
-	initializeMutationRate(0); 
-	m1.mutationStackPolicy = "f";
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0);
+	m1.convertToSubstitution=F;
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, genomeSize-1);
 	defineConstant("baseRate", 1e-8);
 	initializeRecombinationRate(baseRate);
 	
-	defineConstant("outPath", "results/admix_snp_stat/");
+	defineConstant("outPath", "~/workspace/selection-against-introgression/theory_and_simulations/results/admix_snp_stat/");
+	defineConstant("seed", 0);
+	//defineConstant("outPath", "results/admix_snp_stat/");
 
 }
 
-1 {sim.addSubpop("p0", N); }
+// note we will recaptitate
 
-
-//introduce migration once expected value of Fst is 0.2 (N=T)
-
-s1 { 
-	sim.addSubpop("p2", 10000); 
-	p2.setMigrationRates(c(p0,p1), c(alpha, 1-alpha)); 
-
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0001.trees"); }
-}
+1 {
+	sim.addSubpop("p0", N);
+	sim.addSubpop("p1", N);
 	
-s2 late() {
-
-	pos = sim.mutations.position;
-	f0 = sim.mutationFrequencies(p0);
-	f1 = sim.mutationFrequencies(p1);
-	f2 = sim.mutationFrequencies(p2);
-	
-	tbl = cbind(asFloat(pos), f0, f1, f2, asFloat(rep(1, length(pos))), asFloat(rep(seed, length(pos))));
-
-	output = "";
-	for (n in 0:(nrow(tbl)-1) )
-	{
-	output = c(output, paste(tbl[n,]));
-	}
-	
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0010.trees"); }
 }
 
+// expected Fst=0.2 when N=T
+10000 early() {
+	sim.addSubpop("p2", N);
+	p2.setMigrationRates(c(p0,p1), c(alpha, 1-alpha));
+}
+
+10000 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+	p2.setMigrationRates(c(p0, p1), c(0.0, 0.0));
+}
+
+10010 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+}
+
+10100 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+}
+
+11000 late(){
+	sim.treeSeqOutput(outPath + "/replicate" + seed + ".trees");
+}
