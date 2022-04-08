@@ -1,26 +1,26 @@
 import numpy as np
-reps = np.arange(10)
+reps = np.arange(30)
 #gens = ["gen" + num for num in ["0001", "0002", "0005", "0010", "0050", "0100", "0500", "1000"]]
-#gens = ["gen" + num for num in ["0001", "0002", "0100", "0101", "0500","0501", "1001"]]
+gens = ["gen" + num for num in ["0001", "0100", "0101", "0201", "0500","0501","0601", "1001"]]
 #gens = ["gen" + num for num in ["0001","0002", "0100","0101", "0500", "0501", "1001"]]
 #gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0025","0050","0100","0250","0500","1000"]]
-gens = ["gen" + num for num in ["0000", "0001","0002","0010","0100","1000"]]
+#gens = ["gen" + num for num in ["0001","0010","0100","1000"]]
 #gens_swordtail = ["generation" + num for num in ["100", "150", "200"]]
-gens_swordtail = ["generation" + num for num in ["100"]]
-swordtail_N = [1000, 10000]
+gens_swordtail = ["generation" + num for num in ["0001", "0010", "0100", "1000"]]
+swordtail_N = [1000]
 #gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0050","0100","0250","0500","0750","1000"]]
 #sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb","single-sweep"]
 simsA = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb", "admix_snp_stat"]
 simsB = ["equilibrium_n500"]
-sims_sel_pulses = ["add-sel-periodic-recomb_gen" + g for g in ["1-1000", "1","100","500"]]
+sims_sel_pulses = ["add-sel-periodic-recomb_gen" + g for g in ["1-1000", "1-100","100-200","500-600"]]
 sims_swordtail = ["swordtail_neutral"]
 ruleorder: avg_ancestry_calc_swordtail > avg_ancestry_calc
 
 rule all:
 	input:
-		expand("results/{sim}/ancestry_master.txt", sim=simsA)
+		#expand("results/{sim}/ancestry_master.txt", sim=simsA)
 		#expand("results/{sim}/ancestry_master.txt", sim=sims_swordtail)
-		#expand("results/{sim}/ancestry_master.txt", sim=sims_sel_pulses)
+		expand("results/{sim}/ancestry_master.txt", sim=sims_sel_pulses)
 #		"results/equilibrium_n500/all-variances-master.txt",
 
 rule simulation_setA:
@@ -80,19 +80,11 @@ rule avg_ancestry_calc:
 
 rule avg_ancestry_calc_swordtail:
 	input:
-		"results/swordtail_neutral/swordtail_{rep_gen}.trees"
+		"results/swordtail_neutral/swordtail_{rep_gen_N}.trees"
 	output:
-		temp("results/swordtail_neutral/swordtail_{rep_gen}_ancestry.txt")
+		temp("results/swordtail_neutral/swordtail_{rep_gen_N}_ancestry.txt")
 	shell:
-		"python3 code/derived-allele-freq.py {input} > {output}"
-
-#rule avg_ancestry_calc_swordtail:
-#	input:
-#		"results/swordtail_neutral/swordtail_{rep_gen_N}.trees"
-#	output:
-#		temp("results/swordtail_neutral/swordtail_{rep_gen_N}_ancestry.txt")
-#	shell:
-#		"python3 code/ancestry.py {input} > {output}"
+		"python3 code/ancestry.py {input} > {output}"
 
 rule dwt_on_haps:
 	input:
