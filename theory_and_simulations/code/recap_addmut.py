@@ -4,11 +4,12 @@ import os
 import sys
 
 orig_ts = tskit.load(sys.argv[1])
+N = int(sys.argv[2])
 
 # recapitation
 rts = pyslim.recapitate(orig_ts,
             recombination_rate=1e-8,
-            ancestral_Ne=10000, random_seed=5)
+            ancestral_Ne=N, random_seed=5)
 
 # overlay mutations
 ts = pyslim.SlimTreeSequence(

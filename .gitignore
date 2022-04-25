@@ -4,3 +4,7 @@
 results/*
 .snakemake/
 .Rproj.user
+.Rhistory
+.DS_Store
+datasets/human/Kong_etal_recmaps/*
+datasets/human/Neanderthal_files/*
