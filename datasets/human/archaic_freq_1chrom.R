@@ -73,6 +73,8 @@ setnames(frq, "V1", "freq")
 frq[, chr := chromosome]
 
 frq <- merge(frq, windows, by = "wstart")
+
+fwrite(frq, file = "Neanderthal_files/test.txt", quote = F, sep = "\t")
 save(frq, file = paste0("chr", chromosome, "_freq.RData"))
 
 #ggplot(frq, aes(x = wstart, y = freq)) + geom_point()
