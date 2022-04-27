@@ -1,16 +1,17 @@
 library(data.table)
 
-chromosome <- 1
+args <- commandArgs(trailingOnly = TRUE)
+chromosome <- args[1]
+archaic_all <- fread(args[2])
+rmap_all <- fread(args[3])
 
-archaic_all <- fread("Neanderthal_files/41586_2020_2225_MOESM3_ESM.txt")
+#archaic_all <- fread("Neanderthal_files/41586_2020_2225_MOESM3_ESM.txt")
 #head(moes_archaic)
+#rmap_all <- fread("Kong_etal_recmaps/sex-averaged.rmap")
 
-rmap_all <- fread("Kong_etal_recmaps/sex-averaged.rmap")
-
-
-# subset
+# subset to focal chrom
 archaic <- archaic_all[chrom == chromosome]
-rmap <- rmap_all[chr == paste0("chr",chromosome)]
+rmap <- rmap_all[chr == paste0("chr", chromosome)]
 
 archaic[, freq := freq/55132]
 
@@ -64,10 +65,14 @@ window_freq <- function(wstart, wend){
   if(nrow(fragments) == 0){
     return(0)
   }
-  return(fragments[, freq*frac_overlap(wstart, wend, start, end), by = seq_len(nrow(fragments))][, mean(V1)])
+  return(fragments[, freq*frac_overlap(wstart, wend, start, end), by = seq_len(nrow(fragments))][, sum(V1)])
 }
 
 frq <- windows[, window_freq(wstart, wend), by = wstart]
 setnames(frq, "V1", "freq")
+frq[, chr := chromosome]
 
-ggplot(frq, aes(x = wstart, y = freq)) + geom_point()
+frq <- merge(frq, windows, by = "wstart")
+save(frq, file = paste0("chr", chromosome, "_freq.RData"))
+
+#ggplot(frq, aes(x = wstart, y = freq)) + geom_point()
