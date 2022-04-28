@@ -21,9 +21,12 @@ wc_freq_gdr_genetic <- fread("wavelet_results/wc_freq_gdr_genetic.txt")
 wc_rec_gd_physical <- fread("wavelet_results/wc_rec_gd_physical.txt")
 wc_rec_gd_genetic <- fread("wavelet_results/wc_rec_gd_genetic.txt")
 
+lm_physical <- fread("wavelet_results/lm_physical.txt")
+lm_genetic <- fread("wavelet_results/lm_genetic.txt")
+
 lapply(
   list(wv_physical, wv_genetic, wc_freq_rec_physical, wc_freq_rec_genetic, wc_freq_gd_physical, wc_freq_gd_genetic, 
-            wc_freq_gdr_physical, wc_freq_gdr_genetic, wc_rec_gd_physical, wc_rec_gd_genetic), 
+            wc_freq_gdr_physical, wc_freq_gdr_genetic, wc_rec_gd_physical, wc_rec_gd_genetic, lm_physical, lm_genetic), 
   function(x){
     x[, level := factor(level, levels = c(paste0("d", 1:17), paste0("s", 15:17), "chr"))]
   }
@@ -242,7 +245,7 @@ annotate_figure(figure_g,
 # ===== Contribution to Correlation ====
 
 # ---- physical -----
-allWav_physical <- merge(wv_physical, wc_freq_gdr_physical)
+allWav_physical <- merge(wv_physical, wc_freq_rec_physical)
 allWav_physical[, contribution := cor_jack*sqrt(propvar.freq*propvar.rec)]
 
 ggplot(allWav_physical) + 
@@ -261,12 +264,11 @@ ggplot(allWav_physical) +
 
 
 # ----- genetic ----
-allWavM <- merge(wvM, wcM, by = "level")
-allWavM[, contribution := cor_jack*sqrt(propvar.freq*propvar.rec)]
-allWavM[, level := factor(level, levels = c(paste0("d", 1:17), paste0("s", 15:17), "chr"))]
+allWav_genetic <- merge(wv_genetic, wc_freq_gdr_genetic, by = "level")
+allWav_genetic[, contribution := cor_jack*sqrt(propvar.freq*propvar.rec)]
 
 
-ggplot(allWavM) + 
+ggplot(allWav_genetic) + 
   geom_bar(aes(fill = cor_jack, x = level, y = contribution), stat= "identity", color = "black") +
   scale_fill_gradient2(low = "blue", mid = "white", high = "red") +
   scale_x_discrete(breaks = c(paste0("d", 1:17), paste0("s", 15:17), "chr"), 
@@ -294,3 +296,38 @@ chrLenM <- gnomM[, .(nwindow = .N), by = chr]
 chrMeansM <- merge(chrMeansM, chrLenM)
 ggplot(chrMeansM, aes(x = rec, y = freq, size = nwindow)) + geom_point() + geom_text(aes(label = chr), hjust=-.5,vjust=0) +
   theme_classic()
+
+
+# ===== lm results =====
+
+ggplot(lm_physical[variable != "rsqrd"], aes(x = level, y = jn_bc_estimate, color = variable)) + 
+  geom_point() + 
+  geom_errorbar(aes(ymin=jn_bc_estimate - 1.96*jn_se, ymax=jn_bc_estimate + 1.96*jn_se) ) + 
+  scale_x_discrete(breaks = c(paste0("d", 1:17), paste0("s", 15:17), "chr"), 
+                   labels = c(as.character(1:17), paste0(15:17, " (s)"), "chromosome"))   +
+  theme_classic() +
+  labs(x = expression(Scale: log[2] ("1kb")), 
+       y = "Slope estimate") + 
+  theme(aspect.ratio = 1, 
+        axis.title = element_text(size = 15),
+        axis.text.x = element_text(angle = 90, size = 12),
+        axis.text.y = element_text(size = 12))
+
+
+ggplot(lm_physical[variable == "rsqrd"], aes(x = level, y = jn_bc_estimate)) + 
+  geom_point() + 
+  geom_errorbar(aes(ymin=jn_bc_estimate - 1.96*jn_se, ymax=jn_bc_estimate + 1.96*jn_se) ) + 
+  scale_x_discrete(breaks = c(paste0("d", 1:17), paste0("s", 15:17), "chr"), 
+                   labels = c(as.character(1:17), paste0(15:17, " (s)"), "chromosome"))   +
+  theme_classic() +
+  labs(x = expression(Scale: log[2] ("1kb")), 
+       y = "R squared") + 
+  theme(aspect.ratio = 1, 
+        axis.title = element_text(size = 15),
+        axis.text.x = element_text(angle = 90, size = 12),
+        axis.text.y = element_text(size = 12))
+
+
+
+
+

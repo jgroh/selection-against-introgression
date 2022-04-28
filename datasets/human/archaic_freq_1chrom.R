@@ -89,9 +89,7 @@ posM[, pos := round(pos)]
 frqM <- posM[, freq := archaic[start < pos & end >= pos, sum(freq)], by = seq_len(nrow(posM))][]
 frqM[, chr := chromosome]
 
-frqM[, rec := (Morgan-shift(Morgan))/(pos-shift(pos))]
-frqM[, rec := c(.SD[2, rec],  .SD[-1, rec])]
-#frqM[, rec := approx(xout = frqM$pos, x = rmap[, pos], y = rmap[, recomb_rate])$y] was giving weird results
+frqM[, rec := approx(xout = frqM$pos, x = rmap$pos, y = rmap$recomb_rate)$y] 
 #ggplot(frqM, aes(x = pos, y = freq)) + geom_point()
 
 
