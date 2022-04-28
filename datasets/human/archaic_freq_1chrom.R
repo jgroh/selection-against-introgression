@@ -56,6 +56,7 @@ windows10kb[, rec := rmap[, stdrate]]
 #ggplot(frq1kb, aes(x = wstart, y = freq)) + geom_point()
 
 frq10kb <- windows10kb[, freq := archaic[start < wmid & end >= wmid, sum(freq)], by = seq_len(nrow(windows10kb))][]
+frq10kb[, chr := chromosome]
 #ggplot(frq10kb, aes(x = wmid, y = freq)) + geom_point()
 
 
@@ -97,6 +98,7 @@ frqM <- windowsM[, freq := archaic[start < wmid & end >= wmid, sum(freq)], by = 
 #ggplot(frqM, aes(x = wmid, y = freq)) + geom_point()
 
 frqM[, rec := 1/(wend - wstart)]
+frqM[, chr := chromosome]
 # ggplot(frqM, aes(x = wmid, y = rec)) + geom_point()
 
 # === output ===== 
