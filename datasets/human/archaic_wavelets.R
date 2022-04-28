@@ -6,14 +6,32 @@ source("~/workspace/gnomwav/R/multi_modwts.R")
 source("~/workspace/gnomwav/R/variance_decomp.R")
 source("~/workspace/gnomwav/R/correlation_decomp.R")
 
+gd1kb <- fread("gene_density_1kb_windows.txt", col.names = c("chr", "start", "end", "gd"))
+gd1kb[, pos := start + 500]
+
+gdM <- fread("gene_density_genetic_windows.txt", col.names = c("chr", "start", "end", "Morgan", "gd"))
 
 chr_files1kb <- dir(path = "archaic_freqs/", pattern = "chr.*_frq_1kb_windows.txt", full.names=T)
 chr_filesM <- dir(path = "archaic_freqs/", pattern = "chr.*_frq_genetic_windows.txt", full.names=T)
 
 gnom1kb <- rbindlist(lapply(chr_files1kb, fread))
-#ggplot(gnom1kb, aes(x = rec, y = freq)) + geom_point()  
+gnom1kb[, chr := paste0("chr", chr)]
+gnom1kb[, gdr := gd/rec]
+setkey(gnom1kb, chr, pos)
+gnom1kb <- merge(gd1kb, gnom1kb, by = c("chr", "pos"))
+#ggplot(gnom1kb[seq(1, .N, by = 100)], aes(x = pos, y = gd_over_rec)) + geom_point()  
+
+ggplot(gnom1kb[, .SD[seq(1,.N,by=100)], by = chr], aes(x = pos, y = gd)) + 
+  geom_point()  + 
+  geom_smooth(method = "loess") + 
+  facet_wrap(~chr,scales = "free_x")
+
 
 gnomM <- rbindlist(lapply(chr_filesM, fread))
+gnomM[, chr := paste0("chr", chr)]
+gnomM[, gdr := gd/rec]
+setkey(gnomM, chr, pos)
+gnomM <- merge(gdM, gnomM, by = c("chr", "Morgan"))
 #ggplot(gnomM, aes(x = rec, y = freq)) + geom_point()  
 
 #gnom10kb[, cor.test(rec,freq, method = "spearman")]
@@ -21,7 +39,7 @@ gnomM <- rbindlist(lapply(chr_filesM, fread))
 
 # ===== wavelet variance, physical units =====
 
-wv1kb <- gnom1kb[, gnom_var_decomp(.SD, chromosome = "chr", signals = c("freq", "rec"), rm.boundary = T, avg.over.chroms = T)]
+wv1kb <- gnom1kb[, gnom_var_decomp(.SD, chromosome = "chr", signals = c("freq", "rec", "gd"), rm.boundary = T, avg.over.chroms = T)]
 wv1kb[, level := factor(level, levels = c(paste0("d", 1:17), paste0("s", 15:17), "chr"))]
 
 lineData1kb <- wv1kb[grepl("d", level, fixed = T)]
@@ -62,7 +80,7 @@ ggplot(wv1kb,
 
 # ===== wavelet variance, genetic units =====
 
-wvM <- gnomM[, gnom_var_decomp(.SD, chromosome = "chr", signals = c("freq", "rec"), rm.boundary = T, avg.over.chroms = T)]
+wvM <- gnomM[, gnom_var_decomp(.SD, chromosome = "chr", signals = c("freq", "rec", "gd"), rm.boundary = T, avg.over.chroms = T)]
 wvM[, level := factor(level, levels = c(paste0("d", 1:17), paste0("s", 15:17), "chr"))]
 
 lineDataM <- wvM[grepl("d", level, fixed = T)]
