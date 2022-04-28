@@ -1,34 +1,32 @@
 import numpy as np
 chrs = np.arange(1, 23)
-units = ["1kb", "genetic"]
+units = ["physical", "genetic"]
+wvlt_analyses = ["wv","wc_freq_rec","wc_freq_gd","wc_freq_gdr","wc_rec_gd","lm"]
 
 rule all:
 	input:
 		expand("archaic_freqs/chr{chrom}_frq_{unit}_windows.txt", chrom = chrs, unit = units),
-		#expand("homo_{unit}_windows.bed", unit=units),
 		expand("gene_density_{unit}_windows.txt", unit = units),
-		expand("wavelet_results/{result}.txt",result=["wv1kb","wvM","wc1kb_freq_rec","wcM_freq_rec","wc1kb_freq_gdr","wcM_freq_gdr","lm1kb","lmM"])
+		expand("wavelet_results/{analysis}_{unit}.txt", analysis = wvlt_analyses, unit=units)
 
 rule get_freq:
 	input:
 	output:
-		"archaic_freqs/chr{chr}_frq_1kb_windows.txt",
-		"archaic_freqs/chr{chr}_frq_genetic_windows.txt"
+		expand("archaic_freqs/chr{{chr}}_frq_{unit}_windows.txt",unit=units)
 	shell:
 		"""
 		Rscript --vanilla archaic_freq_1chrom.R {wildcards.chr} \
 				Neanderthal_files/41586_2020_2225_MOESM3_ESM.txt \
 				recomb-hg38/genetic_map_GRCh38_merged.tab
 		"""
+
 rule make_window_beds:
 	input:
 	output:
-		physical="homo_1kb_windows.bed", 
-		genetic="homo_genetic_windows.bed"
+		"homo_{unit}_windows.bed"
 	shell:
 		"""
-		Rscript --vanilla homo_make1kb_bed.R | sort -k1,1 -k2,2n > {output.physical}
-		Rscript --vanilla homo_make_genetic_windows_bed.R | sort -k1,1 -k2,2n > {output.genetic}
+		Rscript --vanilla homo_make_{wildcards.unit}_windows_bed.R | sort -k1,1 -k2,2n > {output}
 		"""
 
 rule gtf_to_bed:
@@ -41,11 +39,11 @@ rule gtf_to_bed:
 
 rule calculate_gene_density:
 	input:
-		A1="homo_1kb_windows.bed",
+		A1="homo_physical_windows.bed",
 		A2="homo_genetic_windows.bed",
 		B="hg38.knownGene.bed"
 	output:
-		out1="gene_density_1kb_windows.txt",
+		out1="gene_density_physical_windows.txt",
 		out2="gene_density_genetic_windows.txt",
 	shell:
 		"""
@@ -59,11 +57,11 @@ rule calculate_gene_density:
 	
 rule run_wavelets:
 	input:
-		expand("gene_density_{unit}_windows.txt",unit=units),
-		expand("archaic_freqs/chr{chr}_frq_{unit}_windows.txt",chr=chrs,unit=units)	
+		"gene_density_{unit}_windows.txt",
+		expand("archaic_freqs/chr{chr}_frq_{{unit}}_windows.txt",chr=chrs,unit=units)	
 	output:
-		expand("wavelet_results/{result}.txt",result=["wv1kb","wvM","wc1kb_freq_rec","wcM_freq_rec","wc1kb_freq_gdr","wcM_freq_gdr","lm1kb","lmM"])
+		"wavelet_results/{analysis}_{unit}.txt"
 	shell:
 		"""
-		Rscript --vanilla wavelet_analyses.R
+		Rscript --vanilla wavelet_analyses.R {wildcards.unit} {wildcards.analysis}
 		"""
