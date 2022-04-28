@@ -14,5 +14,6 @@ bedM[, bp_start := round(approx(x = rmap[chrom == .BY, Morgan],
 bedM[, bp_end := round(approx(x = rmap[chrom == .BY, Morgan], 
                               y = rmap[chrom == .BY, pos], 
                               xout = bedM[chrom == .BY, wend])$y), by = chrom]
+bedM <- bedM[!is.na(bp_start) & !is.na(bp_end)]
 
 fwrite(bedM[, .(chrom, bp_start, bp_end, Morgan)], file = "", quote=F, sep="\t", col.names=F)
