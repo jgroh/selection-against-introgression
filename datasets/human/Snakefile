@@ -1,13 +1,15 @@
 import numpy as np
 chrs = np.arange(1, 23)
 units = ["physical", "genetic"]
-wvlt_analyses = ["wv","wc_freq_rec","wc_freq_gd","wc_freq_gdr","wc_rec_gd","lm"]
+# analyses common to both units. note gene density analysis differs between physical and genetic
+wvlt_analyses = ["wv","wc_freq_rec","wc_freq_gd","wc_rec_gd","lm"]
 
 rule all:
 	input:
 		expand("archaic_freqs/chr{chrom}_frq_{unit}_windows.txt", chrom = chrs, unit = units),
 		expand("gene_density_{unit}_windows.txt", unit = units),
-		expand("wavelet_results/{analysis}_{unit}.txt", analysis = wvlt_analyses, unit=units)
+		expand("wavelet_results/{analysis}_{unit}.txt", analysis = wvlt_analyses, unit=units),
+		"wavelet_results/wc_freq_gdr_physical.txt"
 
 rule get_freq:
 	input:
@@ -51,7 +53,7 @@ rule calculate_gene_density:
 		sort -k1,1 -k2,2n > {output.out1}
 	
 		# for genetic windows kept Morgan for id so there's an extra col in output
-		bedtools coverage -a {input.A2} -b {input.B} | cut -f1-4,8 |\
+		bedtools coverage -a {input.A2} -b {input.B} | cut -f1-4,6 |\
 		sort -k1,1 -k2,2n > {output.out2}
 		"""
 	
