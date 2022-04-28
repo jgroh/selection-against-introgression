@@ -6,18 +6,23 @@ archaic_all <- fread(args[2])
 rmap_all <- fread(args[3])
 
 #archaic_all <- fread("Neanderthal_files/41586_2020_2225_MOESM3_ESM.txt")
-#rmap_all <- fread("Kong_etal_recmaps/sex-averaged.rmap")
+
+#rmap_all <- fread("recomb-hg38/genetic_map_GRCh38_merged.tab")
+#rmap_all[, max(pos_cm)/100, by = chrom]
+
 #chromosome <- 20
 
 # subset to focal chrom
 archaic <- archaic_all[chrom == chromosome]
-rmap <- rmap_all[chr == paste0("chr", chromosome)]
+rmap <- rmap_all[chrom == paste0("chr", chromosome)]
 
+#rmap[, my_rate := (pos_cm-shift(pos_cm))/(pos-shift(pos))]
+#ggplot(rmap, aes(x = recomb_rate, y = my_rate)) + geom_point() + geom_pointdensity()
 archaic[, freq := freq/55132]
 
-# convert to Morgans. using the average genetic length of 10kb bins cited in Kong et al averaged between sexes
-rmap[, Morgan_width := (stdrate*0.0116)/100]
-rmap[, Morgan_end := cumsum(Morgan_width)]
+#rmap[, Morgan_width := (stdrate*0.0116)/100]
+
+rmap[, Morgan := pos_cm/100]
 
 
 # ===== Functions for getting allele frequency =====
@@ -44,20 +49,22 @@ rmap[, Morgan_end := cumsum(Morgan_width)]
 # }
 
 
-# ===== Allele frequency in physical windows =====
-# do 10kb windows for now since this is the resolution of the recombination map 
+# ===== Allele frequency in at physical points =====
+# what's the resolution of the recomb map? < 1 kb
+#rmap_all[, pos-shift(pos), by = chrom][, mean(V1, na.rm=T)]
+#rmap_all[, pos-shift(pos), by = chrom][, median(V1, na.rm=T)]
 
 
 # get archaic allele frequency at these locations
-windows10kb <- data.table(wstart = rmap[,pos] - 5e3, wmid = rmap[, pos], wend = rmap[, pos + 5e3])
-windows10kb[, rec := rmap[, stdrate]]
+pos1kb <- data.table(pos = seq(rmap[,min(pos)], rmap[, max(pos)], by = 1e3))
 
 #frq1kb <- windows1kb[, .(freq = window_freq(wstart, wend)), by = wstart]
 #ggplot(frq1kb, aes(x = wstart, y = freq)) + geom_point()
 
-frq10kb <- windows10kb[, freq := archaic[start < wmid & end >= wmid, sum(freq)], by = seq_len(nrow(windows10kb))][]
-frq10kb[, chr := chromosome]
-#ggplot(frq10kb, aes(x = wmid, y = freq)) + geom_point()
+frq1kb <- pos1kb[, freq := archaic[start < pos & end >= pos, sum(freq)], by = seq_len(nrow(pos1kb))][]
+frq1kb[, chr := chromosome]
+frq1kb[, rec := approx(xout = frq1kb$pos, x = rmap$pos, y = rmap$recomb_rate)$y]
+#ggplot(frq1kb, aes(x = pos, y = freq)) + geom_point()
 
 
 
@@ -65,44 +72,27 @@ frq10kb[, chr := chromosome]
 
 # get physical coordinates of genetic windows 
 # window size? windows should be roughly the same resolution as the recombination map, or more course
-# rmap[, mean(Morgan_width)] # this is between 2^-13 and 2^-12
+# this is between 2^-16 and 2^-17
+# rmap[, mean(Morgan - shift(Morgan), na.rm=T)]
+#x <- merge(rmap_all[, seq(min(Morgan), max(Morgan), by = 2^-16), by = chrom][, .(nw = .N), by = chrom], rmap_all[, .(nw2 = .N), by = chrom])
+#ggplot(x, aes(x = nw, y = nw2)) + geom_point()
+
+xout <- rmap[, seq(min(Morgan), max(Morgan), by = 2^-16)]
+
+posM <- rmap[, approx(x = Morgan, y = pos, xout = xout)]
+setnames(posM, c("Morgan", "pos"))
+posM[, pos := round(pos)]
+
+frqM <- posM[, freq := archaic[start < pos & end >= pos, sum(freq)], by = seq_len(nrow(posM))][]
+
+frqM[, rec := approx(xout = frqM$pos, x = rmap[, pos], y = rmap[, recomb_rate])$y]
+#ggplot(frqM, aes(x = pos, y = freq)) + geom_point()
 
 
-# we'll treat the *endpoints of the physical windows as the *midpoints of the genetic windows
-# (because we can associate the endpoints of the physical windows with their Morgan distance, given that we have window lengths in Morgans)
 
-# desired Morgan positions - start and endpoints of windows
-xout_end <- rmap[, seq(min(Morgan_end) + 0.5*2^-12, max(Morgan_end) + 0.5*2^-12, by = 2^-12)]
-xout_mid <- xout_end - 0.5*2^-12
-xout_start <- xout_end - 2^-12
-
-# get corresponding bp positions
-midpoint <- rmap[, approx(xout = xout_mid, x = Morgan_end, y = pos+5e3)] 
-setnames(midpoint, c("x", "y"), c("Morgan_midpoint", "wmid"))
-
-# since pos were given as midpoints of intervals, add 5kb
-start <- rmap[, approx(xout = xout_start, x = Morgan_end, y = pos+5e3)] # throws a warning due to windows of 0 Morgans, but result is as desired
-start[, x := x + 0.5*2^-12] # add 1/2 interval length here so that x corresponds to Morgan midpoint of interval
-setnames(start, c("x", "y"), c("Morgan_midpoint", "wstart"))
-
-end <- rmap[, approx(xout = xout_end, x = Morgan_end, y = pos+5e3)] # throws a warning due to windows of 0 Morgans, but result is as desired
-end[, x := x - 0.5*2^-12]
-setnames(end, c("x", "y"), c("Morgan_midpoint", "wend"))
-
-
-windowsM <- merge(midpoint, merge(start, end, by = "Morgan_midpoint"), by = "Morgan_midpoint")
-windowsM <- windowsM[!is.na(wstart) & !is.na(wend)]
-
-# get frequency at midpoint
-frqM <- windowsM[, freq := archaic[start < wmid & end >= wmid, sum(freq)], by = seq_len(nrow(windowsM))][]
-#ggplot(frqM, aes(x = wmid, y = freq)) + geom_point()
-
-frqM[, rec := 1/(wend - wstart)]
-frqM[, chr := chromosome]
-# ggplot(frqM, aes(x = wmid, y = rec)) + geom_point()
 
 # === output ===== 
-fwrite(frq10kb, file = paste0("chr", chromosome, "_frq_10kb_windows.txt"), quote = F, sep = "\t")
+fwrite(frq1kb, file = paste0("chr", chromosome, "_frq_1kb_windows.txt"), quote = F, sep = "\t")
 fwrite(frqM, file = paste0("chr", chromosome, "_frq_genetic_windows.txt"), quote = F, sep = "\t")
 
 
