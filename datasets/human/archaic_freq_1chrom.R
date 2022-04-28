@@ -1,16 +1,17 @@
 library(data.table)
 
-args <- commandArgs(trailingOnly = TRUE)
-chromosome <- args[1]
-archaic_all <- fread(args[2])
-rmap_all <- fread(args[3])
 
-#archaic_all <- fread("Neanderthal_files/41586_2020_2225_MOESM3_ESM.txt")
+if(Sys.getenv("RSTUDIO") == "1"){
+  archaic_all <- fread("Neanderthal_files/41586_2020_2225_MOESM3_ESM.txt")
+  rmap_all <- fread("recomb-hg38/genetic_map_GRCh38_merged.tab")
+  chromosome <- 20
+} else {
+  args <- commandArgs(trailingOnly = TRUE)
+  chromosome <- args[1]
+  archaic_all <- fread(args[2])
+  rmap_all <- fread(args[3])
+}
 
-#rmap_all <- fread("recomb-hg38/genetic_map_GRCh38_merged.tab")
-#rmap_all[, max(pos_cm)/100, by = chrom]
-
-#chromosome <- 20
 
 # subset to focal chrom
 archaic <- archaic_all[chrom == chromosome]
@@ -87,7 +88,10 @@ posM[, pos := round(pos)]
 
 frqM <- posM[, freq := archaic[start < pos & end >= pos, sum(freq)], by = seq_len(nrow(posM))][]
 frqM[, chr := chromosome]
-frqM[, rec := approx(xout = frqM$pos, x = rmap[, pos], y = rmap[, recomb_rate])$y]
+
+frqM[, rec := (Morgan-shift(Morgan))/(pos-shift(pos))]
+frqM[, rec := c(.SD[2, rec],  .SD[-1, rec])]
+#frqM[, rec := approx(xout = frqM$pos, x = rmap[, pos], y = rmap[, recomb_rate])$y] was giving weird results
 #ggplot(frqM, aes(x = pos, y = freq)) + geom_point()
 
 
