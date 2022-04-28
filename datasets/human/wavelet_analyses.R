@@ -32,7 +32,8 @@ if(windows == "physical"){
   gnom[, chr := paste0("chr", chr)]
   gnom <- merge(gd, gnom, by = c("chr", "pos"))
   gnom[, gdr := gd/rec]
-  gnom[is.na(gdr), gdr := mean(gdr, na.rm=T)][]
+  gnom[gdr == Inf, gdr := gnom[gdr != Inf, max(gdr)]]
+  gnom[gd==0 & rec==0, gdr := gnom[, mean(gdr, na.rm=T)]][]
   setkey(gnom, chr, pos)
   
 } else if (windows == "genetic"){
@@ -47,7 +48,8 @@ if(windows == "physical"){
   gnom[, chr := paste0("chr", chr)]
   gnom <- merge(gd, gnom, by = c("chr", "Morgan"))
   gnom[, gdr := gd/rec]
-  gnom[is.na(gdr), gdr := mean(gdr, na.rm=T)][]
+  gnom[gdr == Inf, gdr := gnom[gdr != Inf, max(gdr)]]
+  gnom[gd == 0 & rec == 0, gdr := gnom[, mean(gdr, na.rm=T)]][]
   setkey(gnom, chr, pos)
   
 }
