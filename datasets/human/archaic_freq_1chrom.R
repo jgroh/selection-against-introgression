@@ -84,7 +84,7 @@ setnames(posM, c("Morgan", "pos"))
 posM[, pos := round(pos)]
 
 frqM <- posM[, freq := archaic[start < pos & end >= pos, sum(freq)], by = seq_len(nrow(posM))][]
-
+frqM[, chr := chromosome]
 frqM[, rec := approx(xout = frqM$pos, x = rmap[, pos], y = rmap[, recomb_rate])$y]
 #ggplot(frqM, aes(x = pos, y = freq)) + geom_point()
 
