@@ -1,67 +1,93 @@
 library(data.table)
 library(waveslim)
 
-#source("~/workspace/gnomwav/R/multi_modwts.R")
-#source("~/workspace/gnomwav/R/variance_decomp.R")
-#source("~/workspace/gnomwav/R/correlation_decomp.R")
+args <- commandArgs(trailingOnly = TRUE)
+windows <- args[1]
+analysis <- args[2]
 
-source("/Users/brogroh/gnomwav/R/multi_modwts.R")
-source("/Users/brogroh/gnomwav/R/variance_decomp.R")
-source("/Users/brogroh/gnomwav/R/correlation_decomp.R")
-
-# read gene density files
-gd1kb <- fread("gene_density_1kb_windows.txt", col.names = c("chr", "start", "end", "gd"))
-gd1kb[, pos := start + 500]
-gdM <- fread("gene_density_genetic_windows.txt", col.names = c("chr", "start", "end", "Morgan", "gd"))
-
-# read frequency files
-chr_files1kb <- dir(path = "archaic_freqs/", pattern = "chr.*_frq_1kb_windows.txt", full.names=T)
-chr_filesM <- dir(path = "archaic_freqs/", pattern = "chr.*_frq_genetic_windows.txt", full.names=T)
-gnom1kb <- rbindlist(lapply(chr_files1kb, fread))
-gnomM <- rbindlist(lapply(chr_filesM, fread))
+if(Sys.getenv("RSTUDIO") == "1"){
+  source("~/workspace/gnomwav/R/multi_modwts.R")
+  source("~/workspace/gnomwav/R/variance_decomp.R")
+  source("~/workspace/gnomwav/R/correlation_decomp.R")
+} else{
+  source("/Users/brogroh/gnomwav/R/multi_modwts.R")
+  source("/Users/brogroh/gnomwav/R/variance_decomp.R")
+  source("/Users/brogroh/gnomwav/R/correlation_decomp.R")
+}
 
 
-# combine gd and freq files
-gnom1kb[, chr := paste0("chr", chr)]
-gnom1kb <- merge(gd1kb, gnom1kb, by = c("chr", "pos"))
-gnom1kb[, gdr := gd/rec]
-setkey(gnom1kb, chr, pos)
+# ===== read and format data =====
 
-gnomM[, chr := paste0("chr", chr)]
-gnomM <- merge(gdM, gnomM, by = c("chr", "Morgan"))
-gnomM[, gdr := gd/rec]
-setkey(gnomM, chr, pos)
+if(windows == "physical"){
+  # read gene density files
+  gd <- fread("gene_density_1kb_windows.txt", col.names = c("chr", "start", "end", "gd"))
+  gd[, pos := start + 500]
+  
+  # read frequency files
+  chr_files <- dir(path = "archaic_freqs/", pattern = "chr.*_frq_1kb_windows.txt", full.names=T)
+  gnom <- rbindlist(lapply(chr_files, fread))
+  
+  # combine gd and freq files
+  gnom[, chr := paste0("chr", chr)]
+  gnom <- merge(gd, gnom, by = c("chr", "pos"))
+  gnom[, gdr := gd/rec]
+  gnom[is.na(gdr), gdr := mean(gdr, na.rm=T)][]
+  setkey(gnom, chr, pos)
+  
+} else if (windows == "genetic"){
+  # read gene density files
+  gd <- fread("gene_density_genetic_windows.txt", col.names = c("chr", "start", "end", "Morgan", "gd"))
+  
+  # read frequency files
+  chr_files <- dir(path = "archaic_freqs/", pattern = "chr.*_frq_genetic_windows.txt", full.names=T)
+  gnom <- rbindlist(lapply(chr_files, fread))
+  
+  # combine gd and freq files
+  gnom[, chr := paste0("chr", chr)]
+  gnom <- merge(gd, gnom, by = c("chr", "Morgan"))
+  gnom[, gdr := gd/rec]
+  gnom[is.na(gdr), gdr := mean(gdr, na.rm=T)][]
+  setkey(gnom, chr, pos)
+  
+}
 
-# ===== Wavelet Variances =====
-wv1kb <- gnom1kb[, gnom_var_decomp(.SD, chromosome = "chr", signals = c("freq", "rec", "gd"), rm.boundary = T, avg.over.chroms = T)]
+if(Sys.getenv("RSTUDIO") == "1"){
+  gnom <- gnom[chr %in% paste0("chr", 10:15)][seq(1, .N, by=100)]
+} 
 
-wvM <- gnomM[, gnom_var_decomp(.SD, chromosome = "chr", signals = c("freq", "rec", "gd"), rm.boundary = T, avg.over.chroms = T)]
+outfile <- paste0("wavelet_results/", analysis, "_", windows, ".txt")
 
+# ==== Wavelet Variance ====
+if(analysis == "wv"){
+  wv <- gnom[, gnom_var_decomp(.SD, chromosome = "chr", signals = c("freq", "rec", "gd"), rm.boundary = T, avg.over.chroms = T)]
+  
+  fwrite(wv, file=outfile, sep = "\t", quote=F)
+} 
 
 # ===== Wavelet Correlations =====
-wc1kb_freq_rec <- gnom1kb[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("freq", "rec"), rm.boundary = T)]
-wcM_freq_rec <- gnomM[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("freq", "rec"), rm.boundary = T)]
+if(analysis == "wc_freq_rec"){
+  wc <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("freq", "rec"), rm.boundary = T)]
+  fwrite(wc, file=outfile, sep = "\t", quote=F)
+}
 
-wc1kb_freq_gdr <- gnom1kb[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("freq", "gdr"), rm.boundary = T)]
-wcM_freq_gdr <- gnomM[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("freq", "gdr"), rm.boundary = T)]
+if(analysis == "wc_freq_gd"){
+  wc <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("freq", "gd"), rm.boundary = T)]
+  fwrite(wc, file=outfile, sep = "\t", quote=F)
+}
 
+if(analysis == "wc_freq_gdr"){
+  wc <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("freq", "gdr"), rm.boundary = T)]
+  fwrite(wc, file=outfile, sep = "\t", quote=F)
+}
 
-# ===== Lm results =====
+if(analysis == "wc_rec_gd"){
+  wc <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("rec", "gd"), rm.boundary = T)]
+  fwrite(wc, file=outfile, sep = "\t", quote=F)
+}
 
-lm1kb <- wvlt_lm(data = gnom1kb, chromosome = "chr", yvar = "freq", xvars = c("rec", "gd"))
-lmM <- wvlt_lm(data = gnomM, chromosome = "chr", yvar = "freq", xvars = c("rec", "gd"))
+# ===== Linear Model Analysis =====
+if(analysis == "lm"){
+  z <- wvlt_lm(data = gnom, chromosome = "chr", yvar = "freq", xvars = c("rec", "gd"))
+  fwrite(z, file=outfile, sep = "\t", quote=F)
+}
 
-
-# ===== output =====
-
-fwrite(wv1kb, file = "wavlet_results/wv1kb.txt", sep = "\t", quote = F)
-fwrite(wvM, file = "wavlet_results/wvM.txt", sep = "\t", quote = F)
-
-fwrite(wc1kb_freq_rec, file = "wavlet_results/wc1kb_freq_rec.txt", sep = "\t", quote = F)
-fwrite(wcM_freq_rec, file = "wavlet_results/wcM_freq_rec.txt", sep = "\t", quote = F)
-
-fwrite(wc1kb_freq_gdr, file = "wavlet_results/wc1kb_freq_gdr.txt", sep = "\t", quote = F)
-fwrite(wcM_freq_gdr, file = "wavlet_results/wcM_freq_gdr.txt", sep = "\t", quote = F)
-
-fwrite(lm1kb, file = "wavlet_results/lm1kb.txt", sep = "\t", quote = F)
-fwrite(lmM, file = "wavlet_results/lmM.txt", sep = "\t", quote = F)
