@@ -18,13 +18,14 @@ if(Sys.getenv("RSTUDIO") == "1"){
 
 # ===== read and format data =====
 
+
 if(windows == "physical"){
   # read gene density files
-  gd <- fread("gene_density_1kb_windows.txt", col.names = c("chr", "start", "end", "gd"))
+  gd <- fread("gene_density_physical_windows.txt", col.names = c("chr", "start", "end", "gd"))
   gd[, pos := start + 500]
   
   # read frequency files
-  chr_files <- dir(path = "archaic_freqs/", pattern = "chr.*_frq_1kb_windows.txt", full.names=T)
+  chr_files <- dir(path = "archaic_freqs/", pattern = "chr.*_frq_physical_windows.txt", full.names=T)
   gnom <- rbindlist(lapply(chr_files, fread))
   
   # combine gd and freq files
