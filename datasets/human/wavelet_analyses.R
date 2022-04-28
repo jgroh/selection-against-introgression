@@ -23,14 +23,14 @@ gnomM <- rbindlist(lapply(chr_filesM, fread))
 
 # combine gd and freq files
 gnom1kb[, chr := paste0("chr", chr)]
+gnom1kb <- merge(gd1kb, gnom1kb, by = c("chr", "pos"))
 gnom1kb[, gdr := gd/rec]
 setkey(gnom1kb, chr, pos)
-gnom1kb <- merge(gd1kb, gnom1kb, by = c("chr", "pos"))
 
 gnomM[, chr := paste0("chr", chr)]
+gnomM <- merge(gdM, gnomM, by = c("chr", "Morgan"))
 gnomM[, gdr := gd/rec]
 setkey(gnomM, chr, pos)
-gnomM <- merge(gdM, gnomM, by = c("chr", "Morgan"))
 
 # ===== Wavelet Variances =====
 wv1kb <- gnom1kb[, gnom_var_decomp(.SD, chromosome = "chr", signals = c("freq", "rec", "gd"), rm.boundary = T, avg.over.chroms = T)]
