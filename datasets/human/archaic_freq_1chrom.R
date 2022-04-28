@@ -92,8 +92,8 @@ frqM[, rec := approx(xout = frqM$pos, x = rmap[, pos], y = rmap[, recomb_rate])$
 
 
 # === output ===== 
-fwrite(frq1kb, file = paste0("chr", chromosome, "_frq_1kb_windows.txt"), quote = F, sep = "\t")
-fwrite(frqM, file = paste0("chr", chromosome, "_frq_genetic_windows.txt"), quote = F, sep = "\t")
+fwrite(frq1kb, file = paste0("archaic_freqs/chr", chromosome, "_frq_1kb_windows.txt"), quote = F, sep = "\t")
+fwrite(frqM, file = paste0("archaic_freqs/chr", chromosome, "_frq_genetic_windows.txt"), quote = F, sep = "\t")
 
 
 #ggplot(frq, aes(x = wstart, y = freq)) + geom_point()
