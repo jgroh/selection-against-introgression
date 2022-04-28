@@ -18,6 +18,8 @@ rmap <- rmap_all[chrom == paste0("chr", chromosome)]
 
 #rmap[, my_rate := (pos_cm-shift(pos_cm))/(pos-shift(pos))]
 #ggplot(rmap, aes(x = recomb_rate, y = my_rate)) + geom_point() + geom_pointdensity()
+#rmap[, my_rate := (pos_cm-shift(pos_cm))/(pos - shift(pos)),  by = chrom]
+#rmap[, cor(my_rate, recomb_rate, "complete.obs")]
 archaic[, freq := freq/55132]
 
 #rmap[, Morgan_width := (stdrate*0.0116)/100]
