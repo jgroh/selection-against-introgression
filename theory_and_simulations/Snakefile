@@ -1,26 +1,27 @@
 import numpy as np
-reps = np.arange(30)
+reps = np.arange(10)
 #gens = ["gen" + num for num in ["0001", "0002", "0005", "0010", "0050", "0100", "0500", "1000"]]
-gens = ["gen" + num for num in ["0001", "0100", "0101", "0201", "0500","0501","0601", "1001"]]
+#gens = ["gen" + num for num in ["0001", "0100", "0101", "0201", "0500","0501","0601", "1001"]]
 #gens = ["gen" + num for num in ["0001","0002", "0100","0101", "0500", "0501", "1001"]]
 #gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0025","0050","0100","0250","0500","1000"]]
-#gens = ["gen" + num for num in ["0001","0010","0100","1000"]]
+gens = ["gen" + num for num in ["0001","0010","0100","1000"]]
 #gens_swordtail = ["generation" + num for num in ["100", "150", "200"]]
 gens_swordtail = ["generation" + num for num in ["0001", "0010", "0100", "1000"]]
 swordtail_N = [1000]
 #gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0050","0100","0250","0500","0750","1000"]]
 #sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb","single-sweep"]
-simsA = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb", "admix_snp_stat"]
+simsA = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb"]
 simsB = ["equilibrium_n500"]
-sims_sel_pulses = ["add-sel-periodic-recomb_gen" + g for g in ["1-1000", "1-100","100-200","500-600"]]
+#sims_sel_pulses = ["add-sel-periodic-recomb_gen" + g for g in ["1-1000", "1-100","100-200","500-600"]]
+sims_sel_pulses = ["hg1_sel_gens" + g for g in ["1-1000", "1-10","100-110","500-510"]]
 sims_swordtail = ["swordtail_neutral"]
 ruleorder: avg_ancestry_calc_swordtail > avg_ancestry_calc
 
 rule all:
 	input:
-		#expand("results/{sim}/ancestry_master.txt", sim=simsA)
+		expand("results/{sim}/ancestry_master.txt", sim=simsA)
 		#expand("results/{sim}/ancestry_master.txt", sim=sims_swordtail)
-		expand("results/{sim}/ancestry_master.txt", sim=sims_sel_pulses)
+		#expand("results/{sim}/ancestry_master.txt", sim=sims_sel_pulses)
 #		"results/equilibrium_n500/all-variances-master.txt",
 
 rule simulation_setA:
@@ -57,9 +58,17 @@ rule all_sim:
 rule admix_snp_stat:
 	input:
 	output:
-		temp(expand("results/admix_snp_stat/replicate{{rep}}_{gen}.txt", gen=gens))
+		"results/admix_snp_stat/replicate{rep}.trees"
 	shell:
 		"slim -d seed={wildcards.rep} code/admix_snp_stat.slim"
+
+rule admix_snp_stat_print_haps:
+	input:
+		"results/admix_snp_stat/replicate{rep}.trees"
+	output:
+		"results/admix_snp_stat/replicate{rep}_haps.txt"
+	shell:
+		"python3 code/admix_snp_stat_haps.py {input} > {output}"
 
 rule combn_snp_stat:
 	input:

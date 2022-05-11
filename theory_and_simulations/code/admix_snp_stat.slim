@@ -1,20 +1,17 @@
 initialize() {
 	
 	initializeTreeSeq();
-	defineConstant("N", 10000);
+	defineConstant("N", 100);
 	defineConstant("alpha", 0.5);
 	defineConstant("genomeSize", 1e8);
 	initializeMutationRate(0);
 	initializeMutationType("m1", 0.5, "f", 0);
-	m1.convertToSubstitution=F;
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, genomeSize-1);
 	defineConstant("baseRate", 1e-8);
 	initializeRecombinationRate(baseRate);
 	
-	defineConstant("outPath", "~/workspace/selection-against-introgression/theory_and_simulations/results/admix_snp_stat/");
-	defineConstant("seed", 0);
-	//defineConstant("outPath", "results/admix_snp_stat/");
+	defineConstant("outPath", "results/admix_snp_stat/");
 
 }
 

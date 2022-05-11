@@ -39,24 +39,42 @@ rule gtf_to_bed:
 	shell:
 		"gtf2bed < {input} > {output}"
 
-rule calculate_gene_density:
+rule calculate_gene_density_physical:
 	input:
-		A1="homo_physical_windows.bed",
-		A2="homo_genetic_windows.bed",
+		A="homo_physical_windows.bed",
 		B="hg38.knownGene.bed"
 	output:
-		out1="gene_density_physical_windows.txt",
-		out2="gene_density_genetic_windows.txt",
+		out="gene_density_physical_windows.txt",
 	shell:
 		"""
-		bedtools coverage -a {input.A1} -b {input.B} | cut -f1-3,7 |\
-		sort -k1,1 -k2,2n > {output.out1}
-	
-		# for genetic windows kept Morgan for id so there's an extra col in output
-		bedtools coverage -a {input.A2} -b {input.B} | cut -f1-4,6 |\
-		sort -k1,1 -k2,2n > {output.out2}
+		bedtools coverage -a {input.A} -b {input.B} | cut -f1-3,7 |\
+		sort -k1,1 -k2,2n > {output.out}
 		"""
-	
+
+rule calculate_gene_density_genetic:
+	input:
+		A="homo_genetic_windows.bed",
+		B="hg38.knownGene.bed"
+	output:
+		out="gene_density_genetic_windows.txt",
+	shell:
+		"""
+		# for genetic windows kept Morgan for id so there's an extra col in output, also we take # of coding bp instead of density
+		bedtools coverage -a {input.A} -b {input.B} | cut -f1-4,6 |\
+		sort -k1,1 -k2,2n > {output.out}
+		"""
+
+rule windowed_B_values:	
+	input:
+		A="homo_{unit}_windows.bed",
+		B="B_values/hg38/bstat_hg38_v2.txt"
+	output:
+		"B_vals_{unit}_windows.txt"
+	shell:
+		"""
+		bedmap --echo --delim "\t" --wmean -sci {input.A} {input.B} > {output}
+		"""
+
 rule run_wavelets:
 	input:
 		"gene_density_{unit}_windows.txt",
