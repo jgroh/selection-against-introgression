@@ -96,7 +96,7 @@ frqM[, rec := approx(xout = frqM$pos, x = rmap$pos, y = rmap$recomb_rate)$y]
 
 
 # === output ===== 
-fwrite(frq1kb, file = paste0("archaic_freqs/chr", chromosome, "_frq_1kb_windows.txt"), quote = F, sep = "\t")
+fwrite(frq1kb, file = paste0("archaic_freqs/chr", chromosome, "_frq_physical_windows.txt"), quote = F, sep = "\t")
 fwrite(frqM, file = paste0("archaic_freqs/chr", chromosome, "_frq_genetic_windows.txt"), quote = F, sep = "\t")
 
 
