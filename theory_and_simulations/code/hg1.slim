@@ -20,14 +20,12 @@ initialize() {
 	initializeMutationType("m1", 0.5, "f", 0.0);
 	initializeGenomicElementType("g1", m1, 1.0);
 	
-	defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/hg1/");
 
 	// number of windows present in rec map
 	defineConstant("L", 248842222);
 	initializeGenomicElement(g1, 0, L-1);
 
 	// read recombination map for hg1
-	lines = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/human/hg38_chr1_slim_recmap.txt");
 	rates = NULL;
 	ends = NULL;
 	
