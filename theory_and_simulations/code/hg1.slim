@@ -1,4 +1,15 @@
 initialize() {
+	if (exists("slimgui"))
+	{
+		defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/hg1/");
+		defineConstant("seed", 0);
+		lines = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/human/hg38_chr1_slim_recmap.txt");
+	} else
+	{	
+		defineConstant("outPath", "results/hg1/");
+		lines = readFile("/Users/brogroh/selection-against-introgression/datasets/human/hg38_chr1_slim_recmap.txt");
+	}
+	
 	initializeTreeSeq();
 	defineConstant("N1", 1000);
 	defineConstant("N2", 1000);
@@ -12,11 +23,11 @@ initialize() {
 	defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/hg1/");
 
 	// number of windows present in rec map
-	defineConstant("L", 23600);
+	defineConstant("L", 248842222);
 	initializeGenomicElement(g1, 0, L-1);
 
 	// read recombination map for hg1
-	lines = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/human/Kong_etal_recmaps/hg1_recmap.txt");
+	lines = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/human/hg38_chr1_slim_recmap.txt");
 	rates = NULL;
 	ends = NULL;
 	
@@ -27,10 +38,8 @@ initialize() {
 		rates = c(rates, asFloat(components[1]));
 	}
 	ends = ends - min(ends);
-	ends = asInteger(ends/10000) + 1; 
-	ends = c(ends[1:(size(ends)-1)] - 2, L-1); // see SLiM manual section 6.1.2: this converts to zero based indexing and shifts from starts to ends
-	
-	rates = rates*0.01; // since each position in the simulation represents a 10kb window, this rescales recombination to a per window rate equivalent to 1e-8 per bp
+	ends = asInteger(ends) + 1; 
+	ends = c(ends[1:(size(ends)-1)] - 2, L); // see SLiM manual section 6.1.2: this converts to zero based indexing and shifts from starts to ends
 	
 	initializeRecombinationRate(rates, ends);
 }
