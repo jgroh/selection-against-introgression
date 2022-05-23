@@ -1,10 +1,11 @@
 import numpy as np
-reps = np.arange(10)
+reps = np.arange(8)
 #gens = ["gen" + num for num in ["0001", "0002", "0005", "0010", "0050", "0100", "0500", "1000"]]
 #gens = ["gen" + num for num in ["0001", "0100", "0101", "0201", "0500","0501","0601", "1001"]]
 #gens = ["gen" + num for num in ["0001","0002", "0100","0101", "0500", "0501", "1001"]]
 #gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0025","0050","0100","0250","0500","1000"]]
 gens = ["gen" + num for num in ["0001","0010","0100","1000"]]
+snp_stat_gens = [0,10,100,1000]
 #gens_swordtail = ["generation" + num for num in ["100", "150", "200"]]
 gens_swordtail = ["generation" + num for num in ["0001", "0010", "0100", "1000"]]
 swordtail_N = [1000]
@@ -55,29 +56,33 @@ rule all_sim:
 		expand("results/{sim}/replicate{rep}_{gen}.trees", sim=sims_sel_pulses,rep=reps,gen=gens)
 		#expand("results/swordtail_neutral/replicate{rep}_{gen}_N{N}.trees", rep=reps,gen=gens_swordtail,N=swordtail_N)
 
-rule admix_snp_stat:
+rule admix_snp_stat_simulation:
 	input:
 	output:
 		"results/admix_snp_stat/replicate{rep}.trees"
 	shell:
-		"slim -d seed={wildcards.rep} code/admix_snp_stat.slim"
+		"slim -d seed={wildcards.rep} -d N=1000 code/admix_snp_stat.slim"
 
-rule admix_snp_stat_print_haps:
+rule admix_snp_stat_output:
 	input:
 		"results/admix_snp_stat/replicate{rep}.trees"
 	output:
-		"results/admix_snp_stat/replicate{rep}_haps.txt"
+		expand("results/admix_snp_stat/replicate{{rep}}_{data}.txt", data=["haps","frqs"])
 	shell:
-		"python3 code/admix_snp_stat_haps.py {input} > {output}"
+		"python3 code/admix_snp_stat.py {input} 1000 8" #2nd argument is diploid size, 3rd argument is number of haplotypes to output
 
 rule combn_snp_stat:
 	input:
-		expand("results/admix_snp_stat/replicate{rep}_{gen}.txt", rep=reps, gen=gens)
+		frqs=expand("results/admix_snp_stat/replicate{rep}_frqs.txt", rep=reps),
+		haps=expand("results/admix_snp_stat/replicate{rep}_haps.txt", rep=reps)
 	output:
-		"results/admix_snp_stat/ancestry_master_snp_stat.txt"
+		allfrqs="results/admix_snp_stat/all_frqs.txt",
+		allhaps="results/admix_snp_stat/all_haps.txt"
 	shell:
-		"cat {input} > {output}"
-			
+		"""
+		cat {input.frqs} > {output.allfrqs}	
+		cat {input.haps} > {output.allhaps}
+		"""
 
 rule avg_ancestry_calc: 
 	input:

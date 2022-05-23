@@ -1,7 +1,6 @@
 initialize() {
 	
 	initializeTreeSeq();
-	defineConstant("N", 100);
 	defineConstant("alpha", 0.5);
 	defineConstant("genomeSize", 1e8);
 	initializeMutationRate(0);
@@ -20,28 +19,36 @@ initialize() {
 1 {
 	sim.addSubpop("p0", N);
 	sim.addSubpop("p1", N);
-	
+	sim.rescheduleScriptBlock(s1, N); // migration begins
+	sim.rescheduleScriptBlock(s2, N); // migration begins
+	sim.rescheduleScriptBlock(s3, N+10);
+	sim.rescheduleScriptBlock(s4, N+100);
+	sim.rescheduleScriptBlock(s5, N+500);
+	sim.rescheduleScriptBlock(s6, N+1000);
 }
 
 // expected Fst=0.2 when N=T
-10000 early() {
+s1 early() {
 	sim.addSubpop("p2", N);
 	p2.setMigrationRates(c(p0,p1), c(alpha, 1-alpha));
 }
 
-10000 late() {
+s2 late() {
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
 	p2.setMigrationRates(c(p0, p1), c(0.0, 0.0));
 }
 
-10010 late() {
+s3 late() {
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
 }
 
-10100 late() {
+s4 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+}
+s5 late() {
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
 }
 
-11000 late(){
+s6 late(){
 	sim.treeSeqOutput(outPath + "/replicate" + seed + ".trees");
 }
