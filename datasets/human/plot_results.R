@@ -3,7 +3,9 @@ library(waveslim)
 library(ggplot2)
 library(gridExtra)
 library(ggpubr)
+library(cubature)
 
+source("~/workspace/gnomwav/R/theory.R")
 
 
 wv_physical <- fread("wavelet_results/wv_physical.txt")
@@ -16,7 +18,6 @@ wc_freq_gd_physical <- fread("wavelet_results/wc_freq_gd_physical.txt")
 wc_freq_gd_genetic <- fread("wavelet_results/wc_freq_gd_genetic.txt")
 
 wc_freq_gdr_physical <- fread("wavelet_results/wc_freq_gdr_physical.txt")
-wc_freq_gdr_genetic <- fread("wavelet_results/wc_freq_gdr_genetic.txt")
 
 wc_rec_gd_physical <- fread("wavelet_results/wc_rec_gd_physical.txt")
 wc_rec_gd_genetic <- fread("wavelet_results/wc_rec_gd_genetic.txt")
@@ -26,7 +27,7 @@ lm_genetic <- fread("wavelet_results/lm_genetic.txt")
 
 lapply(
   list(wv_physical, wv_genetic, wc_freq_rec_physical, wc_freq_rec_genetic, wc_freq_gd_physical, wc_freq_gd_genetic, 
-            wc_freq_gdr_physical, wc_freq_gdr_genetic, wc_rec_gd_physical, wc_rec_gd_genetic, lm_physical, lm_genetic), 
+            wc_freq_gdr_physical,  wc_rec_gd_physical, wc_rec_gd_genetic, lm_physical, lm_genetic), 
   function(x){
     x[, level := factor(level, levels = c(paste0("d", 1:17), paste0("s", 15:17), "chr"))]
   }
@@ -59,19 +60,30 @@ ggplot(wv_physical,
 
 # ===== wavelet variance, genetic units =====
 
-lineData_genetic <- wv_genetic[grepl("d", level, fixed = T)]
+wvtheory <- wavelet_variance_equilbrium(n.pop=20000, n.sample = 20000, unit.scale = 2^-16, level = 1:17, alpha = 0.01, gen = 2000)
+setnames(wvtheory, "variance", "variance.freq")
+wvtheory[, propvar.freq := variance.freq/sum(variance.freq)]
+wvtheory[, data := "theory"]
+wvtheory[, level := paste0("d", level)][, level := as.factor(level)]
 
-ggplot(wv_genetic, 
-       #aes(x = level, y = variance.freq, group = 1)) + 
-       aes(x = level, y = propvar.freq, group = 1)) + 
-  geom_point(size = 2.2) + 
-  geom_line(data = lineData_genetic) + 
+wv_genetic[, data := "empirical"]
+wv_genetic_plot_data <- rbind(wv_genetic[, .(level, data, variance.freq, propvar.freq)], wvtheory[, .(level,data, variance.freq, propvar.freq)])
+
+lineData_genetic <- wv_genetic_plot_data[grepl("d", level, fixed = T)]
+
+ggplot(wv_genetic_plot_data[], 
+       aes(x = level, y = variance.freq, group = 1)) + 
+       #aes(x = level, y = propvar.freq)) + 
+  geom_point(size = 2.2, aes(color = data)) + 
+  geom_line(data = lineData_genetic[], aes(group = data, color = data)) + 
+  scale_color_manual(values = c("black", "red")) + 
+  labs(color = "") +
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), paste0("s", 15:17), "chr"), 
                    labels = c(as.character(-16:0), paste0(-2:0, " (scaling var)"), "chromosome"))   + 
   labs(x = expression(Scale: log[2] (Morgan)), 
-       #y = "Variance") + 
-       y = "Proportion of genome-wide variance") + 
+       y = "Variance") + 
+       #y = "Proportion of genome-wide variance") + 
   theme(aspect.ratio = 1, 
         axis.title = element_text(size = 15),
         axis.text.x = element_text(angle = 90, size = 12),
@@ -162,6 +174,7 @@ annotate_figure(figure,
                 left = text_grob("Correlation", rot = 90, size = 15)
 )
 
+p4
 
 # ---- genetic scale 
 
@@ -211,28 +224,17 @@ p3g <- ggplot(wc_rec_gd_genetic, aes(x = level, y = cor_jack)) + geom_point() +
   geom_segment(aes(x = 0, xend = 17, y = -Inf, yend = -Inf)) + 
   geom_segment(aes(x = 18, xend = 20, y = -Inf, yend = -Inf))  
 
-p4g <- ggplot(wc_freq_gdr_genetic, aes(x = level, y = cor_jack)) + geom_point() + 
-  geom_errorbar(aes(ymin=lower95ci, ymax = upper95ci)) + 
-  theme_classic() + 
-  scale_x_discrete(breaks = c(paste0("d", 1:17), paste0("s", 15:17), "chr"), 
-                   labels = c(as.character(-16:0), paste0(-2:0, " (s)"), "chromosome"))   + 
-  labs(x="",
-       #x = expression(Scale: log[2] ("1kb")), 
-       y = "freq, (gene dnsty / rec)") + 
-  theme(#aspect.ratio = 1, 
-    axis.title = element_text(size = 13),
-    axis.text.x = element_text(angle = 90, size = 12),
-    axis.text.y = element_text(size = 12),
-    axis.line.x = element_blank())  +
-  geom_segment(aes(x = 0, xend = 17, y = -Inf, yend = -Inf)) + 
-  geom_segment(aes(x = 18, xend = 20, y = -Inf, yend = -Inf))  
 
 
-toprow_g <- ggarrange(NULL, p1g, p2g, NULL, labels = c("","",""), ncol = 4, widths = c(0.2,1,1,.3))
+
+toprow <- ggarrange(NULL, p1g, NULL,  labels = c("","",""), ncol = 3, widths = c(.3,1,.3))
+middle <- ggarrange(NULL, p2g, NULL,  labels = c("","",""), ncol = 3, widths = c(.3,1,.3))
+bottomrow <- ggarrange(NULL, p3g, NULL,  labels = c("","",""), ncol = 3, widths = c(.3,1,.3))
+
+
 #toprow
-bottomrow_g <- ggarrange(NULL,p3g, p4g, NULL, ncol=4, widths = c(0.2,1,1,.3))
 #bottomrow
-figure_g <- ggarrange(NULL, toprow_g, bottomrow_g, nrow = 3, labels = c("",""), heights = c(0.2,0.8,1))
+figure_g <- ggarrange(toprow, middle, bottomrow,  nrow = 3, labels = c("",""), heights = c(0.8,0.8,1))
 
 annotate_figure(figure_g,
                 bottom =  text_grob(expression(Scale: log[2] (Morgan)), hjust=1, size = 15), 
@@ -245,10 +247,10 @@ annotate_figure(figure_g,
 # ===== Contribution to Correlation ====
 
 # ---- physical -----
-allWav_physical <- merge(wv_physical, wc_freq_rec_physical)
+allWav_physical <- merge(wv_physical, wc_freq_gdr_physical)
 allWav_physical[, contribution := cor_jack*sqrt(propvar.freq*propvar.rec)]
 
-ggplot(allWav_physical) + 
+ggplot(allWav_physical[!grepl("s", level,fixed=T)]) + 
   geom_bar(aes(fill = cor_jack, x = level, y = contribution), stat= "identity", color = "black") +
   scale_fill_gradient2(low = "blue", mid = "white", high = "red") +
   scale_x_discrete(breaks = c(paste0("d", 1:17), paste0("s", 15:17), "chr"), 
@@ -264,8 +266,8 @@ ggplot(allWav_physical) +
 
 
 # ----- genetic ----
-allWav_genetic <- merge(wv_genetic, wc_freq_gdr_genetic, by = "level")
-allWav_genetic[, contribution := cor_jack*sqrt(propvar.freq*propvar.rec)]
+allWav_genetic <- merge(wv_genetic, wc_freq_gd_genetic, by = "level")
+allWav_genetic[, contribution := cor_jack*sqrt(propvar.freq*propvar.gd)]
 
 
 ggplot(allWav_genetic) + 
