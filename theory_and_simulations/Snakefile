@@ -61,7 +61,7 @@ rule admix_snp_stat_simulation:
 	output:
 		"results/admix_snp_stat/replicate{rep}.trees"
 	shell:
-		"slim -d seed={wildcards.rep} -d N=1000 code/admix_snp_stat.slim"
+		"slim -d seed={wildcards.rep} -d N=10000 code/admix_snp_stat.slim"
 
 rule admix_snp_stat_output:
 	input:
@@ -69,7 +69,7 @@ rule admix_snp_stat_output:
 	output:
 		expand("results/admix_snp_stat/replicate{{rep}}_{data}.txt", data=["haps","frqs"])
 	shell:
-		"python3 code/admix_snp_stat.py {input} 1000 8" #2nd argument is diploid size, 3rd argument is number of haplotypes to output
+		"python3 code/admix_snp_stat.py {input} 10000 8" #2nd argument is diploid size, 3rd argument is number of haplotypes to output
 
 rule combn_snp_stat:
 	input:
