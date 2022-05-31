@@ -24,13 +24,16 @@ if(windows == "physical"){
   gd <- fread("gene_density_physical_windows.txt", col.names = c("chr", "start", "end", "gd"))
   gd[, pos := start + 500]
   
+  Bvals <- fread("B_vals_physical_windows.txt", col.names = c("chr", "start", "end", "B"))
+  Bvals[, pos := start + 500]
+  
   # read frequency files
   chr_files <- dir(path = "archaic_freqs/", pattern = "chr.*_frq_physical_windows.txt", full.names=T)
   gnom <- rbindlist(lapply(chr_files, fread))
   
   # combine gd and freq files
   gnom[, chr := paste0("chr", chr)]
-  gnom <- merge(gd, gnom, by = c("chr", "pos"))
+  gnom <- merge(gnom, merge(gd, Bvals, by = c("chr", "pos", "start", "end")), by = c("chr", "pos"))
   gnom[, gdr := gd/rec]
   gnom[gdr == Inf, gdr := gnom[gdr != Inf, max(gdr)]]
   gnom[gd==0 & rec==0, gdr := gnom[, mean(gdr, na.rm=T)]][]
@@ -68,6 +71,13 @@ if(analysis == "wv"){
 } 
 
 # ===== Wavelet Correlations =====
+if(analysis == "wc_freq_B"){
+  gnom[, B := gnom[, approx(x = pos, y = B, xout=pos, rule = 2), by = chr]$y]
+
+  wc <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("freq", "B"), rm.boundary = T)]
+  fwrite(wc, file=outfile, sep = "\t", quote=F)
+}
+
 if(analysis == "wc_freq_rec"){
   wc <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("freq", "rec"), rm.boundary = T)]
   fwrite(wc, file=outfile, sep = "\t", quote=F)
@@ -90,7 +100,7 @@ if(analysis == "wc_rec_gd"){
 
 # ===== Linear Model Analysis =====
 if(analysis == "lm"){
-  z <- wvlt_lm(data = gnom, chromosome = "chr", yvar = "freq", xvars = c("rec", "gd"))
+  z <- wvlt_lm(data = gnom, chromosome = "chr", yvar = "freq", xvars = c("B"))
   fwrite(z, file=outfile, sep = "\t", quote=F)
 }
 
