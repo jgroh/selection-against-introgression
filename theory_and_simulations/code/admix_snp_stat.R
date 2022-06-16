@@ -1,5 +1,4 @@
 library(data.table)
-library(tidyverse)
 library(cubature)
 
 # ----- read and format simulation data
@@ -70,7 +69,7 @@ setnames(frqs_interp, c("x", "y"), c("Morgan", "h_frq"))
 
 # ----- Wavelet Variance decomposition of frequency stat -----
 wv_frq <- frqs_interp[, gnom_var_decomp(.SD, chromosome = NA, signals = "h_frq"), by = .(rep, gen)]
-wv_frq <- wv[grepl("d", level)]
+wv_frq <- wv_frq[grepl("d", level)]
 
 
 #thry_frq <- wavelet_variance_equilbrium(n.pop = 20000, n.sample = 20000, unit.scale = 2^-7, gen = c(10,100,500,1000),level = 1:7, alpha = 0.5)
@@ -143,7 +142,7 @@ wv_haps2 <- merge(prnt_wv_haps, hyb_wv_haps, by = c("level","gen"))
 allWV <- merge(wv_haps2, wv_frq)
 
 
-
+fwrite(allWV, file=paste0("results/admix_snp_stat/replicate",allWV[1,rep], "_wv_results.txt"),quote=F, sep="\t")
 
 
 #wvtheory <- wavelet_variance_equilbrium(n.pop=20000, n.sample = 1, unit.scale = 2^-7, level = 1:7, alpha = 0.5, gen = c(10,100,500,1000))

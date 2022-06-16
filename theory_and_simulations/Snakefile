@@ -1,11 +1,15 @@
 import numpy as np
 reps = np.arange(8)
+hg1_sim_reps = np.arange(8)
+snp_stat_reps = np.arange(8)
+
 #gens = ["gen" + num for num in ["0001", "0002", "0005", "0010", "0050", "0100", "0500", "1000"]]
 #gens = ["gen" + num for num in ["0001", "0100", "0101", "0201", "0500","0501","0601", "1001"]]
 #gens = ["gen" + num for num in ["0001","0002", "0100","0101", "0500", "0501", "1001"]]
 #gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0025","0050","0100","0250","0500","1000"]]
 gens = ["gen" + num for num in ["0001","0010","0100","1000"]]
-snp_stat_gens = [0,10,100,1000]
+snp_stat_gens = [0,10,100,500,1000]
+
 #gens_swordtail = ["generation" + num for num in ["100", "150", "200"]]
 gens_swordtail = ["generation" + num for num in ["0001", "0010", "0100", "1000"]]
 swordtail_N = [1000]
@@ -35,6 +39,17 @@ rule simulation_setA:
 rule allSim:
 	input:
 		expand("results/{sim}/replicate{rep}_{gen}.trees", sim=sims_sel_pulses, rep=reps, gen=gens)
+
+rule human_chrom_sims:
+	input:
+	output:
+		"results/hg1{sim}/N100_replicate{rep}.trees"
+	shell:
+		"slim -d seed={wildcards.rep} -d N1=100 code/hg1{wildcards.sim}.slim"
+
+rule all_hg_sims:
+	input:
+		expand("results/hg1{sim}/N100_replicate{rep}.trees", rep=hg1_sim_reps, sim=['', '_neutral'])
 
 rule simulation_setB:
 	input:
@@ -71,17 +86,25 @@ rule admix_snp_stat_output:
 	shell:
 		"python3 code/admix_snp_stat.py {input} 10000 8" #2nd argument is diploid size, 3rd argument is number of haplotypes to output
 
-rule combn_snp_stat:
+rule wv_of_snp_stat:
 	input:
-		frqs=expand("results/admix_snp_stat/replicate{rep}_frqs.txt", rep=reps),
-		haps=expand("results/admix_snp_stat/replicate{rep}_haps.txt", rep=reps)
+		frqs="results/admix_snp_stat/replicate{rep}_frqs.txt",
+		haps="results/admix_snp_stat/replicate{rep}_haps.txt"
 	output:
-		allfrqs="results/admix_snp_stat/all_frqs.txt",
-		allhaps="results/admix_snp_stat/all_haps.txt"
+		"results/admix_snp_stat/replicate{rep}_wv_results.txt"
 	shell:
 		"""
-		cat {input.frqs} > {output.allfrqs}	
-		cat {input.haps} > {output.allhaps}
+		Rscript --vanilla code/admix_snp_stat.R {input.haps} {input.frqs}
+		"""
+
+rule combine_snp_stat:
+	input:
+		expand("results/admix_snp_stat/replicate{rep}_wv_results.txt",rep=snp_stat_reps)
+	output:
+		"results/admix_snp_stat/all_wv_results.txt"
+	shell:
+		"""
+		cat {input} > {output}
 		"""
 
 rule avg_ancestry_calc: 
