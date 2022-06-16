@@ -1,9 +1,12 @@
+// if running on command line, need to pass seed # and population size as command line args
+
 initialize() {
 	if (exists("slimgui"))
 	{
 		defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/hg1/");
 		defineConstant("seed", 0);
 		lines = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/human/hg38_chr1_slim_recmap.txt");
+		defineConstant("N1", 1000);
 	} else
 	{	
 		defineConstant("outPath", "results/hg1/");
@@ -11,8 +14,7 @@ initialize() {
 	}
 	
 	initializeTreeSeq();
-	defineConstant("N1", 1000);
-	defineConstant("N2", 1000);
+	defineConstant("N2", 1);
 	defineConstant("s", 0.4);
 	defineConstant("alpha", 0.5);
 
@@ -66,11 +68,22 @@ initialize() {
 
 // output: gen 3 late are F2 offspring
 3 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_F2.trees"); }
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // these are F2s
+}
+6 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // these are F5s
+}
 11 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_F10.trees"); }
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // these are F10s
+}
+51 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // these are F50s
+}
 101 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_F100.trees"); }
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // these are F100
+}
+501 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // these are F500
+}
 1001 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_F1000.trees"); }
-
+	sim.treeSeqOutput(outPath + "/N" + N1 + "_replicate" + seed + ".trees"); }

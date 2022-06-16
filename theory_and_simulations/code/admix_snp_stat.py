@@ -17,7 +17,7 @@ def allele_frequencies(ts, sample_sets=None):
     return ts.sample_count_stat(sample_sets, f , len(sample_sets), windows='sites', polarised=True, mode='site', strict=False)
 
 # recapitation
-rts = pyslim.recapitate(orig_ts, recombination_rate=1e-8, ancestral_Ne=N, random_seed=5)
+rts = pyslim.recapitate(orig_ts, recombination_rate=1e-8, ancestral_Ne=N, random_seed=123)
 
 # overlay mutations
 ts = pyslim.SlimTreeSequence(msprime.sim_mutations(rts, rate=1e-8, model=msprime.SLiMMutationModel(type=0) ))

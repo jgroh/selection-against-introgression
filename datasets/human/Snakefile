@@ -2,7 +2,7 @@ import numpy as np
 chrs = np.arange(1, 23)
 units = ["physical", "genetic"]
 # analyses common to both units. note gene density analysis differs between physical and genetic
-wvlt_analyses = ["wv","wc_freq_rec","wc_freq_gd","wc_rec_gd","lm"]
+wvlt_analyses = ["wv","wc_freq_rec","wc_freq_gd","wc_rec_gd","lm", "wc_freq_B"]
 
 rule all:
 	input:
@@ -67,12 +67,12 @@ rule calculate_gene_density_genetic:
 rule windowed_B_values:	
 	input:
 		A="homo_{unit}_windows.bed",
-		B="B_values/hg38/bstat_hg38_v2.txt"
+		B="B_values/hg38/bstat_hg38_v2_sorted.txt"
 	output:
 		"B_vals_{unit}_windows.txt"
 	shell:
 		"""
-		bedmap --echo --delim "\t" --wmean -sci {input.A} {input.B} > {output}
+		bedmap --echo --delim "\t" --wmean --sci {input.A} {input.B} > {output}
 		"""
 
 rule run_wavelets:
