@@ -1,12 +1,10 @@
-// selective sweep against introgressed allele at a random locus
-
 initialize() {
 	
 	initializeTreeSeq();
 	defineConstant("L", 1024); 
-	defineConstant("N", 100); // recipient population size
+	defineConstant("N", 100); // bottlnecked population size
 	defineConstant("genomeSize",1e8);
-	defineConstant("alpha", 0.25);//initial mixing proportion = starting freq in F2s
+	defineConstant("alpha", 0.5);//initial mixing proportion = starting freq in F2s
 	initializeMutationRate(0);
 	initializeMutationType("m1", 0.5, "f", 0);
 	m1.convertToSubstitution = F;
@@ -17,7 +15,7 @@ initialize() {
 	setSeed(seed);
 	initializeRecombinationRate((genomeSize/L)*baseRate);
 
-	defineConstant("outPath", "results/bottleneck/");
+	defineConstant("outPath", "results/neutral_sims/bottleneck/");
 }
 
 1 {sim.addSubpop("p1", N);
@@ -37,27 +35,27 @@ initialize() {
 
 
 1 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0001.trees"); }
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);}
 2 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0002.trees"); }
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);}
 3 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0003.trees"); }
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);}
 4 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0004.trees"); }
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);}
 5 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0005.trees"); }
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);}
 10 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0010.trees"); }
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);}
 25 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0025.trees"); }
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);}
 50 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0050.trees"); }
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);}
 100 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0100.trees"); }
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);}
 250 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0250.trees"); }
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);}
 500 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen0500.trees"); }
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);}
 1000 late() {
-	sim.treeSeqOutput(outPath + "/replicate" + seed + "_gen1000.trees"); }
+	sim.treeSeqOutput(outPath + "/replicate" + seed + ".trees"); }
 

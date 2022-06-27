@@ -6,7 +6,7 @@ initialize() {
 		defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/hg1/");
 		defineConstant("seed", 0);
 		lines = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/human/hg38_chr1_slim_recmap.txt");
-		defineConstant("N1", 1000);
+		defineConstant("N0", 1000);
 	} else
 	{	
 		defineConstant("outPath", "results/hg1/");
@@ -14,7 +14,7 @@ initialize() {
 	}
 	
 	initializeTreeSeq();
-	defineConstant("N2", 1);
+	defineConstant("N1", 1);
 	defineConstant("s", 0.4);
 	defineConstant("alpha", 0.5);
 
@@ -45,21 +45,21 @@ initialize() {
 }
 
 1 {
-	sim.addSubpop("p1", N1);
-	sim.addSubpop("p2", N2); 
+	sim.addSubpop("p0", N0);
+	sim.addSubpop("p1", N1); 
 	
 	// the donor population carries 100 deleterious loci 
-	p2.individuals.genomes.addNewMutation(m1, 0, asInteger(seq(0, L-1, by = L/100))); 
+	p1.individuals.genomes.addNewMutation(m1, 0, asInteger(seq(0, L-1, by = L/100))); 
 
-	p1.setMigrationRates(p2,alpha);
+	p0.setMigrationRates(p1,alpha);
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
 }
 
-1 late() {p2.setSubpopulationSize(0);}
+1 late() {p1.setSubpopulationSize(0);}
 
 //calculate fitness
 1:1000 late() {
-	inds = p1.individuals;
+	inds = p0.individuals;
 	introgressed = inds.countOfMutationsOfType(m1);
 	// an individual homozygous for all 100 deleterious loci experiences a fitness reduction of 0.4
 	inds.fitnessScaling = 1.0 - (introgressed/(200))*s;
