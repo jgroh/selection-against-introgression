@@ -19,16 +19,12 @@ ts = pyslim.load(sys.argv[1])
 #ts = tskit.load("/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/neutral_sims/equilibrium/replicate0.trees")
 rep = float(os.path.basename(sys.argv[1]).lstrip('replicate').rstrip('.trees'))
 
-frqs = []
-
 for gen in sys.argv[2:]: 
     tm = 1000-int(gen)
     allsets = [ts.samples(1, time = tm)]
     af = allele_frequencies(ts, allsets)
     allsites = np.array([s.position for s in ts.sites()])
     frqsout = np.c_[np.tile(rep, len(allsites)), np.tile(gen, len(allsites)), allsites, af]
-    frqs.append(frqsout)
-
-fn = os.path.abspath(sys.argv[1]).rstrip('.trees')
-np.savetxt(fname=fn + "_ancestry.txt", X=np.vstack(frqs))
-
+    frqsout = frqsout.tolist()
+    for a in frqsout:
+        print(*a)
