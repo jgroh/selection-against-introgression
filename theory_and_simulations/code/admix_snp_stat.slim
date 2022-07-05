@@ -26,8 +26,8 @@ initialize() {
 1 {
 	sim.addSubpop("p0", N);
 	sim.addSubpop("p1", N);
-	sim.rescheduleScriptBlock(s1, start=N, end=N); // migration begins
-	sim.rescheduleScriptBlock(s2, start=N, end=N); // migration begins
+	sim.rescheduleScriptBlock(s1, start=N, end=N); // migration begins when expected Fst=0.2
+	sim.rescheduleScriptBlock(s2, start=N, end=N); // migration ends
 	sim.rescheduleScriptBlock(s3, start=N+10, end=N+10);
 	sim.rescheduleScriptBlock(s4, start=N+100, end=N+100);
 	sim.rescheduleScriptBlock(s5, start=N+500, end=N+500);
