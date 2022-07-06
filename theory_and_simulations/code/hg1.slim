@@ -5,15 +5,16 @@ initialize() {
 	{
 		defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/hg1/");
 		defineConstant("seed", 0);
-		lines = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/human/hg38_chr1_slim_recmap.txt");
-		defineConstant("N0", 1000);
+		rates = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/human/hg38_chr1_slim_recmapV2.txt");
+		defineConstant("N0", 10000);
 	} else
 	{	
 		defineConstant("outPath", "results/hg1/");
-		lines = readFile("/Users/brogroh/selection-against-introgression/datasets/human/hg38_chr1_slim_recmap.txt");
+		rates = readFile("/Users/brogroh/selection-against-introgression/datasets/human/hg38_chr1_slim_recmapV2.txt");
 	}
 	
 	initializeTreeSeq();
+	defineConstant("L", 255801);
 	defineConstant("N1", 1);
 	defineConstant("s", 0.4);
 	defineConstant("alpha", 0.5);
@@ -24,24 +25,9 @@ initialize() {
 	
 
 	// number of windows present in rec map
-	defineConstant("L", 248842222);
 	initializeGenomicElement(g1, 0, L-1);
 
-	// read recombination map for hg1
-	rates = NULL;
-	ends = NULL;
-	
-	for (line in lines)
-	{	
-		components = strsplit(line, "\t");
-		ends = c(ends, asInteger(components[0]));
-		rates = c(rates, asFloat(components[1]));
-	}
-	ends = ends - min(ends);
-	ends = asInteger(ends) + 1; 
-	ends = c(ends[1:(size(ends)-1)] - 2, L); // see SLiM manual section 6.1.2: this converts to zero based indexing and shifts from starts to ends
-	
-	initializeRecombinationRate(rates, ends);
+	initializeRecombinationRate(asFloat(rates), 1:(L-1));
 }
 
 1 {
@@ -49,7 +35,7 @@ initialize() {
 	sim.addSubpop("p1", N1); 
 	
 	// the donor population carries 100 deleterious loci 
-	p1.individuals.genomes.addNewMutation(m1, 0, asInteger(seq(0, L-1, by = L/100))); 
+	p1.individuals.genomes.addNewMutation(m1, -0.001, asInteger(seq(0, L-1, by = L/100))); 
 
 	p0.setMigrationRates(p1,alpha);
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
@@ -86,4 +72,4 @@ initialize() {
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // these are F500
 }
 1001 late() {
-	sim.treeSeqOutput(outPath + "/N" + N1 + "_replicate" + seed + ".trees"); }
+	sim.treeSeqOutput(outPath + "/N" + N0 + "_replicate" + seed + ".trees"); }
