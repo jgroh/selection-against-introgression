@@ -1,7 +1,7 @@
 import numpy as np
 reps = np.arange(8)
 hg1_sim_reps = np.arange(8)
-snp_stat_reps = np.arange(8)
+snp_stat_reps = np.arange(10)
 
 #gens = ["gen" + num for num in ["0001", "0002", "0005", "0010", "0050", "0100", "0500", "1000"]]
 #gens = ["gen" + num for num in ["0001", "0100", "0101", "0201", "0500","0501","0601", "1001"]]
@@ -15,48 +15,40 @@ gens_swordtail = ["generation" + num for num in ["0001", "0010", "0100", "1000"]
 swordtail_N = [1000]
 #gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0050","0100","0250","0500","0750","1000"]]
 #sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb","single-sweep"]
-simsA = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb"]
+#simsA = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb"]
 simsB = ["equilibrium_n500"]
 #sims_sel_pulses = ["add-sel-periodic-recomb_gen" + g for g in ["1-1000", "1-100","100-200","500-600"]]
 sims_sel_pulses = ["hg1_sel_gens" + g for g in ["1-1000", "1-10","100-110","500-510"]]
 sims_swordtail = ["swordtail_neutral"]
-ruleorder: avg_ancestry_calc_swordtail > avg_ancestry_calc
+#ruleorder: avg_ancestry_calc_swordtail > avg_ancestry_calc
 
-rule all:
+# ===== rules for producing neutral simulation results ======
+rule all_neutral_wv_sim:
 	input:
-		expand("results/{sim}/ancestry_master.txt", sim=simsA)
-		#expand("results/{sim}/ancestry_master.txt", sim=sims_swordtail)
-		#expand("results/{sim}/ancestry_master.txt", sim=sims_sel_pulses)
-#		"results/equilibrium_n500/all-variances-master.txt",
+		expand("results/neutral_sims/{sim}/ancestry_master.txt", sim = ['equilibrium', 'bottleneck'])
 
-rule simulation_setA:
+rule neutral_sims: # this runs simulations for neutral admixture pulse: (1) demographic equilibrium and (2) early bottleneck
 	input:
 	output:
-		temp(expand("results/{{sim}}/replicate{{rep}}_{gen}.trees", gen=gens))
+		"results/neutral_sims/{sim}/replicate{rep}.trees" #trees file includes remembered individuals from various gens
 	shell:
 		"slim -d seed={wildcards.rep} code/{wildcards.sim}.slim"
 
-rule allSim:
+rule ancestry_neutral_sims: # calculates ancestry fractions for the neutral sims
 	input:
-		expand("results/{sim}/replicate{rep}_{gen}.trees", sim=sims_sel_pulses, rep=reps, gen=gens)
-
-rule human_chrom_sims:
-	input:
+		"results/neutral_sims/{sim}/replicate{rep}.trees"
 	output:
-		"results/hg1{sim}/N100_replicate{rep}.trees"
+		"results/neutral_sims/{sim}/replicate{rep}_ancestry.txt"
 	shell:
-		"slim -d seed={wildcards.rep} -d N1=100 code/hg1{wildcards.sim}.slim"
+		"python code/derived-allele-freq-general.py {input} 1 2 3 4 5 10 25 50 100 250 500 1000 > {output}"
 
-rule all_hg_sims:
+rule combine_neutral_sim_ancestry:
 	input:
-		expand("results/hg1{sim}/N100_replicate{rep}.trees", rep=hg1_sim_reps, sim=['', '_neutral'])
-
-rule simulation_setB:
-	input:
+		expand("results/neutral_sims/{{sim}}/replicate{rep}_ancestry.txt", rep = np.arange(10))
 	output:
-		expand("results/equilibrium_n500/replicate{{rep}}_{gen}_allHaps.txt", gen = gens)
+		"results/neutral_sims/{sim}/ancestry_master.txt"
 	shell:
-		"slim -d seed={wildcards.rep} code/equilibrium_n500.slim"
+		"cat {input} > {output}"
 
 rule simulation_swordtail:
 	input:
@@ -64,12 +56,37 @@ rule simulation_swordtail:
 		temp(expand("results/swordtail_neutral/swordtail_replicate{{rep}}_{gen}_N{{N}}.trees", gen = gens_swordtail))
 	shell:
 		"slim -d seed={wildcards.rep} -d N={wildcards.N} code/swordtail_neutral.slim"
-        
-rule all_sim:
+
+rule avg_ancestry_calc_swordtail:
 	input:
-		#expand("results/{sim}/replicate{rep}_{gen}.trees", sim=simsA,rep=reps,gen=gens),
-		expand("results/{sim}/replicate{rep}_{gen}.trees", sim=sims_sel_pulses,rep=reps,gen=gens)
-		#expand("results/swordtail_neutral/replicate{rep}_{gen}_N{N}.trees", rep=reps,gen=gens_swordtail,N=swordtail_N)
+		"results/swordtail_neutral/swordtail_{rep_gen_N}.trees"
+	output:
+		temp("results/swordtail_neutral/swordtail_{rep_gen_N}_ancestry.txt")
+	shell:
+		"python3 code/ancestry.py {input} > {output}"
+	
+# ===== rules for simulations with selection =======
+
+rule human_chrom_sims:
+	input:
+	output:
+		"results/hg1/replicate{rep}.trees"
+	shell:
+		"slim -d seed={wildcards.rep} -d N=10000 code/hg1.slim"
+
+rule output_ancestry_hg_sims:
+	input:
+		"results/hg1/replicate{rep}.trees"
+	output:
+		"results/hg1/replicate{rep}_frqs.txt"
+	shell:
+		"python code/ancestry-multigen.py {input} 3 6 11 51 101 501 1001 > {output}"
+
+rule all_hg_ancestry:
+	input:
+		expand("results/hg1/replicate{rep}_frqs.txt", rep=np.arange(10))
+
+# ===== allele frq based statistic sims =====
 
 rule admix_snp_stat_simulation:
 	input:
@@ -84,44 +101,37 @@ rule admix_snp_stat_output:
 	output:
 		expand("results/admix_snp_stat/replicate{{rep}}_{data}.txt", data=["haps","frqs"])
 	shell:
-		"python3 code/admix_snp_stat.py {input} 10000 8" #2nd argument is diploid size, 3rd argument is number of haplotypes to output
+		"python code/admix_snp_stat.py {input} 10000 20" #2nd argument is diploid size, 3rd argument is number of haplotypes to output
 
 rule wv_of_snp_stat:
 	input:
-		frqs="results/admix_snp_stat/replicate{rep}_frqs.txt",
+		frqs="results/admix_snp_stat/replicate{rep}_frqs.txt", 
 		haps="results/admix_snp_stat/replicate{rep}_haps.txt"
 	output:
 		"results/admix_snp_stat/replicate{rep}_wv_results.txt"
-	shell:
+	shell: # first argument to R script is the number of haplotypes output, should match the output from the previous rule that outputs ancestry
 		"""
-		Rscript --vanilla code/admix_snp_stat.R {input.haps} {input.frqs}
+		Rscript --vanilla code/admix_snp_stat.R 20 {input.haps} {input.frqs}
 		"""
 
 rule combine_snp_stat:
 	input:
 		expand("results/admix_snp_stat/replicate{rep}_wv_results.txt",rep=snp_stat_reps)
-	output:
-		"results/admix_snp_stat/all_wv_results.txt"
-	shell:
-		"""
-		cat {input} > {output}
-		"""
+	#output:
+	#	"results/admix_snp_stat/all_wv_results.txt"
+	#shell:
+	#	"""
+	#	cat {input} > {output}
+	#	"""
 
-rule avg_ancestry_calc: 
-	input:
-		"results/{sim}/{rep_gen}.trees"
-	output:
-		temp("results/{sim}/{rep_gen}_ancestry.txt")
-	shell:
-		"python3 code/derived-allele-freq.py {input} > {output}"
+#rule avg_ancestry_calc: 
+#	input:
+#		"results/{sim}/{rep_gen}.trees"
+#	output:
+#		temp("results/{sim}/{rep_gen}_ancestry.txt")
+#	shell:
+#		"python3 code/derived-allele-freq.py {input} > {output}"
 
-rule avg_ancestry_calc_swordtail:
-	input:
-		"results/swordtail_neutral/swordtail_{rep_gen_N}.trees"
-	output:
-		temp("results/swordtail_neutral/swordtail_{rep_gen_N}_ancestry.txt")
-	shell:
-		"python3 code/ancestry.py {input} > {output}"
 
 rule dwt_on_haps:
 	input:
@@ -132,15 +142,15 @@ rule dwt_on_haps:
 		"Rscript --vanilla code/all-variances-table.R {input} {wildcards.rep_gen} {output}"
 
 
-rule aggregate_mean_ancestry:
-	input:
-		input = expand("results/{{sim}}/replicate{rep}_{gen}_ancestry.txt", rep=reps,gen=gens)
-	output:
-		output="results/{sim}/ancestry_master.txt"
-	shell:
-		"""
-        cat {input} > results/{wildcards.sim}/ancestry_master.txt
-        """
+#rule aggregate_mean_ancestry:
+#	input:
+#		input = expand("results/{{sim}}/replicate{rep}_{gen}_ancestry.txt", rep=reps,gen=gens)
+#	output:
+#		output="results/{sim}/ancestry_master.txt"
+#	shell:
+#		"""
+#        cat {input} > results/{wildcards.sim}/ancestry_master.txt
+#        """
 
 rule aggregate_mean_ancestry_swordtail:
 	input:

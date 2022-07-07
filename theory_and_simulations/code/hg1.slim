@@ -6,7 +6,7 @@ initialize() {
 		defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/hg1/");
 		defineConstant("seed", 0);
 		rates = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/human/hg38_chr1_slim_recmapV2.txt");
-		defineConstant("N0", 10000);
+		defineConstant("N", 10000);
 	} else
 	{	
 		defineConstant("outPath", "results/hg1/");
@@ -31,7 +31,7 @@ initialize() {
 }
 
 1 {
-	sim.addSubpop("p0", N0);
+	sim.addSubpop("p0", N);
 	sim.addSubpop("p1", N1); 
 	
 	// the donor population carries 100 deleterious loci 
@@ -72,4 +72,4 @@ initialize() {
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // these are F500
 }
 1001 late() {
-	sim.treeSeqOutput(outPath + "/N" + N0 + "_replicate" + seed + ".trees"); }
+	sim.treeSeqOutput(outPath + "/replicate" + seed + ".trees"); }
