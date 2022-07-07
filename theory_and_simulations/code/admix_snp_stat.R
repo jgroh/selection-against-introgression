@@ -15,9 +15,9 @@ if(Sys.getenv("RSTUDIO") == "1"){
   source("~/workspace/gnomwav/R/theory.R")
   
   setwd("/Users/Jeff/workspace/selection-against-introgression/theory_and_simulations/results/admix_snp_stat/")
-  n.sample <- 8
-  haps <- fread("replicate1_haps.txt", col.names = c("rep", "gen", "pos",  paste0("p0.", 1:8), paste0("p1.", 1:8), paste0("p2.", 1:8)))
-  frqs <- fread("replicate1_frqs.txt", col.names = c("rep", "gen", "pos", "p0", "p1", "p2"))
+  n.sample <- 20
+  haps <- fread("replicate0_haps.txt", col.names = c("rep", "gen", "pos",  paste0("p0.", 1:20), paste0("p1.", 1:20), paste0("p2.", 1:20)))
+  frqs <- fread("replicate0_frqs.txt", col.names = c("rep", "gen", "pos", "p0", "p1", "p2"))
   
 } else {
   
@@ -103,20 +103,20 @@ allsitedata <- merge(haps_informative,
                 by = c("rep", "gen", "pos", "Morgan"))
 
 # compute ancestry stat at informative loci
-allsitedata[, hyb_hap := (allele - p0)/(p1-p0)]
+allsitedata[, h_hap := (allele - p0)/(p1-p0)]
 
 # interpolate ancestry stat
-haps_interp <- allsitedata[, approx(x = Morgan, y = hyb_hap, xout=xout, rule=2), by = .(rep, gen, pop, id)]
-setnames(haps_interp, c("x", "y"), c("Morgan", "hyb_hap"))
+haps_interp <- allsitedata[, approx(x = Morgan, y = h_hap, xout=xout, rule=2), by = .(rep, gen, pop, id)]
+setnames(haps_interp, c("x", "y"), c("Morgan", "h_hap"))
 
 #ggplot(haps_interp[pop != "p2" & gen == 0], aes(x = Morgan, y = h_hap, color = pop)) + geom_point() + 
 #  facet_wrap(~id) + geom_line()
 
 
 # ----- compute Wavelet Variance Decomp for individual haps -----
-wv_haps <- haps_interp[, gnom_var_decomp(.SD,chromosome = NA,signals = "hyb_hap"), by = .(rep,gen,pop,id)]
+wv_haps <- haps_interp[, gnom_var_decomp(.SD,chromosome = NA,signals = "h_hap"), by = .(rep,gen,pop,id)]
 wv_haps <- wv_haps[grepl("d", level, fixed=T)]
-wv_haps[, propvar := variance.hyb_hap/sum(variance.hyb_hap), by = .(rep,gen,pop,id)]
+wv_haps[, propvar := variance.h_hap/sum(variance.h_hap), by = .(rep,gen,pop,id)]
 
 # all 
 # ggplot(wv_haps[gen != 0 & grepl("d", level, fixed=T), .(v = mean(variance.h_hap)), by = .(gen, pop, level)],
@@ -140,9 +140,9 @@ wv_haps[, propvar := variance.hyb_hap/sum(variance.hyb_hap), by = .(rep,gen,pop,
 
 
 # reformat so that single chrom variance for parental chromosomes and admixed chromosomes are in separate columns
-prnt_wv_haps <- wv_haps[pop!="p2", .(variance.prnt_haps = mean(variance.hyb_hap)), by = .(level, gen)]
+prnt_wv_haps <- wv_haps[pop!="p2", .(variance.prnt_haps = mean(variance.h_hap)), by = .(level, gen)]
 
-hyb_wv_haps <- wv_haps[pop == "p2", .(variance.hyb_haps = mean(variance.hyb_hap)), by = .(gen, level)]
+hyb_wv_haps <- wv_haps[pop == "p2", .(variance.hyb_haps = mean(variance.h_hap)), by = .(gen, level)]
 
 wv_haps2 <- merge(prnt_wv_haps, hyb_wv_haps, by = c("level","gen"))
 
@@ -174,12 +174,13 @@ allWV <- merge(wv_haps2, wv_frq)
 haps_interp[, pos := seq_len(.N), by = .(rep, gen, pop, id)]
 
 # reformat so that haplotypes are in separate columns
-haps_interp2 <- dcast(haps_interp[, .(rep,gen,pop,id,Morgan,hyb_hap, pos=as.numeric(gsub("d","",pos)))], rep + gen + pop + pos ~ id, value.var = 'hyb_hap')
+haps_interp2 <- dcast(haps_interp[, .(rep,gen,pop,id,Morgan,h_hap, pos=as.numeric(gsub("d","",pos)))], rep + gen + pop + pos ~ id, value.var = 'h_hap')
 
 # average covariance over all pairs of individuals from same pop
-# This gives the pairs we'll average over.
+# This gives a table of the pairs we'll average over.
 cmb34 <- combn(n.sample, 2)
-# we'll loop over all unordered pairs of individuals from each population. Initiate the data structure by calculating covariances for first pair of individuals
+
+# we'll loop over all unordered pairs of individuals from each population. Initiate the data structure by calculating covariances for the first pair of individuals
 covs_00 <- haps_interp2[pop == 'p0', cov_tbl(data=.SD, chromosome = NA, signals = c('1', '2')), by = .(rep,gen,pop)]
 setnames(covs_00, 'cov', paste0('pair', 1, '_cov'))
 
@@ -234,7 +235,7 @@ allWV <- merge(wv_cov_terms, allWV, by = c("rep", "gen", "level"))
 
 # reformat so locus positions are in separate columns to make calculation easier
 haps_interp[, pos := paste0("d", pos)]
-haps_interp3 <- dcast(haps_interp, rep + gen + pop + id ~ pos, value.var = 'hyb_hap')
+haps_interp3 <- dcast(haps_interp, rep + gen + pop + id ~ pos, value.var = 'h_hap')
 
 cmb34 <- combn(n.sample, 2)
 cmb5 <- expand.grid(1:n.sample, 1:n.sample)
@@ -242,7 +243,7 @@ cmb5 <- expand.grid(1:n.sample, 1:n.sample)
 L <- 128
 all_hh <- data.table()
 
-for (gen in 0){ # look at the product for parental chromosomes in gen zero, should not make a huge difference across gens
+for (g in 0){ # look at the product for parental chromosomes in gen zero, should not make a huge difference across gens
   
   # these vectors will hold the mean of hl * hl' for the same chromosome with entries corresponding to distance between l and l'
   hh_00_same <- vector()
@@ -260,39 +261,36 @@ for (gen in 0){ # look at the product for parental chromosomes in gen zero, shou
     vals_11_dist <- vector()
     vals_01_dist <- vector()
     
-    for(l1 in 1:(L-dist)){ # loop over possible starting positions given the distance between the two loci
+    # we could average over all starting positions but this seemed to take forever. plus we'll be averaging over replicate sims
+    l1 <- 1
+    l2 <- l1 + dist
+    cols <- paste0('d', c(l1,l2))
+    
+    hh_00_same[dist] <- haps_interp3[pop=="p0" & gen == g, mean(get(cols[1])*get(cols[2]))]
+    hh_11_same[dist] <- haps_interp3[pop=="p1" & gen == g, mean(get(cols[1])*get(cols[2]))]
+    
+    np <- ncol(cmb34)
+    for(h in 1:np){
+      # ids of haplotypes
+      i <- cmb34[1, h]
+      j <- cmb34[2, h]
       
-      l2 <- l1 + dist
-      cols <- paste0('d', c(l1,l2))
-      
-      # for terms hh_00_same and hh_11_same, take mean of product across individual chromosomes
-      hh_00_same[dist] <- haps_interp3[pop=="p0" & gen == gen, mean(get(cols[1])*get(cols[2]))]
-      hh_11_same[dist] <- haps_interp3[pop=="p1" & gen == gen, mean(get(cols[1])*get(cols[2]))]
-      
-      
-      # for terms hh_00_diff and hh_11_diff, loop over unordered pairs drawn w/o replacement from same pop for terms 3 and 4
-      np <- ncol(cmb34)
-      for(h in 1:np){
-        # ids of haplotypes
-        i <- cmb34[1, h]
-        j <- cmb34[2, h]
-        
-        vals_00_dist  <- c(vals_00_dist, haps_interp3[id == i & gen == gen & pop == "p0", get(cols[1])]*haps_interp3[id == j & gen == gen & pop == "p0", get(cols[2])])
-        vals_11_dist <- c(vals_11_dist, haps_interp3[id == i & gen == gen & pop == "p1", get(cols[1])]*haps_interp3[id == j & gen == gen & pop == "p1", get(cols[2])])
-      }
-      
-      # for term hh_01_diff, loop over combinations one drawn from each pop
-      np2 <- nrow(cmb5)
-      for(h in 1:np2){
-        i <- cmb5[h, 1]
-        j <- cmb5[h, 2]
-        
-        vals_01_dist <- c(vals_01_dist, haps_interp3[id == i & gen == gen & pop == "p0", get(cols[1])]*haps_interp3[id == j & gen == gen & pop == "p1", get(cols[2])])
-      }
-      
+      vals_00_dist  <- c(vals_00_dist, haps_interp3[id == i & gen == g & pop == "p0", get(cols[1])]*haps_interp3[id == j & gen == g & pop == "p0", get(cols[2])])
+      vals_11_dist <- c(vals_11_dist, haps_interp3[id == i & gen == g & pop == "p1", get(cols[1])]*haps_interp3[id == j & gen == g & pop == "p1", get(cols[2])])
     }
+    
     hh_00_diff[dist] <- mean(vals_00_dist)
     hh_11_diff[dist] <- mean(vals_11_dist)
+    
+    # for term hh_01_diff, loop over combinations one drawn from each pop
+    np2 <- nrow(cmb5)
+    for(h in 1:np2){
+      i <- cmb5[h, 1]
+      j <- cmb5[h, 2]
+      
+      vals_01_dist <- c(vals_01_dist, haps_interp3[id == i & gen == g & pop == "p0", get(cols[1])]*haps_interp3[id == j & gen == g & pop == "p1", get(cols[2])])
+    }
+    
     hh_01_diff[dist] <- mean(vals_01_dist)
     
   }
@@ -301,5 +299,6 @@ for (gen in 0){ # look at the product for parental chromosomes in gen zero, shou
   all_hh <- rbind(all_hh, hh)
 }
 
+#ggplot(melt(all_hh, id.vars = c("l1l2_dist", "gen", "rep")), aes(x = l1l2_dist, y = value, color = variable)) + geom_point()
 save(allWV, all_hh, file = paste0("results/admix_snp_stat/replicate",allWV[1,rep], "_wv_results.RData"))
 
