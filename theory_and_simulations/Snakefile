@@ -70,21 +70,33 @@ rule avg_ancestry_calc_swordtail:
 rule human_chrom_sims:
 	input:
 	output:
-		"results/hg1/replicate{rep}.trees"
+		"results/human_chr1{sim}/replicate{rep}.trees"
 	shell:
-		"slim -d seed={wildcards.rep} -d N=10000 code/hg1.slim"
+		"slim -d seed={wildcards.rep} -d N=10000 code/human_chr1{wildcards.sim}.slim"
 
-rule output_ancestry_hg_sims:
+rule all_human_chrom_sims:
 	input:
-		"results/hg1/replicate{rep}.trees"
+		expand("results/human_chr1{sim}/replicate{rep}.trees", sim = ["neutral","sel1-1000"], rep = np.arange(10))
+
+rule output_human_chrom_ancestry:
+	input:
+		"results/human_chr1{sim}/replicate{rep}.trees"
 	output:
-		"results/hg1/replicate{rep}_frqs.txt"
+		"results/human_chr1{sim}/replicate{rep}_frqs.txt"
 	shell:
-		"python code/ancestry-multigen.py {input} 3 6 11 51 101 501 1001 > {output}"
+		"python code/ancestry-multigen.py {input} 3 7 12 52 102 502 1002 > {output}"
 
-rule all_hg_ancestry:
+rule combine_human_chrom_ancestry:
 	input:
-		expand("results/hg1/replicate{rep}_frqs.txt", rep=np.arange(10))
+		expand("results/human_chr1{{sim}}/replicate{rep}_frqs.txt", rep=np.arange(10))
+	output:
+		"results/human_chr1{sim}/all_frq.txt"
+	shell:
+		"cat {input} > {output}"
+
+rule all_human_chrom_ancestry:
+	input:
+		expand("results/human_chr1{sim}/all_frq.txt", sim=["_neutral","_sel1-1000", "_sel1-10","_sel100-200"])
 
 # ===== allele frq based statistic sims =====
 
@@ -93,7 +105,7 @@ rule admix_snp_stat_simulation:
 	output:
 		"results/admix_snp_stat/replicate{rep}.trees"
 	shell:
-		"slim -d seed={wildcards.rep} -d N=10000 code/admix_snp_stat.slim"
+		"slim -d seed={wildcards.rep} -d N=100000 code/admix_snp_stat.slim"
 
 rule admix_snp_stat_output:
 	input:
@@ -101,22 +113,24 @@ rule admix_snp_stat_output:
 	output:
 		expand("results/admix_snp_stat/replicate{{rep}}_{data}.txt", data=["haps","frqs"])
 	shell:
-		"python code/admix_snp_stat.py {input} 10000 20" #2nd argument is diploid size, 3rd argument is number of haplotypes to output
+		"python code/admix_snp_stat.py {input} 100000 10" #2nd argument is diploid size, 3rd argument is number of haplotypes to output
 
 rule wv_of_snp_stat:
 	input:
 		frqs="results/admix_snp_stat/replicate{rep}_frqs.txt", 
 		haps="results/admix_snp_stat/replicate{rep}_haps.txt"
 	output:
-		"results/admix_snp_stat/replicate{rep}_wv_results.txt"
+		"results/admix_snp_stat/replicate{rep}_wv_results.RData"
 	shell: # first argument to R script is the number of haplotypes output, should match the output from the previous rule that outputs ancestry
 		"""
-		Rscript --vanilla code/admix_snp_stat.R 20 {input.haps} {input.frqs}
+		Rscript --vanilla code/admix_snp_stat.R 10 {input.haps} {input.frqs}
 		"""
-
-rule combine_snp_stat:
+rule all_wv_snp_stat:
 	input:
-		expand("results/admix_snp_stat/replicate{rep}_wv_results.txt",rep=snp_stat_reps)
+		expand("results/admix_snp_stat/replicate{rep}_wv_results.RData", rep = np.arange(10))
+#rule combine_snp_stat:
+#	input:
+#		expand("results/admix_snp_stat/replicate{rep}_wv_results.txt",rep=snp_stat_reps)
 	#output:
 	#	"results/admix_snp_stat/all_wv_results.txt"
 	#shell:

@@ -5,7 +5,7 @@ import sys
 import os
 
 # Load the .trees file
-ts = pyslim.load(sys.argv[1]).simplify()
+ts = pyslim.load(sys.argv[1])
 
 #breaks = np.zeros(ts.num_trees + 1)
 #ancestry = np.zeros(ts.num_trees + 1)
