@@ -2,8 +2,6 @@ library(data.table)
 library(cubature)
 library(ggplot2)
 library(magrittr)
-source("~/workspace/gnomwav/R/correlation_decomp.R")
-source('~/workspace/gnomwav/R/theory.R')
 
 
 # ----- read and format simulation data
@@ -13,6 +11,7 @@ if(Sys.getenv("RSTUDIO") == "1"){
   source("~/workspace/gnomwav/R/multi_modwts.R")
   source("~/workspace/gnomwav/R/variance_decomp.R")
   source("~/workspace/gnomwav/R/theory.R")
+  source("~/workspace/gnomwav/R/correlation_decomp.R")
   
   setwd("/Users/Jeff/workspace/selection-against-introgression/theory_and_simulations/results/admix_snp_stat/")
   n.sample <- 20
@@ -27,7 +26,7 @@ if(Sys.getenv("RSTUDIO") == "1"){
   source("/Users/brogroh/gnomwav/R/theory.R")
   
   args <- commandArgs(trailingOnly = TRUE)
-  n.sample <- args[1]
+  n.sample <- as.numeric(args[1])
   haps <- fread(args[2], col.names = c("rep", "gen", "pos",  paste0("p0.", 1:n.sample), paste0("p1.", 1:n.sample), paste0("p2.", 1:n.sample)))
   frqs <- fread(args[3], col.names = c("rep", "gen", "pos", "p0", "p1", "p2"))
 }
@@ -295,7 +294,7 @@ for (g in 0){ # look at the product for parental chromosomes in gen zero, should
     
   }
   
-  hh <- data.table(l1l2_dist = 1:(L-1), gen=gen, rep= sites[1, rep], hh_00_same = hh_00_same, hh_11_same=hh_11_same, hh_00_diff=hh_00_diff, hh_11_diff=hh_11_diff, hh_01_diff = hh_01_diff) 
+  hh <- data.table(l1l2_dist = 1:(L-1), gen=g, rep= sites[1, rep], hh_00_same = hh_00_same, hh_11_same=hh_11_same, hh_00_diff=hh_00_diff, hh_11_diff=hh_11_diff, hh_01_diff = hh_01_diff) 
   all_hh <- rbind(all_hh, hh)
 }
 

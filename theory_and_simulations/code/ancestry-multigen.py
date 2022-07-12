@@ -11,7 +11,7 @@ gens = [int(g) for g in sys.argv[2:]]
 frqs = []
 L = int(ts.sequence_length)
 for gen in gens:
-    tm = 1001 - gen #1001 is the last generation of output in the hg1 sims
+    tm = 1002 - gen #1002 is the last generation of output in the human chrom1 sims
     sset=ts.samples(0, time=tm) # in the hg1 sims the population id is p0 so 0 corresponds to this
     ts2 = ts.simplify(samples=sset, keep_input_roots=True) #keep_input_roots essential here
     ancestry_all_seq = np.zeros(L)

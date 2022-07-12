@@ -21,7 +21,7 @@ rep = float(os.path.basename(sys.argv[1]).lstrip('replicate').rstrip('.trees'))
 
 for gen in sys.argv[2:]: 
     tm = 1000-int(gen)
-    allsets = [ts.samples(1, time = tm)]
+    allsets = [ts.samples(1, time = tm)] # the first argument is population id, in the neutral sims this was p1 so 1 corresponds to this
     af = allele_frequencies(ts, allsets)
     allsites = np.array([s.position for s in ts.sites()])
     frqsout = np.c_[np.tile(rep, len(allsites)), np.tile(gen, len(allsites)), allsites, af]
