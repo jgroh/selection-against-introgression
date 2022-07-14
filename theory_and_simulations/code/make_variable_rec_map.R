@@ -20,7 +20,9 @@ plot(r, cex = 0.5); lines(r)
 length(r)
 
 length(x)
-x + 1e5-1
+ends <- x + 1e5-1
 
-out <- c(paste(x+1e5-1, collapse=","), paste(r, collapse=","))
-writeLines(out, con = "~/workspace/selection-against-introgression/theory_and_simulations/variable_rec_map.txt")
+out_slim <- c(paste(ends, collapse=","), paste(r, collapse=","))
+out_msprime <- c(paste( c(0, ends[1:(length(ends) - 1)], ends[length(ends)] + 1), collapse = "," ), paste(c(r,0.0), collapse=","))
+writeLines(out_slim, con = "variable_rec_map_slim.txt")
+writeLines(out_msprime, con = "variable_rec_map_msprime.txt")
