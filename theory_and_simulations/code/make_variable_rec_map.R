@@ -16,13 +16,14 @@ r = b*signal
 
 ends <- x + 1e5 -1
 
-slim_ends <- paste(ends, collapse=",")
-slim_rates <- paste(r, collapse=",")
-out_slim <- c(slim_ends, slim_rates)
+slim_ends <- ends
+slim_rates <- r
 
-msprime_ends <- paste(c(0, ends[1:(length(ends)-1)], ends[length(ends)]+1), collapse=',')
+out_slim <- c(paste(slim_ends,collapse=','), paste(slim_rates, collapse=','))
+
+msprime_ends <- c(0, ends[1:(length(ends)-1)], ends[length(ends)]+1)
 msprime_rates <- slim_rates
-out_msprime <- c(msprime_ends, msprime_rates)
+out_msprime <- c(paste(msprime_ends,collapse=','), paste(msprime_rates, collapse=','))
 
 writeLines(out_slim, con = "variable_rec_map_slim.txt")
 writeLines(out_msprime, con = "variable_rec_map_msprime.txt")
