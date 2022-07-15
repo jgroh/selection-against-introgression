@@ -1,0 +1,82 @@
+initialize() {
+	initializeTreeSeq();
+	defineConstant("alpha", 0.5);
+	defineConstant("s", 0.4);
+	defineConstant("L", asInteger(2^26));
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0);
+	m1.convertToSubstitution = F;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, asInteger(L-1));
+	defineConstant("baseRate", 1e-8);
+	
+	setSeed(seed);
+
+	defineConstant("outPath","results/snp_stat_sel/");
+
+	
+	lines = readFile("variable_rec_map.txt");
+	ends = sapply(strsplit(lines[0],','),'asInteger(applyValue);');
+	rates =sapply(strsplit(lines[1],','),'asFloat(applyValue);');
+	initializeRecombinationRate(rates,ends);
+}
+
+1 {
+	sim.addSubpop("p0", N);
+	sim.addSubpop("p1", N);
+	sim.rescheduleScriptBlock(s1, start=N, end=N); //migration begins
+	sim.rescheduleScriptBlock(s2, start=N, end=N); //migration ends
+	sim.rescheduleScriptBlock(s3, start=N+2, end=N+2); //F2 offspring
+	sim.rescheduleScriptBlock(s4, start=N+3, end=N+3); //F3 offspring *should be first generation when correlation is observed
+	sim.rescheduleScriptBlock(s5, start=N+10, end=N+10); // 
+	sim.rescheduleScriptBlock(s6, start=N+50, end=N+50);
+	sim.rescheduleScriptBlock(s7, start=N+100, end=N+100);
+	sim.rescheduleScriptBlock(s8, start=N+500, end=N+500);
+	sim.rescheduleScriptBlock(s9, start=N+1000, end=N+1000);
+	sim.rescheduleScriptBlock(s10, start=N+1, end = N+1000);
+	
+	p1.individuals.genomes.addNewMutation(m1, 0, asInteger(seq(0, L-1, by = L/100)));
+}
+
+
+s10 1e6 late() {
+	inds = p2.individuals;
+	introgressed = inds.countOfMutationsOfType(m1);
+	inds.fitnessScaling = 1.0 - (introgressed/(200))*s;
+}
+
+
+s1 1e6 early(){
+	sim.addSubpop("p2", N);
+	p2.setMigrationRates(c(p0,p1), c(alpha,1-alpha));
+}
+
+s2 1e6 late(){
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+	p2.setMigrationRates(c(p0,p1), c(0.0, 0.0));
+}
+
+s3 1e6 late(){
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+}
+
+s4 1e6 late(){
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+}
+s5 1e6 late(){
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+}
+s6 1e6 late(){
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+}
+s7 1e6 late(){
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+}
+s8 1e6 late(){
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+}
+
+s9 1e6 late(){
+	sim.treeSeqOutput(outPath + "/replicate" + seed + ".trees");
+}
+
