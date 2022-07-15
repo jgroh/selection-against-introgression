@@ -13,7 +13,8 @@ signal = signal - min(signal)
 b = baseRate/mean(signal)
 r = b*signal
 
+ends <- x + 1e5 -1
 out_slim <- c(paste(ends, collapse=","), paste(r, collapse=","))
-out_msprime <- c(format( paste( c(0, ends[1:(length(ends) - 1)], ends[length(ends)] + 1), collapse = "," ), scientific = F), paste(c(r,0.0), collapse=","))
+out_msprime <- c(format( paste( c(0, ends[1:(length(ends) - 1)], ends[length(ends)] + 1), collapse = "," ), scientific = F), paste0(r,collapse=','))
 writeLines(out_slim, con = "variable_rec_map_slim.txt")
 writeLines(out_msprime, con = "variable_rec_map_msprime.txt")
