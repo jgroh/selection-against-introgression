@@ -1,3 +1,4 @@
+options(scipen=999)
 L <- 1e8
 x=seq(0, L-1, by = 1e5)
 signal = rep(0,length(x))
