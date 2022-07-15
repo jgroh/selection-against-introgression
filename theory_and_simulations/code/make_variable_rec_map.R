@@ -1,3 +1,4 @@
+options(scipen=999)
 L <- 1e8
 x=seq(0, L-1, by = 1e5)
 signal = rep(0,length(x))
@@ -14,7 +15,14 @@ b = baseRate/mean(signal)
 r = b*signal
 
 ends <- x + 1e5 -1
-out_slim <- c(paste(ends, collapse=","), paste(r, collapse=","))
-out_msprime <- c(format( paste( c(0, ends[1:(length(ends) - 1)], ends[length(ends)] + 1), collapse = "," ), scientific = F), paste0(r,collapse=','))
+
+slim_ends <- paste(ends, collapse=",")
+slim_rates <- paste(r, collapse=",")
+out_slim <- c(slim_ends, slim_rates)
+
+msprime_ends <- paste(c(0, ends[1:(length(ends)-1)], ends[length(ends)]+1), collapse=',')
+msprime_rates <- slim_rates
+out_msprime <- c(msprime_ends, msprime_rates)
+
 writeLines(out_slim, con = "variable_rec_map_slim.txt")
 writeLines(out_msprime, con = "variable_rec_map_msprime.txt")
