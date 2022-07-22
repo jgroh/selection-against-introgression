@@ -30,7 +30,7 @@ if(Sys.getenv("RSTUDIO") == "1"){
   
   args <- commandArgs(trailingOnly = TRUE)
   frqs <- fread(args[1], col.names = c("rep", "gen", "pos", "p0", "p1", "p2"))
-  recLines <- args[2]
+  recLines <- readLines(args[2])
   recmap <- data.table(pos = as.numeric(unlist(strsplit(recLines[1], split = ','))), rec = as.numeric(unlist(strsplit(recLines[2], split = ','))))
  
   #haps <- fread(args[3], col.names = c("rep", "gen", "pos",  paste0("p0.", 1:n.sample), paste0("p1.", 1:n.sample), paste0("p2.", 1:n.sample)))
