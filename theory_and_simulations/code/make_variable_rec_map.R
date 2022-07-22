@@ -7,17 +7,19 @@ baseRate=1e-8
 # 10 scales of variation in recombination.
 # finest scale has period of 1.65 Mb. We'll sample every 100kb 
 for(i in 27:18){
-  signal = signal + cos(x*2*pi/2^i)                                                                                         
+  signal = signal + sin(x*2*pi/2^i)                                                                                         
 }
 
 signal = signal - min(signal)
-b = baseRate/mean(signal)
-r = b*signal
+b = baseRate/mean(exp(signal))
+r = b*exp(signal)
 
 ends <- x + 1e5 -1
 
 slim_ends <- ends
 slim_rates <- r
+#plot(r)
+#range(r)
 
 out_slim <- c(paste(slim_ends,collapse=','), paste(slim_rates, collapse=','))
 
