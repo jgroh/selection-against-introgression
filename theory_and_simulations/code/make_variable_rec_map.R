@@ -22,7 +22,7 @@ slim_rates <- r
 out_slim <- c(paste(slim_ends,collapse=','), paste(slim_rates, collapse=','))
 
 msprime_ends <- c(0, ends[1:(length(ends)-1)], ends[length(ends)]+1)
-msprime_rates <- c(slim_rates, 0) # pyslim tutorial is confusing on this
+msprime_rates <- slim_rates
 out_msprime <- c(paste(msprime_ends,collapse=','), paste(msprime_rates, collapse=','))
 
 writeLines(out_slim, con = "variable_rec_map_slim.txt")
