@@ -12,10 +12,10 @@ initialize() {
 	
 	setSeed(seed);
 
-	defineConstant("outPath","results/snp_stat_sel/");
+	defineConstant("outPath","results/snp_stat_variable_rec_sel/");
 
 	
-	lines = readFile("variable_rec_map.txt");
+	lines = readFile("variable_rec_map_slim.txt");
 	ends = sapply(strsplit(lines[0],','),'asInteger(applyValue);');
 	rates =sapply(strsplit(lines[1],','),'asFloat(applyValue);');
 	initializeRecombinationRate(rates,ends);
