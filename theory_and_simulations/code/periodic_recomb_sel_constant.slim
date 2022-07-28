@@ -1,0 +1,82 @@
+// template script for varying recombination rate
+
+initialize() {
+	
+	initializeTreeSeq();
+	defineConstant("L", 1024); 
+	defineConstant("s", 0.4);
+	defineConstant("genomeSize",1e8);
+	defineConstant("alpha", 0.5);// mixing proportion = starting freq in F2s
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0);
+	m1.convertToSubstitution = F;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, L-1);
+	defineConstant("baseRate", 1e-8);
+	
+	setSeed(seed);
+
+	defineConstant("outPath","results/periodic_recomb_sel_constant/");
+
+	// create recombination rate vector. 
+	x=1:L;
+	signal = rep(0,L);
+	for(i in 1:10) // add sin waves with period varying by powers of 2
+		signal = signal + sin(x*2*PI/2^i); 
+	signal = signal - min(signal); //rescale so minimum value is zero
+	
+	b = baseRate/mean(exp(signal)); //rescale to mean value
+	r = b*exp(signal);	//calculate recombination rates per bp
+	
+	initializeRecombinationRate((genomeSize/L)*r,0:(L-1));
+
+}
+
+1 {sim.addSubpop("p1", N);
+	
+	// add deleterious mutations (sel. coefficient is zero bc fitness calculated l8r)
+	F1s = sample(p1.individuals, asInteger(2*N*alpha));
+	genomes = NULL;
+	for(F1 in F1s)
+	{
+	genomes = c(genomes, F1.genomes[1]);
+	}
+	genomes.addNewMutation(m1,0,0:(L-1));
+	
+}
+
+//calculate fitness
+1:1000 late() {
+	inds = p1.individuals;
+	introgressed = inds.countOfMutationsOfType(m1);
+	//catn(mean(introgressed/(2*L)));
+	inds.fitnessScaling = 1.0 - (introgressed/(2*L))*s;
+}
+
+// output
+// note that selection is specified in late gen 1, however this enters the simulations during offspring generation of the next generation. So output of late() gen 1 are F2s prior to selection, output of late() gen 2 is the first generation *after* selection. 
+
+1 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);} //F2s prior to selection
+2 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);} 
+3 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);} 
+4 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);} 
+5 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);} 
+10 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);} 
+25 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);} 
+50 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);} 
+100 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);}
+250 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);}
+500 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);} 
+1000 late() {
+	sim.treeSeqOutput(outPath + "/replicate" + seed + ".trees");}

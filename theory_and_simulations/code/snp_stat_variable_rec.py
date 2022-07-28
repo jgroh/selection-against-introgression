@@ -23,24 +23,24 @@ with open('variable_rec_map_msprime.txt','r') as file:
     rates = [float(element) for element in file.readline().rstrip().split(',')]
 recmap = msprime.RateMap(position=positions,rate=rates)
 
-rts = pyslim.recapitate(orig_ts, recombination_rate=recmap, ancestral_Ne=N, random_seed=123)
+rts = pyslim.recapitate(orig_ts, recombination_rate=recmap, ancestral_Ne=N)
 
 # overlay mutations
 ts = pyslim.SlimTreeSequence(msprime.sim_mutations(rts, rate=1e-8, model=msprime.SLiMMutationModel(type=0) ))
 
-haps = []
+#haps = []
 frqs = []
 # loop over desired generations
 for gen in [0,2,3,10,50,100,500,1000]:
     tm = 1000-gen
 
     #haplotypes from each pop in this generation
-    hapset = [np.random.choice(ts.samples(population=p, time = tm), k, replace=False) for p in [0,1,2]]
-    ts2 = ts.simplify(samples=np.concatenate(hapset))
-    G = ts2.genotype_matrix()
-    sites = [site.position for site in ts2.sites()]
-    hapsout = np.c_[np.tile(rep, len(sites)), np.tile(gen, len(sites)), sites, G]
-    haps.append(hapsout)
+   # hapset = [np.random.choice(ts.samples(population=p, time = tm), k, replace=False) for p in [0,1,2]]
+   # ts2 = ts.simplify(samples=np.concatenate(hapset))
+   # G = ts2.genotype_matrix()
+   # sites = [site.position for site in ts2.sites()]
+   # hapsout = np.c_[np.tile(rep, len(sites)), np.tile(gen, len(sites)), sites, G]
+   #haps.append(hapsout)
 
     #output allele frequencies in this generation
     allsets = [ts.samples(p, time = tm) for p in [0,1,2]]
@@ -50,5 +50,5 @@ for gen in [0,2,3,10,50,100,500,1000]:
     frqs.append(frqsout)
 
 fn = os.path.abspath(sys.argv[1]).rstrip('.trees')
-np.savetxt(fname=fn + "_haps.txt", X=np.vstack(haps))
+#np.savetxt(fname=fn + "_haps.txt", X=np.vstack(haps))
 np.savetxt(fname=fn + "_frqs.txt", X=np.vstack(frqs))

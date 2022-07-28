@@ -65,7 +65,7 @@ rule avg_ancestry_calc_swordtail:
 	shell:
 		"python3 code/ancestry.py {input} > {output}"
 	
-# ===== rules for simulations with selection =======
+# ===== rules for simulations of human chromosome 1  =======
 
 rule human_chrom_sims:
 	input:
@@ -98,24 +98,94 @@ rule all_human_chrom_ancestry:
 	input:
 		expand("results/human_chr1{sim}/all_frq.txt", sim=["_neutral","_sel1-1000", "_sel1-10","_sel100-200"])
 
+# ===== rules for simulations with periodic recombination =====
+
+rule periodic_recomb_sims:
+	input:
+	output:
+		"results/periodic_recomb_{sim}/replicate{rep}.trees" 
+	shell:
+		"slim -d seed={wildcards.rep} -d N=10000 code/periodic_recomb_{wildcards.sim}.slim"	
+
+rule periodic_recomb_all_sims:
+	input:
+		expand('results/periodic_recomb_{sim}/replicate{rep}.trees', sim = ['sel_constant', 'sel_reverses'], rep=np.arange(10))
+
+rule periodic_recomb_ancestry:
+	input:
+		"results/periodic_recomb_{sim}/replicate{rep}.trees"
+	output:
+		"results/periodic_recomb_{sim}/replicate{rep}_ancestry.txt"
+	shell:
+		"python code/derived-allele-freq-general.py {input} 1 2 3 4 5 10 25 50 100 250 500 1000 > {output}"
+
+rule periodic_recomb_combine_ancestry:
+	input:
+		expand("results/periodic_recomb_{{sim}}/replicate{rep}_ancestry.txt", rep = np.arange(10))
+	output:
+		"results/periodic_recomb_{sim}/ancestry_master.txt"
+	shell:
+		"cat {input} > {output}"
+
+rule all_periodic_recomb_ancestry:
+	input:
+		expand("results/periodic_recomb_{sim}/ancestry_master.txt", sim = ['sel_constant', 'sel_reverses'])
+
 # ===== allele frq based statistic sims =====
 
-rule admix_snp_stat_simulation:
+rule snp_stat_const_rec_neutral_sim:
 	input:
 	output:
 		"results/admix_snp_stat/replicate{rep}.trees"
 	shell:
 		"slim -d seed={wildcards.rep} -d N=100000 code/admix_snp_stat.slim"
 
-rule admix_snp_stat_output:
+rule make_variable_rec_map:
 	input:
-		"results/admix_snp_stat/replicate{rep}.trees"
 	output:
-		expand("results/admix_snp_stat/replicate{{rep}}_{data}.txt", data=["haps","frqs"])
+		"variable_rec_map_slim.txt",
+		"variable_rec_map_msprime.txt"
 	shell:
-		"python code/admix_snp_stat.py {input} 100000 10" #2nd argument is diploid size, 3rd argument is number of haplotypes to output
+		"Rscript --vanilla code/make_variable_rec_map.R"
 
-rule wv_of_snp_stat:
+rule snp_stat_variable_rec_sel_sim:
+	input:
+		"variable_rec_map_slim.txt"
+	output:
+		"results/snp_stat_variable_rec_sel/replicate{rep}.trees"
+	shell:
+		"slim -d seed={wildcards.rep} -d N=10000 code/snp_stat_variable_rec_sel.slim"
+
+rule snp_stat_variable_rec_neutral_sim:
+	input:
+		"variable_rec_map_slim.txt"
+	output:
+		"results/snp_stat_variable_rec_neutral/replicate{rep}.trees"
+	shell:
+		"slim -d seed={wildcards.rep} -d N=10000 code/snp_stat_variable_rec_neutral.slim"
+
+rule all_snp_stat_variable_rec_sims:
+	input:
+		expand("results/snp_stat_variable_rec_{sim}/replicate{rep}.trees", sim = ['sel', 'neutral'], rep = np.arange(10))
+
+rule snp_stat_const_rec_ancestry:
+	input:
+		"results/snp_stat_const_rec/replicate{rep}.trees"
+	output:
+		expand("results/snp_stat_const_rec/replicate{{rep}}_{data}.txt", data=["haps","frqs"])
+	shell:
+		"python code/snp_stat_const_rec.py {input} 100000 10" #2nd argument is diploid size, 3rd argument is number of haplotypes to output
+
+rule snp_stat_variable_rec_ancestry:
+	input:
+		trees="results/snp_stat_variable_rec_{sim}/replicate{rep}.trees",
+		recmap="variable_rec_map_msprime.txt"
+	output:
+		"results/snp_stat_variable_rec_{sim}/replicate{rep}_frqs.txt"
+	shell:
+		"python code/snp_stat_variable_rec.py {input.trees} 10000 10"
+
+rule snp_stat_const_rec_wavelets:
 	input:
 		frqs="results/admix_snp_stat/replicate{rep}_frqs.txt", 
 		haps="results/admix_snp_stat/replicate{rep}_haps.txt"
@@ -125,26 +195,25 @@ rule wv_of_snp_stat:
 		"""
 		Rscript --vanilla code/admix_snp_stat.R 10 {input.haps} {input.frqs}
 		"""
-rule all_wv_snp_stat:
-	input:
-		expand("results/admix_snp_stat/replicate{rep}_wv_results.RData", rep = np.arange(10))
-#rule combine_snp_stat:
-#	input:
-#		expand("results/admix_snp_stat/replicate{rep}_wv_results.txt",rep=snp_stat_reps)
-	#output:
-	#	"results/admix_snp_stat/all_wv_results.txt"
-	#shell:
-	#	"""
-	#	cat {input} > {output}
-	#	"""
 
-#rule avg_ancestry_calc: 
-#	input:
-#		"results/{sim}/{rep_gen}.trees"
-#	output:
-#		temp("results/{sim}/{rep_gen}_ancestry.txt")
-#	shell:
-#		"python3 code/derived-allele-freq.py {input} > {output}"
+rule snp_stat_variable_rec_wavelets:
+	input:
+		frqs="results/snp_stat_variable_rec_{sim}/replicate{rep}_frqs.txt",
+		recmap="variable_rec_map_slim.txt"
+	output:
+		"results/snp_stat_variable_rec_{sim}/replicate{rep}_wv_results.txt"
+	shell:
+		"Rscript --vanilla code/snp_stat_variable_rec.R {input.frqs} {input.recmap} {wildcards.sim} > {output}"
+
+rule snp_stat_variable_rec_all_wavelet_results:
+	input:
+		expand("results/snp_stat_variable_rec_{sim}/replicate{rep}_wv_results.txt",sim = ['sel', 'neutral'], rep = np.arange(10))
+	output:
+		"results/snp_stat_variable_rec_sel/all_wv_results_sel_v_neutral.txt"
+	shell:
+		"cat {input} > {output}"
+
+# ========
 
 
 rule dwt_on_haps:

@@ -15,7 +15,7 @@ def allele_frequencies(ts, sample_sets=None):
     return ts.sample_count_stat(sample_sets, f, len(sample_sets), windows='sites', polarised=True, mode='site', strict=False)
 
 # Load the .trees file
-ts = pyslim.load(sys.argv[1])
+ts = tskit.load(sys.argv[1])
 #ts = tskit.load("/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/neutral_sims/equilibrium/replicate0.trees")
 rep = float(os.path.basename(sys.argv[1]).lstrip('replicate').rstrip('.trees'))
 

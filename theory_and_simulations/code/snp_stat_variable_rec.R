@@ -33,6 +33,7 @@ if(Sys.getenv("RSTUDIO") == "1"){
   recLines <- readLines(args[2])
   recmap <- data.table(pos = as.numeric(unlist(strsplit(recLines[1], split = ','))), rec = as.numeric(unlist(strsplit(recLines[2], split = ','))))
  
+  sim <- args[3]
   #haps <- fread(args[3], col.names = c("rep", "gen", "pos",  paste0("p0.", 1:n.sample), paste0("p1.", 1:n.sample), paste0("p2.", 1:n.sample)))
 }
 
@@ -101,6 +102,7 @@ wv_frq_rec <- all_frq_rec[, gnom_var_decomp(.SD, chromosome = NA, signals = c("h
 
 
 output <- merge(wv_frq_rec, wavcor)
+output[, sim := sim]
 
-fwrite(output, file = "", quote = F, sep = "/t", row.names = F)
+fwrite(output, file = "", quote = F, sep = "\t", row.names = F)
 
