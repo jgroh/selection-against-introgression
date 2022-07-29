@@ -1,8 +1,21 @@
 initialize() {
+
+if (exists("slimgui"))
+	{
+		defineConstant("seed", 0);
+		defineConstant("N", 10000);
+		defineConstant("outPath", "~/workspace/selection-against-introgression/theory_and_simulations/results/snp_stat_variable_rec_sel/");
+		lines = readFile("~/workspace/selection-against-introgression/theory_and_simulations/variable_rec_map_slim.txt");
+	} else
+	{	
+		defineConstant("outPath", "results/admix_snp_stat/");
+		lines = readFile("variable_rec_map_slim.txt");
+	}
+	
 	initializeTreeSeq();
 	defineConstant("alpha", 0.5);
 	defineConstant("s", 0.4);
-	defineConstant("L", asInteger(2^26));
+	defineConstant("L", 1e8);
 	initializeMutationRate(0);
 	initializeMutationType("m1", 0.5, "f", 0);
 	m1.convertToSubstitution = F;
@@ -12,10 +25,7 @@ initialize() {
 	
 	setSeed(seed);
 
-	defineConstant("outPath","results/snp_stat_variable_rec_neutral/");
-
 	
-	lines = readFile("variable_rec_map_slim.txt");
 	ends = sapply(strsplit(lines[0],','),'asInteger(applyValue);');
 	rates =sapply(strsplit(lines[1],','),'asFloat(applyValue);');
 	initializeRecombinationRate(rates,ends);
@@ -35,7 +45,7 @@ initialize() {
 	sim.rescheduleScriptBlock(s9, start=N+1000, end=N+1000);
 //	sim.rescheduleScriptBlock(s10, start=N+1, end = N+1000);
 	
-	p1.individuals.genomes.addNewMutation(m1, 0, asInteger(seq(0, L-1, by = L/100)));
+	//p1.individuals.genomes.addNewMutation(m1, 0, asInteger(seq(0, L-1, by = L/1000)));
 }
 
 
