@@ -8,7 +8,7 @@ if (exists("slimgui"))
 		lines = readFile("~/workspace/selection-against-introgression/theory_and_simulations/variable_rec_map_slim.txt");
 	} else
 	{	
-		defineConstant("outPath", "results/admix_snp_stat/");
+		defineConstant("outPath", "results/snp_stat_variable_rec_sel/");
 		lines = readFile("variable_rec_map_slim.txt");
 
 	}
@@ -52,7 +52,7 @@ if (exists("slimgui"))
 s10 1e6 late() {
 	inds = p2.individuals;
 	introgressed = inds.countOfMutationsOfType(m1);
-	inds.fitnessScaling = 1.0 - (introgressed/(200))*s;
+	inds.fitnessScaling = 1.0 - (introgressed/(2000))*s;
 }
 
 
