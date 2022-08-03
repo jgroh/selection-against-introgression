@@ -46,14 +46,14 @@ initialize() {
 }
 
 //calculate fitness
-1:10 late() {
+1:100 late() {
 	inds = p1.individuals;
 	introgressed = inds.countOfMutationsOfType(m1);
 	//catn(mean(introgressed/(2*L)));
 	inds.fitnessScaling = 1.0 - (introgressed/(2*L))*s;
 }
 
-11:1000 late() {
+101:1000 late() {
 	inds = p1.individuals;
 	introgressed = inds.countOfMutationsOfType(m1);
 	//catn(mean(introgressed/(2*L)));

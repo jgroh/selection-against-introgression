@@ -136,9 +136,9 @@ rule all_periodic_recomb_ancestry:
 rule snp_stat_const_rec_neutral_sim:
 	input:
 	output:
-		"results/admix_snp_stat/replicate{rep}.trees"
+		"results/snp_stat_const_rec/replicate{rep}.trees"
 	shell:
-		"slim -d seed={wildcards.rep} -d N=100000 code/admix_snp_stat.slim"
+		"slim -d seed={wildcards.rep} -d N=100000 code/snp_stat_const_rec.slim"
 
 rule make_variable_rec_map:
 	input:
@@ -172,9 +172,13 @@ rule snp_stat_const_rec_ancestry:
 	input:
 		"results/snp_stat_const_rec/replicate{rep}.trees"
 	output:
-		expand("results/snp_stat_const_rec/replicate{{rep}}_{data}.txt", data=["haps","frqs"])
+		expand("results/snp_stat_const_rec/replicate{{rep}}_{data}.txt", data=["haps","frqs","ancestry"])
 	shell:
-		"python code/snp_stat_const_rec.py {input} 100000 10" #2nd argument is diploid size, 3rd argument is number of haplotypes to output
+		"python code/snp_stat_const_rec.py {input} 10000 10" #2nd argument is diploid size, 3rd argument is number of haplotypes to output
+
+rule all_snp_stat_const_rec_ancestry:
+	input:
+		expand('results/snp_stat_const_rec/replicate{rep}_{data}.txt', data=['haps', 'frqs', 'ancestry'], rep=np.arange(10))
 
 rule snp_stat_variable_rec_ancestry:
 	input:
@@ -187,10 +191,10 @@ rule snp_stat_variable_rec_ancestry:
 
 rule snp_stat_const_rec_wavelets:
 	input:
-		frqs="results/admix_snp_stat/replicate{rep}_frqs.txt", 
-		haps="results/admix_snp_stat/replicate{rep}_haps.txt"
+		frqs="results/snp_stat_const_rec/replicate{rep}_frqs.txt", 
+		haps="results/snp_stat_const_rec/replicate{rep}_haps.txt"
 	output:
-		"results/admix_snp_stat/replicate{rep}_wv_results.RData"
+		"results/snp_stat_const_rec/replicate{rep}_wv_results.RData"
 	shell: # first argument to R script is the number of haplotypes output, should match the output from the previous rule that outputs ancestry
 		"""
 		Rscript --vanilla code/admix_snp_stat.R 10 {input.haps} {input.frqs}
