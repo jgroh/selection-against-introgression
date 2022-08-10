@@ -187,7 +187,6 @@ p4 <- ggplot(wc_freq_gdr_physical[!grepl("s", level, fixed=T)], aes(x = level, y
 
 p4
 
-
 toprow <- ggarrange(NULL, p1, p2, NULL, labels = c("","",""), ncol = 4, widths = c(0.2,1,1,.3))
 #toprow
 bottomrow <- ggarrange(NULL,p3, p4, NULL, ncol=4, widths = c(0.2,1,1,.3))

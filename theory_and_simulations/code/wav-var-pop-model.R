@@ -7,6 +7,8 @@ source("~/workspace/selection-against-introgression/wavelet_functions.R")
 source("~/workspace/gnomwav/R/variance_decomp.R")
 source("~/workspace/gnomwav/R/multi_modwts.R")
 source("~/workspace/gnomwav/R/theory.R")
+=======
+source("../wavelet_functions.R")
 
 # Transition probability matrix for haplotype state --------------------------------
 m <- function(l_M,N_M,r_M=1/1024,tau_M){
@@ -92,6 +94,7 @@ wvBottleneck <- function(d, popSizeModel,epochs){
   epochCum <- c(0,cumsum(epochs))
   n.sample <- d[,n.sample]
   scl <- d[,level]
+=======
   g <- d[,gen] 
   
   # construct Nvec and genvec based on gen

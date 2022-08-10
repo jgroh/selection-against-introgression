@@ -202,6 +202,7 @@ setnames(haps_interp, c("x", "y"), c("Morgan", "h_hap"))
 #  facet_wrap(~id) + geom_line()
 
 
+# ----- compute Wavelet Variance Decomp for individual haps -----
 wv_haps <- haps_interp[, gnom_var_decomp(.SD,chromosome = NA,signals = "h_hap"), by = .(rep,gen,pop,id)]
 wv_haps <- wv_haps[grepl("d", level, fixed=T)]
 wv_haps[, propvar := variance.h_hap/sum(variance.h_hap), by = .(rep,gen,pop,id)]
@@ -211,7 +212,6 @@ wv_haps[, propvar := variance.h_hap/sum(variance.h_hap), by = .(rep,gen,pop,id)]
 #   geom_point(aes(group = pop)) +
 #   geom_line(aes(color = pop, group = pop)) +
 #   facet_wrap(~gen)+
-#   scale_x_discrete(breaks = paste0("d",1:10), labels = as.character(-10:-1)) +
 #   labs(x = expression(Scale: log[2] (Morgan)),
 #        y = "Variance") +
 #   theme(aspect.ratio=1)
