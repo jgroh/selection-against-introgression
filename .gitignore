@@ -6,5 +6,7 @@ results/*
 .Rproj.user
 .Rhistory
 .DS_Store
+.ipynb
 datasets/human/Kong_etal_recmaps/*
 datasets/human/Neanderthal_files/*
+datasets/human/hg38_chr_slim_recmap.txt
