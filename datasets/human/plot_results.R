@@ -25,6 +25,8 @@ wc_rec_gd_genetic <- fread("wavelet_results/wc_rec_gd_genetic.txt")
 lm_physical <- fread("wavelet_results/lm_physical.txt")
 lm_genetic <- fread("wavelet_results/lm_genetic.txt")
 
+wc_freq_B_physical <- fread("wavelet_results/wc_freq_B_physical.txt")
+
 lapply(
   list(wv_physical, wv_genetic, wc_freq_rec_physical, wc_freq_rec_genetic, wc_freq_gd_physical, wc_freq_gd_genetic, 
             wc_freq_gdr_physical,  wc_rec_gd_physical, wc_rec_gd_genetic, lm_physical, lm_genetic), 
@@ -71,19 +73,19 @@ wv_genetic_plot_data <- rbind(wv_genetic[, .(level, data, variance.freq, propvar
 
 lineData_genetic <- wv_genetic_plot_data[grepl("d", level, fixed = T)]
 
-ggplot(wv_genetic_plot_data[], 
-       aes(x = level, y = variance.freq, group = 1)) + 
-       #aes(x = level, y = propvar.freq)) + 
+ggplot(wv_genetic_plot_data[!grepl('s', level, fixed=T)], 
+       #aes(x = level, y = variance.freq, group = 1)) + 
+       aes(x = level, y = propvar.freq)) + 
   geom_point(size = 2.2, aes(color = data)) + 
   geom_line(data = lineData_genetic[], aes(group = data, color = data)) + 
   scale_color_manual(values = c("black", "red")) + 
   labs(color = "") +
   theme_classic() + 
-  scale_x_discrete(breaks = c(paste0("d", 1:17), paste0("s", 15:17), "chr"), 
-                   labels = c(as.character(-16:0), paste0(-2:0, " (scaling var)"), "chromosome"))   + 
+  scale_x_discrete(breaks = c(paste0("d", 1:17), paste0("s", 15:17)), 
+                   labels = c(as.character(-16:0), paste0(-2:0, " (scaling var)")))   + 
   labs(x = expression(Scale: log[2] (Morgan)), 
-       y = "Variance") + 
-       #y = "Proportion of genome-wide variance") + 
+       #y = "Variance") + 
+       y = "Proportion of \ngenome-wide variance") + 
   theme(aspect.ratio = 1, 
         axis.title = element_text(size = 15),
         axis.text.x = element_text(angle = 90, size = 12),
@@ -98,11 +100,30 @@ ggplot(wv_genetic_plot_data[],
 
 # ---- physical scale 
 
-p1 <- ggplot(wc_freq_rec_physical, aes(x = level, y = cor_jack)) + geom_point() + 
+ggplot(wc_freq_B_physical, aes(x = level, y = cor_jack)) + geom_point() + 
   geom_errorbar(aes(ymin=lower95ci, ymax = upper95ci)) + 
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), paste0("s", 15:17), "chr"), 
                    labels = NULL) + #c(as.character(1:17), paste0(15:17, " (s)"), "chromosome"))   + 
+  labs(x="",
+       #x = expression(Scale: log[2] ("1kb")), 
+       y = "freq, rec") + 
+  theme(#aspect.ratio = 1, 
+    axis.title = element_text(size = 12),
+    axis.text.x = element_text(angle = 90, size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.line.x = element_blank())  +
+  geom_segment(aes(x = 0, xend = 17, y = -Inf, yend = -Inf)) + 
+  geom_segment(aes(x = 18, xend = 20, y = -Inf, yend = -Inf))  
+
+
+
+
+p1 <- ggplot(wc_freq_rec_physical[!grepl('s', level, fixed=T)], aes(x = level, y = cor_jack)) + geom_point() + 
+  geom_errorbar(aes(ymin=lower95ci, ymax = upper95ci)) + 
+  theme_classic() + 
+  scale_x_discrete(breaks = c(paste0("d", 1:17), paste0("s", 15:17), "chr"), 
+                   labels = c(as.character(1:17), paste0(15:17, " (s)"), "chromosome"))   + 
   labs(x="",
     #x = expression(Scale: log[2] ("1kb")), 
        y = "freq, rec") + 
@@ -113,6 +134,8 @@ p1 <- ggplot(wc_freq_rec_physical, aes(x = level, y = cor_jack)) + geom_point() 
         axis.line.x = element_blank())  +
   geom_segment(aes(x = 0, xend = 17, y = -Inf, yend = -Inf)) + 
   geom_segment(aes(x = 18, xend = 20, y = -Inf, yend = -Inf))  
+
+
 
 p2 <- ggplot(wc_freq_gd_physical, aes(x = level, y = cor_jack)) + geom_point() + 
   geom_errorbar(aes(ymin=lower95ci, ymax = upper95ci)) + 
@@ -146,21 +169,23 @@ p3 <- ggplot(wc_rec_gd_physical, aes(x = level, y = cor_jack)) + geom_point() +
   geom_segment(aes(x = 0, xend = 17, y = -Inf, yend = -Inf)) + 
   geom_segment(aes(x = 18, xend = 20, y = -Inf, yend = -Inf))  
 
-p4 <- ggplot(wc_freq_gdr_physical, aes(x = level, y = cor_jack)) + geom_point() + 
+p4 <- ggplot(wc_freq_gdr_physical[!grepl("s", level, fixed=T)], aes(x = level, y = cor_jack)) + geom_point() + 
   geom_errorbar(aes(ymin=lower95ci, ymax = upper95ci)) + 
   theme_classic() + 
-  scale_x_discrete(breaks = c(paste0("d", 1:17), paste0("s", 15:17), "chr"), 
-                   labels = c(as.character(1:17), paste0(15:17, " (s)"), "chromosome"))   + 
-  labs(x="",
-       #x = expression(Scale: log[2] ("1kb")), 
+  scale_x_discrete(breaks = c(paste0("d", 1:17), paste0("s", 15:17)), 
+                   labels = c(as.character(1:17), paste0(15:17, " (s)")))   + 
+  labs(
+       x = expression(Scale: log[2] ("1kb")), 
        y = "freq, (gene dnsty / rec)") + 
-  theme(#aspect.ratio = 1, 
-    axis.title = element_text(size = 13),
-    axis.text.x = element_text(angle = 90, size = 12),
-    axis.text.y = element_text(size = 12),
-    axis.line.x = element_blank())  +
+  theme(aspect.ratio = 1, 
+        axis.title = element_text(size = 15),
+        axis.text.x = element_text(angle = 90, size = 12),
+        axis.text.y = element_text(size = 12),
+        axis.line.x = element_blank())  +
   geom_segment(aes(x = 0, xend = 17, y = -Inf, yend = -Inf)) + 
   geom_segment(aes(x = 18, xend = 20, y = -Inf, yend = -Inf))  
+
+p4
 
 
 toprow <- ggarrange(NULL, p1, p2, NULL, labels = c("","",""), ncol = 4, widths = c(0.2,1,1,.3))

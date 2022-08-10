@@ -483,11 +483,19 @@ df <- df %>% group_by(n.sample,n.pop, gen) %>%
   mutate(prop.var = variance/varsum)
 
 
+## *** this block added Aug 5 2022, working back to determine if earlier versions of theory produce same results as current #### 
+
+setDT(df)
+ggplot(df[n.sample == 1 & n.pop == 20000], aes(x = scale, y = variance)) + geom_point() + facet_wrap(~gen)
+
+
+
+
 # Visualize effects of population and sample on expected wavelet variance -----------------------------------
 
 # for plotting
 df$scale <- factor(df$scale)
-scale.labs <- as.character(rev( round(( (1e9/1024)*(1024/(2^(1:10))) ) /1e6)))
+#scale.labs <- as.character(rev( round(( (1e9/1024)*(1024/(2^(1:10))) ) /1e6)))
 
 # Examine effect of sampling on variance. 
 df %>% 
@@ -559,16 +567,16 @@ df %>%
 # Compute expected wavelet variance on genetic scale ---------------------------------------------
  
 genlist <- list()
-gen <- c("0003","0010","0050","1000")
+gen <- c("0010","0100","1000")
  
 # loop over generations 
-for(i in 1:4){
+for(i in 1:3){
    t <- as.numeric(gen[i])
    
    # loop over different population size, sample size, scale
    
-   n.sample <- 2*c(0.5, 10, 100, 1000, 10000, 100000)
-   n.pop <- 2*c(100, 1000, 10000, 100000, Inf)
+   n.sample <- 2*c(0.5, 10000)
+   n.pop <- 2*c(10000)
    scale <- 1:10
    
    # make grid of parameters over which we evaluate the function
@@ -585,14 +593,14 @@ for(i in 1:4){
      n.pop <- grd[q,]$n.pop
      
      if(n.pop == Inf){ # use infinite population approximation
-       part1 <- adaptIntegrate(wav_var_approx, n.sample = n.sample, expected.crossovers.per.unit.dist=0.01, alpha=0.5, lowerLimit = c(0,0), 
+       part1 <- adaptIntegrate(wav_var_approx, n.sample = n.sample, expected.crossovers.per.unit.dist=1/1024, alpha=0.5, lowerLimit = c(0,0), 
                                upperLimit = c(2^(j-1),2^(j-1)))
-       part2 <- adaptIntegrate(wav_var_approx, n.sample = n.sample, expected.crossovers.per.unit.dist=0.01, alpha=0.5, lowerLimit = c(0,2^(j-1)),
+       part2 <- adaptIntegrate(wav_var_approx, n.sample = n.sample, expected.crossovers.per.unit.dist=1/1024, alpha=0.5, lowerLimit = c(0,2^(j-1)),
                                upperLimit = c(2^(j-1),(2^j)))
      } else { # use exact formula
-       part1 <- adaptIntegrate(wav_var_exact, n.sample = n.sample, n.pop = n.pop, expected.crossovers.per.unit.dist=0.01, alpha=0.5, lowerLimit = c(0,0), 
+       part1 <- adaptIntegrate(wav_var_exact, n.sample = n.sample, n.pop = n.pop, expected.crossovers.per.unit.dist=1/1024, alpha=0.5, lowerLimit = c(0,0), 
                                upperLimit = c(2^(j-1),2^(j-1)))
-       part2 <- adaptIntegrate(wav_var_exact, n.sample = n.sample, n.pop = n.pop, expected.crossovers.per.unit.dist=0.01, alpha=0.5, lowerLimit = c(0,2^(j-1)),
+       part2 <- adaptIntegrate(wav_var_exact, n.sample = n.sample, n.pop = n.pop, expected.crossovers.per.unit.dist=1/1024, alpha=0.5, lowerLimit = c(0,2^(j-1)),
                                upperLimit = c(2^(j-1),(2^j)))
      }
      grd$variance[q] <- ((part1$integral - part2$integral)/(2^(2*j-1)))
@@ -611,6 +619,9 @@ dfg <- dfg %>% group_by(n.sample,n.pop, gen) %>%
    mutate(varsum=sum(variance)) %>% 
    mutate(prop.var = variance/varsum)
  
+setDT(dfg)
+ggplot(dfg[n.sample==1], aes(x = scale, y = variance)) + geom_point() + geom_line() + facet_wrap(~gen) + theme(aspect.ratio=1)
+
  
 # Visualize expected wavelet variance vs simulated data: genetic scale -----------------------------------
 

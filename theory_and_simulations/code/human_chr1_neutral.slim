@@ -5,12 +5,13 @@ initialize() {
 	{
 		defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/hg1/");
 		defineConstant("seed", 0);
-		rates = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/human/hg38_chr1_slim_recmapV2.txt");
+		//rates = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/human/hg38_chr1_slim_recmapV2.txt");
 		defineConstant("N", 10000);
 	} else
 	{	
 		defineConstant("outPath", "results/human_chr1_neutral/");
-		rates = readFile("/Users/brogroh/selection-against-introgression/datasets/human/hg38_chr1_slim_recmapV2.txt");
+		//rates = readFile("/Users/brogroh/selection-against-introgression/datasets/human/hg38_chr1_slim_recmapV2.txt");
+		rates = readFile("/Users/Jeff/workspace/selection-against-introgression/datasets/human/hg38_chr1_slim_recmap.txt");
 	}
 	
 	initializeTreeSeq();

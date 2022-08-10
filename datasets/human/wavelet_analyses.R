@@ -47,6 +47,8 @@ if(windows == "physical"){
   chr_files <- dir(path = "archaic_freqs/", pattern = "chr.*_frq_genetic_windows.txt", full.names=T)
   gnom <- rbindlist(lapply(chr_files, fread))
   
+  Bvals <- fread("B_vals_genetic_windows.txt")
+  
   # combine gd and freq files
   gnom[, chr := paste0("chr", chr)]
   gnom <- merge(gd, gnom, by = c("chr", "Morgan"))
