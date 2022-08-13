@@ -348,4 +348,4 @@ all_wv_frqs <- rbind(frqs_wv0, frqs_wv1)
 # ----- output from script: 
 allWV <- merge(all_wv_frqs, all_wv_haps)
 
-save(allWV, h_wc, file = paste0(dirname(args[2]), '/wavelet_results.RData'))
+save(allWV, h_wc, file = gsub('_ancestry.txt','_wavelet_results.txt.RData',args[2]))

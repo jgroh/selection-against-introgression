@@ -6,7 +6,7 @@ initialize() {
 		defineConstant("outPath", "~/workspace/selection-against-introgression/theory_and_simulations/results/neutral_sims/equilibrium/");
 	} else
 	{	
-		defineConstant("outPath", "results/neutral_sims/equilibrium/");
+		defineConstant("outPath", "results/neutral_sims/bottleneck/");
 	}
 	
 	initializeTreeSeq();
@@ -23,22 +23,22 @@ initialize() {
 
 // note we will recaptitate
 
-1 {
+1 early() {
 	sim.addSubpop("p0", N);
 	sim.addSubpop("p1", N);
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //these individuals are accessed using ts.samples( in tskit
 
-	sim.rescheduleScriptBlock(s1, start=N, end=N); // migration begins when expected Fst=0.2. Individuals in p2 at generation N should be a mix of parental types
-	sim.rescheduleScriptBlock(s2, start=N, end=N); // migration ends
+	community.rescheduleScriptBlock(s1, start=N, end=N); // migration begins when expected Fst=0.2. Individuals in p2 at generation N should be a mix of parental types
+	community.rescheduleScriptBlock(s2, start=N, end=N); // migration ends
 	
-	sim.rescheduleScriptBlock(s3, start=N+2, end=N+2); // F2s. Corresponding to 1 generation in the theory
-	sim.rescheduleScriptBlock(s4, start=N+11, end=N+11); // 10 generations from F1
-	sim.rescheduleScriptBlock(s5, start=N+101, end=N+101); // 100 generations from F1
-	sim.rescheduleScriptBlock(s6, start=N+1001, end=N+1001); // 1000 generations from F1
+	community.rescheduleScriptBlock(s3, start=N+2, end=N+2); // F2s. Corresponding to 1 generation in the theory
+	community.rescheduleScriptBlock(s4, start=N+11, end=N+11); // 10 generations from F1
+	community.rescheduleScriptBlock(s5, start=N+101, end=N+101); // 100 generations from F1
+	community.rescheduleScriptBlock(s6, start=N+1001, end=N+1001); // 1000 generations from F1
 	
 	// bottleneck
-	sim.rescheduleScriptBlock(s7, start = N+1, end = N+1) // bottleneck starts in F1
-	sim.rescheduleScriptBlock(s8, start = N+11, end = N+11) // lasts 10 generations
+	community.rescheduleScriptBlock(s7, start = N+1, end = N+1); // bottleneck starts in F1
+	community.rescheduleScriptBlock(s8, start = N+11, end = N+11); // lasts 10 generations
 }
 
 // expected Fst=0.2 when N=T

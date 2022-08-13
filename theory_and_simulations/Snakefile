@@ -3,42 +3,52 @@ reps = np.arange(8)
 hg1_sim_reps = np.arange(8)
 snp_stat_reps = np.arange(10)
 
+gens = [1,10,100,1000]
+gens_swordtail = [10,100,200]
+swordtail_N = 1000
 
 # ===== rules for producing neutral simulation results ======
 rule all_neutral_wv_sim:
 	input:
-		expand("results/neutral_sims/{sim}/ancestry_master.txt", sim = ['equilibrium', 'bottleneck'])
+		expand("results/neutral_sims/{sim}/replicate{rep}_wavelet_results.RData", rep=np.arange(10), sim = ['equilibrium', 'bottleneck'])
 
 rule neutral_sims: # this runs simulations for neutral admixture pulse: (1) demographic equilibrium and (2) early bottleneck
 	input:
 	output:
 		"results/neutral_sims/{sim}/replicate{rep}.trees" #trees file includes remembered individuals from various gens
 	shell:
-		"slim -d seed={wildcards.rep} -d N=10000 code/{wildcards.sim}.slim"
+		"slim -d seed={wildcards.rep} -d N=100 code/{wildcards.sim}.slim"
 
 rule ancestry_neutral_sims: # calculates ancestry fractions for the neutral sims
 	input:
 		"results/neutral_sims/{sim}/replicate{rep}.trees"
 	output:
-		expand("results/neutral_sims/{sim}/replicate{rep}_{data}.txt", data=['haps','frqs','ancestry'])
+		expand("results/neutral_sims/{{sim}}/replicate{{rep}}_{data}.txt", data=['haps','frqs','ancestry'])
 	shell:
-		"python code/ancestry_haps_frqs.py {input} 10000 10"
+		"python code/ancestry_haps_frqs.py {input} 100 10"
 
-
-rule simulation_swordtail:
+rule wavelet_analyses_neutral_sims:
 	input:
+		expand("results/neutral_sims/{{sim}}/replicate{{rep}}_{data}.txt", data=['ancestry','haps','frqs'])
 	output:
-		temp(expand("results/swordtail_neutral/swordtail_replicate{{rep}}_{gen}_N{{N}}.trees", gen = gens_swordtail))
+		"results/neutral_sims/{sim}/replicate{rep}_wavelet_results.RData"
 	shell:
-		"slim -d seed={wildcards.rep} -d N={wildcards.N} code/swordtail_neutral.slim"
+		"Rscript --vanilla code/wavelet_analyses_ancestry_haps_frqs.R 10 {input}" 
 
-rule avg_ancestry_calc_swordtail:
-	input:
-		"results/swordtail_neutral/swordtail_{rep_gen_N}.trees"
-	output:
-		temp("results/swordtail_neutral/swordtail_{rep_gen_N}_ancestry.txt")
-	shell:
-		"python3 code/ancestry.py {input} > {output}"
+#rule simulation_swordtail:
+#	input:
+#	output:
+#		temp(expand("results/swordtail_neutral/swordtail_replicate{{rep}}_{gen}_N{{N}}.trees", gen = gens_swordtail))
+#	shell:
+#		"slim -d seed={wildcards.rep} -d N={wildcards.N} code/swordtail_neutral.slim"
+
+#rule avg_ancestry_calc_swordtail:
+#	input:
+#		"results/swordtail_neutral/swordtail_{rep_gen_N}.trees"
+#	output:
+#		temp("results/swordtail_neutral/swordtail_{rep_gen_N}_ancestry.txt")
+#	shell:
+#		"python3 code/ancestry.py {input} > {output}"
 	
 # ===== rules for simulations of human chromosome 1  =======
 

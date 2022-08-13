@@ -2,7 +2,6 @@
 import msprime, pyslim
 import tskit
 import numpy as np
-import pandas as pd
 import sys
 import os
 
@@ -17,10 +16,8 @@ def allele_frequencies(ts, sample_sets=None):
 
 
 # Load the .trees file
-#ts = tskit.load(sys.argv[1])
-ts = tskit.load("/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/neutral_sims/equilibrium/replicate0.trees")
-#rep = float(os.path.basename(sys.argv[1]).lstrip('replicate').rstrip('.trees'))
-rep = float(0)
+ts = tskit.load(sys.argv[1])
+rep = float(os.path.basename(sys.argv[1]).lstrip('replicate').rstrip('.trees'))
 
 
 haps = []
@@ -41,8 +38,6 @@ for gen in sys.argv[2:]:
     frqsout = np.c_[np.tile(gen, 1024), np.tile(rep, 1024), 1:1025, afn]
     frqs.append(frqsout)
     
-
-
 
 fn = os.path.abspath(sys.argv[1]).rstrip('.trees')
 np.savetxt(fname = fn + "_haps.txt", X=np.vstack(haps), fmt = "%s")
