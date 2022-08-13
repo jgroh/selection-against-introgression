@@ -3,24 +3,6 @@ reps = np.arange(8)
 hg1_sim_reps = np.arange(8)
 snp_stat_reps = np.arange(10)
 
-#gens = ["gen" + num for num in ["0001", "0002", "0005", "0010", "0050", "0100", "0500", "1000"]]
-#gens = ["gen" + num for num in ["0001", "0100", "0101", "0201", "0500","0501","0601", "1001"]]
-#gens = ["gen" + num for num in ["0001","0002", "0100","0101", "0500", "0501", "1001"]]
-#gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0025","0050","0100","0250","0500","1000"]]
-gens = ["gen" + num for num in ["0001","0010","0100","1000"]]
-snp_stat_gens = [0,10,100,500,1000]
-
-#gens_swordtail = ["generation" + num for num in ["100", "150", "200"]]
-gens_swordtail = ["generation" + num for num in ["0001", "0010", "0100", "1000"]]
-swordtail_N = [1000]
-#gens = ["gen" + num for num in ["0001","0002","0003","0004","0005","0010","0050","0100","0250","0500","0750","1000"]]
-#sims = ["neutral-const-recomb","sel-const-recomb","neutral-periodic-recomb","sel-periodic-recomb","single-sweep"]
-#simsA = ["equilibrium","bottleneck","add-sel-const-recomb","add-sel-periodic-recomb"]
-simsB = ["equilibrium_n500"]
-#sims_sel_pulses = ["add-sel-periodic-recomb_gen" + g for g in ["1-1000", "1-100","100-200","500-600"]]
-sims_sel_pulses = ["hg1_sel_gens" + g for g in ["1-1000", "1-10","100-110","500-510"]]
-sims_swordtail = ["swordtail_neutral"]
-#ruleorder: avg_ancestry_calc_swordtail > avg_ancestry_calc
 
 # ===== rules for producing neutral simulation results ======
 rule all_neutral_wv_sim:
@@ -32,23 +14,16 @@ rule neutral_sims: # this runs simulations for neutral admixture pulse: (1) demo
 	output:
 		"results/neutral_sims/{sim}/replicate{rep}.trees" #trees file includes remembered individuals from various gens
 	shell:
-		"slim -d seed={wildcards.rep} code/{wildcards.sim}.slim"
+		"slim -d seed={wildcards.rep} -d N=10000 code/{wildcards.sim}.slim"
 
 rule ancestry_neutral_sims: # calculates ancestry fractions for the neutral sims
 	input:
 		"results/neutral_sims/{sim}/replicate{rep}.trees"
 	output:
-		"results/neutral_sims/{sim}/replicate{rep}_ancestry.txt"
+		expand("results/neutral_sims/{sim}/replicate{rep}_{data}.txt", data=['haps','frqs','ancestry'])
 	shell:
-		"python code/derived-allele-freq-general.py {input} 1 2 3 4 5 10 25 50 100 250 500 1000 > {output}"
+		"python code/ancestry_haps_frqs.py {input} 10000 10"
 
-rule combine_neutral_sim_ancestry:
-	input:
-		expand("results/neutral_sims/{{sim}}/replicate{rep}_ancestry.txt", rep = np.arange(10))
-	output:
-		"results/neutral_sims/{sim}/ancestry_master.txt"
-	shell:
-		"cat {input} > {output}"
 
 rule simulation_swordtail:
 	input:

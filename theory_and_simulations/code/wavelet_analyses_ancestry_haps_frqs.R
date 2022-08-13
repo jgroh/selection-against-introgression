@@ -21,15 +21,10 @@ if(Sys.getenv("RSTUDIO") == "1"){
   
 } else {
   
-  # source("/Users/brogroh/gnomwav/R/multi_modwts.R")
-  # source("/Users/brogroh/gnomwav/R/variance_decomp.R")
-  # source("/Users/brogroh/gnomwav/R/correlation_decomp.R")
-  # source("/Users/brogroh/gnomwav/R/theory.R")
-  
-  source("~/workspace/gnomwav/R/multi_modwts.R")
-  source("~/workspace/gnomwav/R/variance_decomp.R")
-  source("~/workspace/gnomwav/R/theory.R")
-  source("~/workspace/gnomwav/R/correlation_decomp.R")
+   source("/Users/brogroh/gnomwav/R/multi_modwts.R")
+   source("/Users/brogroh/gnomwav/R/variance_decomp.R")
+   source("/Users/brogroh/gnomwav/R/correlation_decomp.R")
+   source("/Users/brogroh/gnomwav/R/theory.R")
   
   args <- commandArgs(trailingOnly = TRUE)
   n.sample <- as.numeric(args[1])

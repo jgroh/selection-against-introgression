@@ -26,7 +26,7 @@ initialize() {
 1 {
 	sim.addSubpop("p0", N);
 	sim.addSubpop("p1", N);
-	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //these individuals are accessed using ts.samples( in tskit
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //these individuals are accessed using ts.samples( time = max output generation + N) in tskit
 
 	sim.rescheduleScriptBlock(s1, start=N, end=N); // migration begins when expected Fst=0.2. Individuals in p2 at generation N should be a mix of parental types
 	sim.rescheduleScriptBlock(s2, start=N, end=N); // migration ends
