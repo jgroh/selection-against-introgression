@@ -14,7 +14,7 @@ if(Sys.getenv("RSTUDIO") == "1"){
   source("~/workspace/gnomwav/R/correlation_decomp.R")
   
   setwd("/Users/Jeff/workspace/selection-against-introgression/theory_and_simulations/results/neutral_sims/equilibrium/")
-  n.sample <- 10
+  n.sample <- 20
   haps <- fread("replicate0_haps.txt", col.names = c("gen", "rep", "pos",  paste0("p0.", 1:n.sample), paste0("p1.", 1:n.sample), paste0("p2.", 1:n.sample)))
   frqs <- fread("replicate0_frqs.txt", col.names = c("gen", "rep", "pos", "p0", "p1", "p2"))
   ancestry <- fread("replicate0_ancestry.txt", col.names = c("gen", "rep", "id", "left", "right", "source"))
@@ -119,7 +119,7 @@ true_ancestry_wv <- true_ancestry_wv[, .(variance_single_hap = mean(variance.sou
 ancestry_grid1[, pos := seq_len(.N), by = .(rep, gen, id)]
 keycols <- c('gen', 'id', 'Morgan')
 setkeyv(ancestry_grid1, cols = keycols)
-ancestry_grid1[, id2 := rep(rep(paste0('id',1:10), each = length(xout)), 5)]
+ancestry_grid1[, id2 := rep(rep(paste0('id',1:n.sample), each = length(xout)), 5)]
 ancestry_grid1_wide <- dcast(ancestry_grid1, rep + gen + Morgan ~ id2, value.var = 'source')
 
 smpl_mean_true_ancestry <- ancestry_grid1_wide[, .(mean_ancestry = sum(id1, id2, id3, id4, id5, id6, id7, id8, id9, id10)/10), by = .(rep, gen, Morgan)]
@@ -266,14 +266,14 @@ all_wv_haps.1 <- rbind(wv_haps0.1, wv_haps1.1)
 # reformat in order to compute mean
 haps_interp0[, id2 := paste0('id', id), by = .(rep, gen, pop, id)]
 haps_interp0_wide <- dcast(haps_interp0, rep + gen + pop + Morgan ~ id2, value.var = 'h_hap')
-smpl_mean_h <- haps_interp0_wide[, .(smpl_mean_h = sum(id1,id2,id3,id4,id5,id6,id7,id8,id9,id10)/10), by = .(rep,gen,pop,Morgan)]
+smpl_mean_h <- haps_interp0_wide[, .(smpl_mean_h = rowSums(.SD)/n.sample), .SDcols = paste0('id',1:n.sample), by = .(rep,gen,pop,Morgan)]
 
 # ---- output from script: wavelet variance of sample mean
 smpl_mean_h_wv <- smpl_mean_h[, gnom_var_decomp(.SD, chromosome = NA, signals = 'smpl_mean_h'), by = .(rep, gen, pop)]
 
 
 # # look at wavelet variance of mean, can see the small bump for p2
-# ggplot(mean_h_wv, aes(x = level, y = variance.mean_h, color = pop)) + facet_wrap(~gen) + geom_point()
+# ggplot(smpl_mean_h_wv, aes(x = level, y = variance.smpl_mean_h, color = pop)) + facet_wrap(~gen) + geom_point()
 
 # ===== Wavelet Covariances for pairs of haps =====
 # Again, just use SNPs ascertained in gen0 for this
