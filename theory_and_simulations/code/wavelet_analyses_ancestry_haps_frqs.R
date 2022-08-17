@@ -13,7 +13,7 @@ if(Sys.getenv("RSTUDIO") == "1"){
   source("~/workspace/gnomwav/R/theory.R")
   source("~/workspace/gnomwav/R/correlation_decomp.R")
   
-  setwd("/Users/Jeff/workspace/selection-against-introgression/theory_and_simulations/results/neutral_sims/bottleneck/")
+  setwd("/Users/Jeff/workspace/selection-against-introgression/theory_and_simulations/results/neutral_sims/equilibrium/")
   n.sample <- 20
   haps <- fread("replicate0_haps.txt", col.names = c("gen", "rep", "pos",  paste0("p0.", 1:n.sample), paste0("p1.", 1:n.sample), paste0("p2.", 1:n.sample)))
   frqs <- fread("replicate0_frqs.txt", col.names = c("gen", "rep", "pos", "p0", "p1", "p2"))
@@ -266,19 +266,28 @@ all_wv_haps.1 <- rbind(wv_haps0.1, wv_haps1.1)
   
 
 # ===== Wavelet Variance of sample mean snp statistic (N=10) ======
-# for simplicity just use SNPs ascertained in gen0
 
 # reformat in order to compute mean
 haps_interp0[, id2 := paste0('id', id), by = .(rep, gen, pop, id)]
 haps_interp0_wide <- dcast(haps_interp0, rep + gen + pop + Morgan ~ id2, value.var = 'h_hap')
-smpl_mean_h <- haps_interp0_wide[, .(smpl_mean_h = rowSums(.SD)/n.sample), .SDcols = paste0('id',1:n.sample), by = .(rep,gen,pop,Morgan)]
+smpl_mean_h0 <- haps_interp0_wide[, .(smpl_mean_h = rowSums(.SD)/n.sample), .SDcols = paste0('id',1:n.sample), by = .(rep,gen,pop,Morgan)]
+smpl_mean_h0[, ascertainment := 'gen0']
+
+# reformat in order to compute mean
+haps_interp1[, id2 := paste0('id', id), by = .(rep, gen, pop, id)]
+haps_interp1_wide <- dcast(haps_interp0, rep + gen + pop + Morgan ~ id2, value.var = 'h_hap')
+smpl_mean_h1 <- haps_interp1_wide[, .(smpl_mean_h = rowSums(.SD)/n.sample), .SDcols = paste0('id',1:n.sample), by = .(rep,gen,pop,Morgan)]
+smpl_mean_h1[, ascertainment := 'contemporary']
 
 # ---- output from script: wavelet variance of sample mean
-smpl_mean_h_wv <- smpl_mean_h[, gnom_var_decomp(.SD, chromosome = NA, signals = 'smpl_mean_h'), by = .(rep, gen, pop)]
+smpl_mean_wv0 <- smpl_mean_h0[, gnom_var_decomp(.SD, chromosome = NA, signals = 'smpl_mean_h'), by = .(rep, gen, pop, ascertainment)]
+smpl_mean_wv1 <- smpl_mean_h1[, gnom_var_decomp(.SD, chromosome = NA, signals = 'smpl_mean_h'), by = .(rep, gen, pop, ascertainment)]
 
+smpl_mean_wv <- rbind(smpl_mean_h_wv0, smpl_mean_h_wv1)
 
 # # look at wavelet variance of mean, can see the small bump for p2
-# ggplot(smpl_mean_h_wv, aes(x = level, y = variance.smpl_mean_h, color = pop)) + facet_wrap(~gen) + geom_point()
+# ggplot(smpl_mean_h_wv0, aes(x = level, y = variance.smpl_mean_h, color = pop)) + facet_wrap(~gen) + geom_point()
+
 
 # ===== Wavelet Covariances for pairs of haps =====
 # Again, just use SNPs ascertained in gen0 for this
@@ -354,7 +363,18 @@ all_wv_frqs <- rbind(frqs_wv0, frqs_wv1)
 #         y = "Variance")
 
 
-# ----- output from script: 
-allSNPWV <- merge(all_wv_frqs, all_wv_haps)
+# ----- output from script: single hap, sample mean, and population mean wavelet variances
+# reformatting
+setnames(smpl_mean_wv, 'variance.smpl_mean_h', 'smpl_mean')
+smpl_mean_wv <- melt(smpl_mean_wv, measure.vars = 'smpl_mean', value.name = 'variance', variable.name = 'signal')
+
+all_wv_frqs[, pop := 'p2']
+setnames(all_wv_frqs, 'variance.h_frq', 'pop_mean')
+all_wv_frqs <- melt(all_wv_frqs, measure.vars = 'pop_mean', value.name = 'variance', variable.name = 'signal')
+
+setnames(all_wv_haps, 'mean_wv.h_hap', 'single_hap')
+all_wv_haps <- melt(all_wv_haps, measure.vars = 'single_hap', value.name = 'variance', variable.name = 'signal')
+
+allSNPWV <- rbind(rbind(all_wv_haps, all_wv_frqs), smpl_mean_wv)
 
 save(true_ancestry_allWV, allSNPWV, h_wc, file = gsub('_ancestry.txt','_wavelet_results.RData',args[2]))
