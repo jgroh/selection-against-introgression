@@ -31,8 +31,7 @@ tru_mean_anc = []
 
 # definitions used in loops
 gens = [0,2,11,101,1001] # gen 0 accesses parental individuals in first gen of admixed pop. gen 2 is 1 generation removed from F1, gen 11 is 10 gen removed from F1, etc
-L = int(ts.sequence_length)
-ancestors = ts.samples(time = 1001 + N)
+ancestors = orig_ts.samples(time = 1001 + N)
 TableCollection = orig_ts.dump_tables()
 nodes_table = TableCollection.nodes
 
@@ -52,8 +51,7 @@ for gen in gens:
             subpop_sum += tree.population(root) * leaves_count 
             # for population 0, this will be 0. for population 1, it will sum the number of individuals descended from that population. 
             subpop_weights += leaves_count
-
-    ancestry_all_seq[ list(range (int(tree.interval[0]), int(tree.interval[1]) ))  ] = subpop_sum / subpop_weights
+        ancestry_all_seq[ list(range (int(tree.interval[0]), int(tree.interval[1]) ))  ] = subpop_sum / subpop_weights
 
     anc_out = np.c_[np.tile(gen, L), np.tile(rep, L), ancestry_all_seq]
     tru_mean_anc.append(anc_out)
