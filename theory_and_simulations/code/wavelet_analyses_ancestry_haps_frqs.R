@@ -283,7 +283,7 @@ smpl_mean_h1[, ascertainment := 'contemporary']
 smpl_mean_wv0 <- smpl_mean_h0[, gnom_var_decomp(.SD, chromosome = NA, signals = 'smpl_mean_h'), by = .(rep, gen, pop, ascertainment)]
 smpl_mean_wv1 <- smpl_mean_h1[, gnom_var_decomp(.SD, chromosome = NA, signals = 'smpl_mean_h'), by = .(rep, gen, pop, ascertainment)]
 
-smpl_mean_wv <- rbind(smpl_mean_h_wv0, smpl_mean_h_wv1)
+smpl_mean_wv <- rbind(smpl_mean_wv0, smpl_mean_wv1)
 
 # # look at wavelet variance of mean, can see the small bump for p2
 # ggplot(smpl_mean_h_wv0, aes(x = level, y = variance.smpl_mean_h, color = pop)) + facet_wrap(~gen) + geom_point()
