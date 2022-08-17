@@ -13,7 +13,7 @@ if(Sys.getenv("RSTUDIO") == "1"){
   source("~/workspace/gnomwav/R/theory.R")
   source("~/workspace/gnomwav/R/correlation_decomp.R")
   
-  setwd("/Users/Jeff/workspace/selection-against-introgression/theory_and_simulations/results/neutral_sims/equilibrium/")
+  setwd("/Users/Jeff/workspace/selection-against-introgression/theory_and_simulations/results/neutral_sims/bottleneck/")
   n.sample <- 20
   haps <- fread("replicate0_haps.txt", col.names = c("gen", "rep", "pos",  paste0("p0.", 1:n.sample), paste0("p1.", 1:n.sample), paste0("p2.", 1:n.sample)))
   frqs <- fread("replicate0_frqs.txt", col.names = c("gen", "rep", "pos", "p0", "p1", "p2"))
@@ -21,14 +21,10 @@ if(Sys.getenv("RSTUDIO") == "1"){
   
 } else {
   
-  source("~/workspace/gnomwav/R/multi_modwts.R")
-  source("~/workspace/gnomwav/R/variance_decomp.R")
-  source("~/workspace/gnomwav/R/theory.R")
-  source("~/workspace/gnomwav/R/correlation_decomp.R")
-  # source("/Users/brogroh/gnomwav/R/multi_modwts.R")
-  # source("/Users/brogroh/gnomwav/R/variance_decomp.R")
-  # source("/Users/brogroh/gnomwav/R/correlation_decomp.R")
-  # source("/Users/brogroh/gnomwav/R/theory.R")
+  source("/Users/brogroh/gnomwav/R/multi_modwts.R")
+  source("/Users/brogroh/gnomwav/R/variance_decomp.R")
+  source("/Users/brogroh/gnomwav/R/correlation_decomp.R")
+  source("/Users/brogroh/gnomwav/R/theory.R")
   
   args <- commandArgs(trailingOnly = TRUE)
   n.sample <- as.numeric(args[1])
@@ -92,16 +88,16 @@ ancestry_wv2 <- ancestry_wv2[grepl("d",level,fixed=T)]
 ancestry_wv1[, ancestry_measure := "direct"]
 ancestry_wv2[, ancestry_measure := "interpolated"]
 
-true_ancestry_wv <- rbind(ancestry_wv1, ancestry_wv2)
+hap_true_ancestry_wv <- rbind(ancestry_wv1, ancestry_wv2)
 
 # average over haplotypes
-true_ancestry_wv <- true_ancestry_wv[, .(variance_single_hap = mean(variance.source)), by = .(rep, gen, level, ancestry_measure)]
+hap_true_ancestry_wv <- hap_true_ancestry_wv[, .(single_hap = mean(variance.source)), by = .(rep, gen, level, ancestry_measure)]
 
 # check match of both approaches with theory
 #wvthry1.14 <- wavelet_variance_equilbrium(n.pop = 20000, n.sample=1, unit.scale = 2^-14, gen = c(1,10,100,1000), alpha= 0.5, level = 1:14)
 
 # #can see how too coarse of SNP data results in fine scale variance being missed after interpolating ancestry to a fine grid
-# ggplot(true_ancestry_wv[gen!=0], aes(x = level, y = variance_single_hap)) +
+# ggplot(true_ancestry_wv[gen!=0], aes(x = level, y = single_hap)) +
 #   facet_wrap(~gen) +
 #   geom_point() +
 #   geom_line(aes(group = ancestry_measure, color = ancestry_measure)) +
@@ -127,7 +123,16 @@ smpl_mean_true_ancestry <- ancestry_grid1_wide[, .(mean_ancestry = sum(id1, id2,
 #ggplot(mean_true_ancestry, aes(x = Morgan, y = mean_ancestry)) + geom_line() + facet_wrap(~gen)
 
 smpl_mean_true_ancestry_wv <- smpl_mean_true_ancestry[, gnom_var_decomp(.SD, signals = 'mean_ancestry', chromosome = NA), by = .(rep, gen)]
-setnames(smpl_mean_true_ancestry_wv, 'variance.mean_ancestry',  'variance.smple_mean')
+setnames(smpl_mean_true_ancestry_wv, 'variance.mean_ancestry',  'smple_mean')
+smpl_mean_true_ancestry_wv <- smpl_mean_true_ancestry_wv[level !='s14']
+smpl_mean_true_ancestry_wv[, ancestry_measure := 'direct']
+
+# combine results for output
+true_ancestry_allWV <- rbind(melt(hap_true_ancestry_wv, variable.name = 'signal', 
+     id.vars = c('rep','gen','level','ancestry_measure'), value.name = 'variance'),
+     melt(smpl_mean_true_ancestry_wv, variable.name = 'signal',
+     id.vars = c('rep','gen','level','ancestry_measure'), value.name = 'variance'))
+
 
 # # check that this equals the weighted sum of parts from the single haplotype variance plus the wavelet covariance among haps
 # # calculate wavelet covariance:
@@ -350,6 +355,6 @@ all_wv_frqs <- rbind(frqs_wv0, frqs_wv1)
 
 
 # ----- output from script: 
-allWV <- merge(all_wv_frqs, all_wv_haps)
+allSNPWV <- merge(all_wv_frqs, all_wv_haps)
 
-save(allWV, h_wc, file = gsub('_ancestry.txt','_wavelet_results.RData',args[2]))
+save(true_ancestry_allWV, allSNPWV, h_wc, file = gsub('_ancestry.txt','_wavelet_results.RData',args[2]))
