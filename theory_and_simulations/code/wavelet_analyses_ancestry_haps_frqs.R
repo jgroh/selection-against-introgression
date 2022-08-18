@@ -15,9 +15,9 @@ if(Sys.getenv("RSTUDIO") == "1"){
   
   setwd("/Users/Jeff/workspace/selection-against-introgression/theory_and_simulations/results/neutral_sims/equilibrium/")
   n.sample <- 20
-  haps <- fread("replicate0_haps.txt", col.names = c("gen", "rep", "pos",  paste0("p0.", 1:n.sample), paste0("p1.", 1:n.sample), paste0("p2.", 1:n.sample)))
-  frqs <- fread("replicate0_frqs.txt", col.names = c("gen", "rep", "pos", "p0", "p1", "p2"))
-  ancestry <- fread("replicate0_ancestry.txt", col.names = c("gen", "rep", "id", "left", "right", "source"))
+  haps <- fread("replicate0_hap_SNP_stat.txt", col.names = c("gen", "rep", "pos",  paste0("p0.", 1:n.sample), paste0("p1.", 1:n.sample), paste0("p2.", 1:n.sample)))
+  frqs <- fread("replicate0_mean_SNP_stat.txt", col.names = c("gen", "rep", "pos", "p0", "p1", "p2"))
+  ancestry <- fread("replicate0_hap_ancestry.txt", col.names = c("gen", "rep", "id", "left", "right", "source"))
   
 } else {
   
@@ -97,7 +97,7 @@ hap_true_ancestry_wv <- hap_true_ancestry_wv[, .(single_hap = mean(variance.sour
 #wvthry1.14 <- wavelet_variance_equilbrium(n.pop = 20000, n.sample=1, unit.scale = 2^-14, gen = c(1,10,100,1000), alpha= 0.5, level = 1:14)
 
 # #can see how too coarse of SNP data results in fine scale variance being missed after interpolating ancestry to a fine grid
-# ggplot(true_ancestry_wv[gen!=0], aes(x = level, y = single_hap)) +
+# ggplot(hap_true_ancestry_wv[gen!=0], aes(x = level, y = single_hap)) +
 #   facet_wrap(~gen) +
 #   geom_point() +
 #   geom_line(aes(group = ancestry_measure, color = ancestry_measure)) +
@@ -120,10 +120,10 @@ ancestry_grid1_wide <- dcast(ancestry_grid1, rep + gen + Morgan ~ id2, value.var
 
 smpl_mean_true_ancestry <- ancestry_grid1_wide[, .(mean_ancestry = sum(id1, id2, id3, id4, id5, id6, id7, id8, id9, id10)/10), by = .(rep, gen, Morgan)]
 
-#ggplot(mean_true_ancestry, aes(x = Morgan, y = mean_ancestry)) + geom_line() + facet_wrap(~gen)
+#ggplot(smpl_mean_true_ancestry, aes(x = Morgan, y = mean_ancestry)) + geom_line() + facet_wrap(~gen)
 
 smpl_mean_true_ancestry_wv <- smpl_mean_true_ancestry[, gnom_var_decomp(.SD, signals = 'mean_ancestry', chromosome = NA), by = .(rep, gen)]
-setnames(smpl_mean_true_ancestry_wv, 'variance.mean_ancestry',  'smple_mean')
+setnames(smpl_mean_true_ancestry_wv, 'variance.mean_ancestry',  'smpl_mean')
 smpl_mean_true_ancestry_wv <- smpl_mean_true_ancestry_wv[level !='s14']
 smpl_mean_true_ancestry_wv[, ancestry_measure := 'direct']
 
@@ -134,6 +134,7 @@ true_ancestry_allWV <- rbind(melt(hap_true_ancestry_wv, variable.name = 'signal'
      id.vars = c('rep','gen','level','ancestry_measure'), value.name = 'variance'))
 
 
+#ggplot(true_ancestry_allWV[signal == 'smpl_mean'], aes(x = level, y = variance)) + geom_point() + facet_wrap(~gen)
 # # check that this equals the weighted sum of parts from the single haplotype variance plus the wavelet covariance among haps
 # # calculate wavelet covariance:
 # true_ancestry_wc <- ancestry_grid1_wide[, cov_tbl(.SD, chromosome=NA, signals = c('id1','id2')), by = .(rep, gen)]
@@ -192,19 +193,19 @@ allsitedata0[, h_hap := (allele - p0)/(p1-p0)]
 haps_interp0 <- allsitedata0[, approx(x = Morgan, y = h_hap, xout=xout, rule=2), by = .(rep, gen, pop, id)]
 setnames(haps_interp0, c("x", "y"), c("Morgan", "h_hap"))
 
-# run wavelet variance decomp. This is what we'll output
+# run wavelet variance decomp.
 wv_haps0 <- haps_interp0[, gnom_var_decomp(.SD,chromosome = NA,signals = "h_hap"), by = .(rep,gen,pop,id)]
 wv_haps0 <- wv_haps0[grepl("d", level, fixed=T)]
 wv_haps0[, ascertainment := 'gen0']
 
 # --- for plotting just within this script: reformat in order to compute variance correction
-prnt_wv_haps0 <- wv_haps0[pop!="p2", .(variance.prnt_haps = mean(variance.h_hap)), by = .(level, gen)]
-hyb_wv_haps0 <- wv_haps0[pop == "p2", .(variance.hyb_haps = mean(variance.h_hap)), by = .(gen, level)]
-wv_haps0.1 <- merge(prnt_wv_haps0, hyb_wv_haps0, by = c("level","gen"))
-wv_haps0.1[, adj_var := variance.hyb_haps - variance.prnt_haps]
-wv_haps0.1[, adj_propvar := adj_var/sum(adj_var), by = gen]
-wv_haps0.1[, ascertainment := "gen0"]
-
+# prnt_wv_haps0 <- wv_haps0[pop!="p2", .(variance.prnt_haps = mean(variance.h_hap)), by = .(level, gen)]
+# hyb_wv_haps0 <- wv_haps0[pop == "p2", .(variance.hyb_haps = mean(variance.h_hap)), by = .(gen, level)]
+# wv_haps0.1 <- merge(prnt_wv_haps0, hyb_wv_haps0, by = c("level","gen"))
+# wv_haps0.1[, adj_var := variance.hyb_haps - variance.prnt_haps]
+# wv_haps0.1[, adj_propvar := adj_var/sum(adj_var), by = gen]
+# wv_haps0.1[, ascertainment := "gen0"]
+# 
 
 # ----- Method 2. ascertain SNPs in contemporary generations
 sites1 <- frqs[abs(p0 - p1) >= 0.05, pos, by = .(rep,gen)] 
@@ -235,14 +236,14 @@ all_wv_haps <- rbind(wv_haps0, wv_haps1)
 all_wv_haps <- all_wv_haps[, .(mean_wv.h_hap = mean(variance.h_hap)), by = .(rep, gen, pop, level, ascertainment)]
 
 # --- for plotting just within this script: reformat in order to compute variance correction
-prnt_wv_haps1 <- wv_haps1[pop!="p2", .(variance.prnt_haps = mean(variance.h_hap)), by = .(level, gen)]
-hyb_wv_haps1 <- wv_haps1[pop == "p2", .(variance.hyb_haps = mean(variance.h_hap)), by = .(gen, level)]
-wv_haps1.1 <- merge(prnt_wv_haps1, hyb_wv_haps1, by = c("level","gen"))
-wv_haps1.1[, adj_var := variance.hyb_haps - variance.prnt_haps]
-wv_haps1.1[, adj_propvar := adj_var/sum(adj_var), by = gen]
-wv_haps1.1[, ascertainment := "contemporary"]
-
-all_wv_haps.1 <- rbind(wv_haps0.1, wv_haps1.1)
+# prnt_wv_haps1 <- wv_haps1[pop!="p2", .(variance.prnt_haps = mean(variance.h_hap)), by = .(level, gen)]
+# hyb_wv_haps1 <- wv_haps1[pop == "p2", .(variance.hyb_haps = mean(variance.h_hap)), by = .(gen, level)]
+# wv_haps1.1 <- merge(prnt_wv_haps1, hyb_wv_haps1, by = c("level","gen"))
+# wv_haps1.1[, adj_var := variance.hyb_haps - variance.prnt_haps]
+# wv_haps1.1[, adj_propvar := adj_var/sum(adj_var), by = gen]
+# wv_haps1.1[, ascertainment := "contemporary"]
+# 
+# all_wv_haps.1 <- rbind(wv_haps0.1, wv_haps1.1)
 
 # # check the accuracy of the correction
 
@@ -286,7 +287,7 @@ smpl_mean_wv1 <- smpl_mean_h1[, gnom_var_decomp(.SD, chromosome = NA, signals = 
 smpl_mean_wv <- rbind(smpl_mean_wv0, smpl_mean_wv1)
 
 # # look at wavelet variance of mean, can see the small bump for p2
-# ggplot(smpl_mean_h_wv0, aes(x = level, y = variance.smpl_mean_h, color = pop)) + facet_wrap(~gen) + geom_point()
+# ggplot(smpl_mean_wv, aes(x = level, y = variance.smpl_mean_h, color = pop)) + facet_wrap(~gen) + geom_point()
 
 
 # ===== Wavelet Covariances for pairs of haps =====
