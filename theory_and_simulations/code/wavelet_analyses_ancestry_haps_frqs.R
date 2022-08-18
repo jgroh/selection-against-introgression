@@ -118,12 +118,13 @@ setkeyv(ancestry_grid1, cols = keycols)
 ancestry_grid1[, id2 := rep(rep(paste0('id',1:n.sample), each = length(xout)), 5)]
 ancestry_grid1_wide <- dcast(ancestry_grid1, rep + gen + Morgan ~ id2, value.var = 'source')
 
-smpl_mean_true_ancestry <- ancestry_grid1_wide[, .(mean_ancestry = sum(id1, id2, id3, id4, id5, id6, id7, id8, id9, id10)/10), by = .(rep, gen, Morgan)]
+
+smpl_mean_true_ancestry <- ancestry_grid1_wide[, .(smpl_mean = rowSums(.SD)/n.sample), .SDcols = paste0('id',1:n.sample), by = .(rep, gen, Morgan)]
 
 #ggplot(smpl_mean_true_ancestry, aes(x = Morgan, y = mean_ancestry)) + geom_line() + facet_wrap(~gen)
 
-smpl_mean_true_ancestry_wv <- smpl_mean_true_ancestry[, gnom_var_decomp(.SD, signals = 'mean_ancestry', chromosome = NA), by = .(rep, gen)]
-setnames(smpl_mean_true_ancestry_wv, 'variance.mean_ancestry',  'smpl_mean')
+smpl_mean_true_ancestry_wv <- smpl_mean_true_ancestry[, gnom_var_decomp(.SD, signals = 'smpl_mean', chromosome = NA), by = .(rep, gen)]
+setnames(smpl_mean_true_ancestry_wv, 'variance.smpl_mean',  'smpl_mean')
 smpl_mean_true_ancestry_wv <- smpl_mean_true_ancestry_wv[level !='s14']
 smpl_mean_true_ancestry_wv[, ancestry_measure := 'direct']
 
