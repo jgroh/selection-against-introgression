@@ -378,4 +378,4 @@ all_wv_haps <- melt(all_wv_haps, measure.vars = 'single_hap', value.name = 'vari
 
 allSNPWV <- rbind(rbind(all_wv_haps, all_wv_frqs), smpl_mean_wv)
 
-save(true_ancestry_allWV, allSNPWV, h_wc, file = gsub('_ancestry.txt','_wavelet_results.RData',args[2]))
+save(true_ancestry_allWV, allSNPWV, h_wc, file = gsub('_hap_ancestry.txt','_wavelet_results.RData',args[2]))
