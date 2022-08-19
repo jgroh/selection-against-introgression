@@ -2,8 +2,6 @@ library(data.table)
 library(cubature)
 library(ggplot2)
 
-
-
 # ===== Read and format simulation data =====
 
 if(Sys.getenv("RSTUDIO") == "1"){
@@ -44,6 +42,10 @@ haps[gen != 0, gen := gen-1]
 frqs[gen != 0, gen := gen-1]
 ancestry[gen != 0, gen := gen-1]
 
+# calculate sample allele frequencies
+smpl_frqs <- haps[, .(smpl_frq = mean(allele)), by = .(rep, gen, pos, pop, Morgan)]
+
+
 # check ancestry blocks make sense
 #ggplot(ancestry[gen==10], aes(x = left, y = source)) + geom_line() + facet_wrap(~id)
 
@@ -61,7 +63,7 @@ setnames(ancestry_grid1, c('x','y'), c('Morgan', 'source'))
 
 
 # wavelet variance 
-ancestry_wv1 <- ancestry_grid1[, gnom_var_decomp(.SD,chromosome = NA, signals = "source"), by = .(rep,gen,id)]
+ancestry_wv1 <- ancestry_grid1[, gnom_var_decomp(.SD, chromosome = NA, signals = "source"), by = .(rep,gen,id)]
 ancestry_wv1 <- ancestry_wv1[grepl("d",level,fixed=T)]
 
 
@@ -108,7 +110,7 @@ hap_true_ancestry_wv <- hap_true_ancestry_wv[, .(single_hap = mean(variance.sour
 
 
 
-# ----- Wavelet Variance of mean true ancestry (mean of sample N=10) ----
+# ----- Wavelet Variance of sample mean of true ancestry----
 
 # reformat so that haplotypes are in separate columns to take mean
 
@@ -121,7 +123,7 @@ ancestry_grid1_wide <- dcast(ancestry_grid1, rep + gen + Morgan ~ id2, value.var
 
 smpl_mean_true_ancestry <- ancestry_grid1_wide[, .(smpl_mean = rowSums(.SD)/n.sample), .SDcols = paste0('id',1:n.sample), by = .(rep, gen, Morgan)]
 
-#ggplot(smpl_mean_true_ancestry, aes(x = Morgan, y = mean_ancestry)) + geom_line() + facet_wrap(~gen)
+#ggplot(smpl_mean_true_ancestry, aes(x = Morgan, y = smpl_mean)) + geom_line() + facet_wrap(~gen)
 
 smpl_mean_true_ancestry_wv <- smpl_mean_true_ancestry[, gnom_var_decomp(.SD, signals = 'smpl_mean', chromosome = NA), by = .(rep, gen)]
 setnames(smpl_mean_true_ancestry_wv, 'variance.smpl_mean',  'smpl_mean')
@@ -174,19 +176,18 @@ true_ancestry_allWV <- rbind(melt(hap_true_ancestry_wv, variable.name = 'signal'
 
 # ===== Wavelet variance of snp stat computed on single haplotypes =====
 
-# ----- Method 1. use allele frequencies from time of admixture to compute statistic 
+# ----- Method 1. use allele frequencies from time of admixture and population allele frequencies
 
-# first ascertain sites with afd cutoff > 0.05 in gen 0
-sites0 <- frqs[abs(p0 - p1) >= 0.05 & gen == 0, pos, by = rep] 
-frqs_informative_gen0 <- frqs[gen == 0, .SD[pos %in% sites0[rep == .BY$rep, pos]], by = rep]
-frqs_informative_gen0[, gen := NULL][, p2 := NULL]  # by setting gen to NULL here, when we merge with the haplotype table below, 
+pop_sites_gen0 <- frqs[abs(p0 - p1) >= 0.05 & gen == 0, pos] 
+pop_frqs_informative_gen0 <- frqs[gen == 0, .SD[pos %in% pop_sites_gen0]]
+pop_frqs_informative_gen0[, gen := NULL][, p2 := NULL]  # by setting gen to NULL here, when we merge with the haplotype table below, 
 # this ensures that haplotypes are alwayspaired in the same row with the allele frqs from gen 0 
 
 # merge haps and frqs to in order to compute ancestry statistic
-haps_informative0 <- haps[allele != 2, .SD[pos %in% sites0[rep == .BY$rep, pos]], by = .(rep, gen)]
+haps_informative0 <- haps[allele != 2, .SD[pos %in% pop_sites_gen0], by = .(gen)]
 allsitedata0 <- merge(haps_informative0, 
-                     frqs_informative_gen0, 
-                     by = c("rep", "pos", "Morgan"))
+                      pop_frqs_informative_gen0, 
+                      by = c("pos", "rep", "Morgan"))
 
 allsitedata0[, h_hap := (allele - p0)/(p1-p0)]
 
@@ -200,13 +201,14 @@ wv_haps0 <- wv_haps0[grepl("d", level, fixed=T)]
 wv_haps0[, ascertainment := 'gen0']
 
 # --- for plotting just within this script: reformat in order to compute variance correction
-# prnt_wv_haps0 <- wv_haps0[pop!="p2", .(variance.prnt_haps = mean(variance.h_hap)), by = .(level, gen)]
-# hyb_wv_haps0 <- wv_haps0[pop == "p2", .(variance.hyb_haps = mean(variance.h_hap)), by = .(gen, level)]
-# wv_haps0.1 <- merge(prnt_wv_haps0, hyb_wv_haps0, by = c("level","gen"))
-# wv_haps0.1[, adj_var := variance.hyb_haps - variance.prnt_haps]
-# wv_haps0.1[, adj_propvar := adj_var/sum(adj_var), by = gen]
-# wv_haps0.1[, ascertainment := "gen0"]
-# 
+prnt_wv_haps0 <- wv_haps0[pop!="p2", .(variance.prnt_haps = mean(variance.h_hap)), by = .(level, gen)]
+hyb_wv_haps0 <- wv_haps0[pop == "p2", .(variance.hyb_haps = mean(variance.h_hap)), by = .(gen, level)]
+wv_haps0.1 <- merge(prnt_wv_haps0, hyb_wv_haps0, by = c("level","gen"))
+wv_haps0.1[, adj_var := variance.hyb_haps - variance.prnt_haps]
+wv_haps0.1[, adj_propvar := adj_var/sum(adj_var), by = gen]
+wv_haps0.1[, ascertainment := "gen0"]
+
+# ggplot(wv_haps0.1, aes(x = level, y = adj_var)) + geom_point() + facet_wrap(~gen)
 
 # ----- Method 2. ascertain SNPs in contemporary generations
 sites1 <- frqs[abs(p0 - p1) >= 0.05, pos, by = .(rep,gen)] 
@@ -275,11 +277,14 @@ haps_interp0_wide <- dcast(haps_interp0, rep + gen + pop + Morgan ~ id2, value.v
 smpl_mean_h0 <- haps_interp0_wide[, .(smpl_mean_h = rowSums(.SD)/n.sample), .SDcols = paste0('id',1:n.sample), by = .(rep,gen,pop,Morgan)]
 smpl_mean_h0[, ascertainment := 'gen0']
 
+
 # reformat in order to compute mean
 haps_interp1[, id2 := paste0('id', id), by = .(rep, gen, pop, id)]
 haps_interp1_wide <- dcast(haps_interp0, rep + gen + pop + Morgan ~ id2, value.var = 'h_hap')
 smpl_mean_h1 <- haps_interp1_wide[, .(smpl_mean_h = rowSums(.SD)/n.sample), .SDcols = paste0('id',1:n.sample), by = .(rep,gen,pop,Morgan)]
 smpl_mean_h1[, ascertainment := 'contemporary']
+
+# ggplot(smpl_mean_h1, aes(x = Morgan, y = smpl_mean_h)) + geom_line() + facet_wrap(~gen)
 
 # ---- output from script: wavelet variance of sample mean
 smpl_mean_wv0 <- smpl_mean_h0[, gnom_var_decomp(.SD, chromosome = NA, signals = 'smpl_mean_h'), by = .(rep, gen, pop, ascertainment)]
@@ -295,25 +300,64 @@ smpl_mean_wv <- rbind(smpl_mean_wv0, smpl_mean_wv1)
 # Again, just use SNPs ascertained in gen0 for this
 
 # we'll loop over all unordered pairs of individuals from each population. Initiate the data structure by calculating covariances for the first pair of individuals
-h_wc <- haps_interp0_wide[, cov_tbl(data=.SD, chromosome = NA, signals = c('id1', 'id2')), by = .(rep,gen,pop)]
-setnames(h_wc, 'cov', paste0('pair', 1, '_cov'))
+h_wc_same_pop <- haps_interp0_wide[, cov_tbl(data=.SD, chromosome = NA, signals = c('id1', 'id2')), by = .(rep,gen,pop)]
+setnames(h_wc_same_pop, 'cov', paste0('pair', 1, '_cov'))
 
-cmb34 <- combn(n.sample,2)
+diff_pops1 <- merge(haps_interp0_wide[pop == 'p0', .(rep, gen, Morgan, id1)],
+                    haps_interp0_wide[pop== 'p1', .(rep, gen, Morgan, id2)])
+cov_diff_pops1_tmp <- diff_pops1[, cov_tbl(data=.SD, chromosome = NA, signals = c("id1", "id2")), by = .(rep,gen)]
+setnames(cov_diff_pops1_tmp, "cov", paste0('pair', 1, '_cov_1'))
+
+
+diff_pops2 <- merge(haps_interp0_wide[pop == 'p1', .(rep, gen, Morgan, id1)],
+                    haps_interp0_wide[pop== 'p0', .(rep, gen, Morgan, id2)])
+cov_diff_pops2_tmp <- diff_pops2[, cov_tbl(data=.SD, chromosome = NA, signals = c("id1", "id2")), by = .(rep,gen)]
+setnames(cov_diff_pops2_tmp, "cov", paste0('pair', 1, '_cov_2'))
+
+h_wc_diff_pops <- merge(cov_diff_pops1_tmp, cov_diff_pops2_tmp, by = c("rep", "gen", "level"))
+
+cmb34 <- combn(5,2)
 # loop over remaining pairs
 for(pair in 2:ncol(cmb34)){
   hap1 <- paste0('id',cmb34[1, pair])
   hap2 <- paste0('id',cmb34[2, pair])
   
-  # for pop 0
+  # covariance of chroms from same pop
   cov_tmp <- haps_interp0_wide[, cov_tbl(data=.SD, chromosome = NA, signals = c(hap1, hap2)), by = .(rep,gen,pop)]
   setnames(cov_tmp, "cov", paste0('pair', pair, '_cov'))
-  h_wc <- merge(cov_tmp, h_wc, by = c('rep', 'gen','pop','level'))
+  h_wc_same_pop <- merge(cov_tmp, h_wc_same_pop, by = c('rep', 'gen','pop','level'))
+  
+  # covariance of chroms from different pops
+  diff_pops1 <- merge(haps_interp0_wide[pop == 'p0', .(rep, gen, Morgan, hap1 = get(hap1))],
+        haps_interp0_wide[pop== 'p1', .(rep, gen, Morgan, hap2 = get(hap2))])
+  cov_diff_pops1_tmp <- diff_pops1[, cov_tbl(data=.SD, chromosome = NA, signals = c("hap1", "hap2")), by = .(rep,gen)]
+  setnames(cov_diff_pops1_tmp, "cov", paste0('pair', pair, '_cov_1'))
+  
+  diff_pops2 <- merge(haps_interp0_wide[pop == 'p1', .(rep, gen, Morgan, hap1 = get(hap1))],
+                      haps_interp0_wide[pop== 'p0', .(rep, gen, Morgan, hap2 = get(hap2))])
+  cov_diff_pops2_tmp <- diff_pops2[, cov_tbl(data=.SD, chromosome = NA, signals = c("hap1", "hap2")), by = .(rep,gen)]
+  setnames(cov_diff_pops2_tmp, "cov", paste0('pair', pair, '_cov_2'))
+  
+  h_wc_diff_pops_tmp <- merge(cov_diff_pops1_tmp, cov_diff_pops2_tmp, by = c("rep", "gen", "level"))
+  
+  h_wc_diff_pops <- merge(h_wc_diff_pops_tmp, h_wc_diff_pops)
+  
 }
 
 # ----- output from script: average wavelet covariance among pairs of haplotypes 
-h_wc <- melt(h_wc, id.vars = c("rep", 'gen', 'pop', 'level'), value.name = 'cov')
-h_wc <- h_wc[, .(mean_cov = mean(cov)), by = .(rep, gen, level, pop)]
-h_wc <- h_wc[grepl('d', level, fixed=T)]
+h_wc_same_pop <- melt(h_wc_same_pop, id.vars = c("rep", 'gen', 'pop', 'level'), value.name = 'cov')
+h_wc_same_pop <- h_wc_same_pop[, .(mean_cov = mean(cov)), by = .(rep, gen, level, pop)]
+h_wc_same_pop <- h_wc_same_pop[grepl('d', level, fixed=T)]
+
+h_wc_diff_pops <- melt(h_wc_diff_pops, id.vars = c("rep", "gen", "level"), value.name = 'cov')
+h_wc_diff_pops <- h_wc_diff_pops[, .(mean_cov = mean(cov)), by = .(rep, gen, level)]
+h_wc_diff_pops <- h_wc_diff_pops[grepl('d', level, fixed=T)]
+h_wc_diff_pops[, pop := 'p0_p1']
+
+allWC <- rbind(h_wc_same_pop, h_wc_diff_pops)
+
+#ggplot(h_wc_diff_pops, aes(x = level, y = mean_cov)) + geom_point() + facet_wrap(~gen)
+ 
 
 # # check that wavelet variance of sample mean equals the sum of two parts
 # part1 <- wv_haps0[, .(part1 = 0.1*mean(variance.h_hap)), by = .(rep, gen, pop, level)]
@@ -351,6 +395,8 @@ frqs_informative1[, h_frq := (p2-p0)/(p1-p0) ]
 frqs_interp1 <- frqs_informative1[, approx(x=Morgan, y = h_frq, xout=xout, rule = 2), by = .(rep, gen)]
 setnames(frqs_interp1, c('x','y'), c('Morgan', 'h_frq'))
 
+ggplot(frqs_informative1, aes(x = Morgan, y = h_frq)) + geom_line() + facet_wrap(~gen)
+
 frqs_wv1 <- frqs_interp1[, gnom_var_decomp(.SD, signals = 'h_frq', chromosome = NA), by = .(rep, gen)]
 frqs_wv1 <- frqs_wv1[grepl('d', level, fixed=T)]
 frqs_wv1[, ascertainment := 'contemporary']
@@ -379,4 +425,4 @@ all_wv_haps <- melt(all_wv_haps, measure.vars = 'single_hap', value.name = 'vari
 
 allSNPWV <- rbind(rbind(all_wv_haps, all_wv_frqs), smpl_mean_wv)
 
-save(true_ancestry_allWV, allSNPWV, h_wc, file = gsub('_ancestry.txt','_wavelet_results.RData',args[2]))
+save(true_ancestry_allWV, allSNPWV, allWC, file = gsub('_ancestry.txt','_wavelet_results.RData',args[2]))
