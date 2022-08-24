@@ -381,7 +381,7 @@ all_snp_wc <- rbind(h_wc_same_pop, h_wc_diff_pops)
 
 # ----- Method 1. use allele frequencies from time of admixture for parental pops to compute statistic 
 # this table has contemporary allele frequencies for p2 but allele frequencies from gen 0 from the parental pops
-frqs_informative_prnt0_p2contemp <- merge(frqs_informative1[, .(rep, gen, pos, p2, Morgan)], frqs_informative_gen0[, .(rep, pos, p0, p1, Morgan)])
+frqs_informative_prnt0_p2contemp <- merge(frqs_informative1[, .(rep, gen, pos, p2, Morgan)], pop_frqs_informative_gen0[, .(rep, pos, p0, p1, Morgan)])
 
 # interpolate 
 frqs_informative_prnt0_p2contemp[, h_frq := (p2-p0)/(p1-p0)]
