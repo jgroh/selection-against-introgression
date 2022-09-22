@@ -1,7 +1,6 @@
 library(data.table)
-library(ggplot2)
-source("~/workspace/gnomwav/R/multi_modwts.R")
-source("~/workspace/gnomwav/R/variance_decomp.R")
+source("/home/jgroh/gnomwav/R/multi_modwts.R")
+source("/home/jgroh/gnomwav/R/variance_decomp.R")
 
 #maize_frqs <- fread("allopatric_maize.mafs.gz")
 #mex_frqs <- fread("allopatric_mexicana.mafs.gz")
@@ -16,6 +15,7 @@ mex_frqs <- fread(args[2])
 hyb_frqs <- fread(args[3])
 rmap <- fread(args[4])
 
+ID <- gsub(".mafs.gz", "", basename(args[3]))
 
 d <- merge(merge(maize_frqs[,.(chromo, position, maize_frq = phat)],
             mex_frqs[,.(chromo, position, mex_frq = phat)]),
@@ -28,8 +28,8 @@ d[, snp_stat := (hyb_frq-maize_frq)/(mex_frq-maize_frq)]
 # output global ancestry and fraction of sites with nonzero coverage
 mex_ancestry <- d[, mean(snp_stat)]
 nonzero_covrg <- nrow(hyb_frqs)/nrow(maize_frqs)
-dt <- data.table(group = args[3], mex_ancestry = mex_ancestry, nonzero_covrg = nonzero_covrg)
-fwrite(dt, file = "avgAncestry_and_nonzeroCovrg.txt", append=T, quote=F, sep="\t", col.names=!file.exists("avgAncestry_and_nonzeroCovrg.txt"))
+dt <- data.table(group = ID, mex_ancestry = mex_ancestry, nonzero_covrg = nonzero_covrg)
+fwrite(dt, file = paste0("avgAnc_nonzeroCvrg/", ID, ".txt"), quote=F, sep="\t", col.names=F)
 
 # get genetic position of informative SNPs
 snp_cm <- rmap[, approx(x=pos_bp, y=pos_cM, xout=d[chromo == .BY, position]), by = chr]
@@ -53,5 +53,5 @@ wv[, level := factor(level, levels = c(paste0('d', 1:15), 's14', 's15', 'chromo'
 #  labs(x = expression(Scale: log[2] (Morgan)), y = 'Variance')  + 
 #  theme(axis.text.x = element_text(angle=90))
 
-wv[, signal := gsub(".mafs.gz", "", args[3])]
-fwrite(wv, file = "snp_stat_wavelet_variances.txt", append=T, quote =F, sep = '\t', row.names=F, col.names=!file.exists("snp_stat_wavelet_variances.txt"))
+wv[, signal := ID]
+fwrite(wv, file = paste0("wavelet_variances/", ID,".txt"), quote =F, sep = '\t', row.names=F, col.names=F)

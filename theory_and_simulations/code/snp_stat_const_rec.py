@@ -6,6 +6,7 @@ import os
 # Load the .trees file
 
 orig_ts = tskit.load(sys.argv[1]) 
+orig_ts = pyslim.update(orig_ts)
 rep = float(os.path.basename(sys.argv[1]).lstrip('replicate').rstrip('.trees'))
 N = int(sys.argv[2]) 
 k = int(sys.argv[3])
@@ -26,7 +27,7 @@ def allele_frequencies(ts, sample_sets=None):
 rts = pyslim.recapitate(orig_ts, recombination_rate=1e-8, ancestral_Ne=N, random_seed=123)
 
 # overlay mutations
-ts = pyslim.SlimTreeSequence(msprime.sim_mutations(rts, rate=1e-8, model=msprime.SLiMMutationModel(type=0) ))
+ts = msprime.sim_mutations(rts, rate=1e-8, model=msprime.SLiMMutationModel(type=0))
 
 
 
