@@ -3,7 +3,7 @@ library(data.table)
 #source("~/workspace/gnomwav/R/correlation_decomp.R")
 
 source("/home/jgroh/gnomwav/R/multi_modwts.R")
-source("home/jgroh/gnomwav/R/correlation_decomp.R")
+source("/home/jgroh/gnomwav/R/correlation_decomp.R")
 
 args <- commandArgs(trailingOnly = T)
 maize_frqs <- fread(args[1])
