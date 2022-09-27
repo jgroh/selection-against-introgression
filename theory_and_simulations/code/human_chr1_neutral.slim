@@ -3,13 +3,14 @@
 initialize() {
 	if (exists("slimgui"))
 	{
-		defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/hg1/");
+		defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/human_chr1_neutral/");
 		defineConstant("seed", 0);
-		//rates = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/human/hg38_chr1_slim_recmapV2.txt");
+		defineConstant("N", 1000);
+
+		rates = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/human/hg38_chr1_slim_recmap.txt");
 	} else
 	{	
 		defineConstant("outPath", "results/human_chr1_neutral/");
-		//rates = readFile("/Users/brogroh/selection-against-introgression/datasets/human/hg38_chr1_slim_recmapV2.txt");
 		rates = readFile("/Users/Jeff/workspace/selection-against-introgression/datasets/human/hg38_chr1_slim_recmap.txt");
 	}
 	
@@ -30,7 +31,7 @@ initialize() {
 	initializeRecombinationRate(asFloat(rates), 1:(L-1));
 }
 
-1 {
+1 early() {
 	sim.addSubpop("p0", N);
 	sim.addSubpop("p1", N1); 
 	
@@ -56,20 +57,14 @@ initialize() {
 3 late() {
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //
 }
-7 late() {
-	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // 
-}
+
 12 late() {
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //
 }
-52 late() {
-	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // 
-}
+
 102 late() {
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //
 }
-502 late() {
-	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // 
-}
+
 1002 late() {
 	sim.treeSeqOutput(outPath + "/replicate" + seed + ".trees"); }

@@ -12,7 +12,7 @@ chr1 <- hg38[chrom == "chr1"]
 # clearly a major outlier - is this believable for recombination hotspots?
 # try dropping this SNP and recalculating?
 chr1 <- chr1[recomb_rate < 200]
-chr1[, myrate := (pos_cm/100 - shift(pos_cm)/100)/(pos-shift(pos))]
+chr1[, myrate := (pos_cm/100 - shift(pos_cm)/100)]
 #ggplot(chr1[11000:12500], aes(x = pos, y = pos_cm)) + geom_point() + geom_line(aes(x = 13376798))
 
 chr1[, length(unique(pos))] # need to know this number to input number of loci in slim
