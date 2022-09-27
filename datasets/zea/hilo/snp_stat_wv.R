@@ -25,6 +25,8 @@ d <- merge(merge(maize_frqs[,.(chromo, position, maize_frq = phat)],
 # calculate admixture stat (estimator of mexicana ancestry)
 d[, snp_stat := (hyb_frq-maize_frq)/(mex_frq-maize_frq)]
 
+d <- d[!(is.na(snp_stat) | is.infinite(snp_stat))]
+
 # output global ancestry and fraction of sites with nonzero coverage
 mex_ancestry <- d[, mean(snp_stat)]
 nonzero_covrg <- nrow(hyb_frqs)/nrow(maize_frqs)
