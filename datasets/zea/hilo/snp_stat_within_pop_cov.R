@@ -24,8 +24,8 @@ setnames(pairs, c("ID1", "ID2"))
 f <- function(x, y, dir){
   
   # read data for two individuals
-  id1_frqs <- fread(paste0('hilo/individual_alleleFrqs_thinnedSNPs/', x, '.mafs.gz'))
-  id2_frqs <- fread(paste0('hilo/individual_alleleFrqs_thinnedSNPs/', y, '.mafs.gz'))
+  id1_frqs <- fread(paste0('individual_alleleFrqs_thinnedSNPs/', x, '.mafs.gz'))
+  id2_frqs <- fread(paste0('individual_alleleFrqs_thinnedSNPs/', y, '.mafs.gz'))
   
   # merge with reference frqs
   d <- merge(merge(merge(maize_frqs[,.(chromo, position, maize_frq = phat)],
