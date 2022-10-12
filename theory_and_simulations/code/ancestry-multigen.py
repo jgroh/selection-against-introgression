@@ -1,10 +1,10 @@
-import msprime, pyslim
+import msprime, pyslim, tskit
 import numpy as np
 import sys
 import os
 
 # Load the .trees file
-ts = pyslim.load(sys.argv[1])
+ts = tskit.load(sys.argv[1])
 rep = float(os.path.basename(sys.argv[1]).lstrip('replicate').rstrip('.trees'))
 gens = [int(g) for g in sys.argv[2:]]
 

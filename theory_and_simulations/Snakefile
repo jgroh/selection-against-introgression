@@ -8,32 +8,40 @@ gens_swordtail = [10,100,200]
 swordtail_N = 1000
 
 # ===== rules for producing neutral simulation results ======
-rule all_neutral_wv_sim:
+rule all_neutral_wv:
 	input:
 		expand("results/neutral_sims/{sim}/replicate{rep}_wavelet_results.RData", rep=np.arange(10), sim = ['equilibrium', 'bottleneck'])
+
+#rule all_neutral_sims:
+#	input:
+#		expand("results/neutral_sims/{sim}/replicate{rep}.trees", sim=['equilibrium','bottleneck'], rep=np.arange(10))
 
 rule neutral_sims: # this runs simulations for neutral admixture pulse: (1) demographic equilibrium and (2) early bottleneck
 	input:
 	output:
 		"results/neutral_sims/{sim}/replicate{rep}.trees" #trees file includes remembered individuals from various gens
 	shell:
-		"slim -d seed={wildcards.rep} -d N=100 code/{wildcards.sim}.slim"
+		"slim -d seed={wildcards.rep} -d N=10000 code/{wildcards.sim}.slim"
 
 rule ancestry_neutral_sims: # calculates ancestry fractions for the neutral sims
 	input:
 		"results/neutral_sims/{sim}/replicate{rep}.trees"
 	output:
-		expand("results/neutral_sims/{{sim}}/replicate{{rep}}_{data}.txt", data=['haps','frqs','ancestry'])
+		expand("results/neutral_sims/{{sim}}/replicate{{rep}}_{data}.txt", data=['hap_ancestry', 'hap_SNP_stat','mean_SNP_stat'])
 	shell:
-		"python code/ancestry_haps_frqs.py {input} 100 10"
+		"python code/ancestry_haps_frqs.py {input} 10000 20"
+
+rule all_ancestry_neutral_sims:
+	input:
+		expand("results/neutral_sims/{sim}/replicate{rep}_{data}.txt", sim =['bottleneck','equilibrium'], rep=np.arange(10), data=['hap_ancestry','haps','frqs'])
 
 rule wavelet_analyses_neutral_sims:
 	input:
-		expand("results/neutral_sims/{{sim}}/replicate{{rep}}_{data}.txt", data=['ancestry','haps','frqs'])
+		expand("results/neutral_sims/{{sim}}/replicate{{rep}}_{data}.txt", data=['hap_ancestry','haps','frqs'])
 	output:
 		"results/neutral_sims/{sim}/replicate{rep}_wavelet_results.RData"
 	shell:
-		"Rscript --vanilla code/wavelet_analyses_ancestry_haps_frqs.R 10 {input}" 
+		"Rscript --vanilla code/wavelet_analyses_ancestry_haps_frqs.R 20 {input}" 
 
 #rule simulation_swordtail:
 #	input:
@@ -79,9 +87,10 @@ rule combine_human_chrom_ancestry:
 	shell:
 		"cat {input} > {output}"
 
-rule all_human_chrom_ancestry:
+rule all_human_chrom_ancestry: # output file will have a row for each rep x generation x snp position.
 	input:
 		expand("results/human_chr1{sim}/all_frq.txt", sim=["_neutral","_sel1-1000", "_sel1-10","_sel100-200"])
+
 
 # ===== rules for simulations with periodic recombination =====
 

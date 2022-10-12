@@ -1,5 +1,5 @@
 library(data.table)
-library(ggplot2)
+#library(ggplot2)
 hg38 <- fread("recomb-hg38/genetic_map_GRCh38_merged.tab")
 chr1 <- hg38[chrom == "chr1"]
 
