@@ -69,7 +69,7 @@ rule human_chrom_sims:
 
 rule all_human_chrom_sims:
 	input:
-		expand("results/human_chr1{sim}/replicate{rep}.trees", sim = ["neutral","sel1-1000"], rep = np.arange(10))
+		expand("results/human_chr1{sim}/replicate{rep}.trees", sim = ["neutral_equilibrium","neutral_bottleneck","sel1-1000"], rep = np.arange(30))
 
 rule output_human_chrom_ancestry:
 	input:
@@ -81,7 +81,7 @@ rule output_human_chrom_ancestry:
 
 rule combine_human_chrom_ancestry:
 	input:
-		expand("results/human_chr1{{sim}}/replicate{rep}_frqs.txt", rep=np.arange(10))
+		expand("results/human_chr1{{sim}}/replicate{rep}_frqs.txt", rep=np.arange(30))
 	output:
 		"results/human_chr1{sim}/all_frq.txt"
 	shell:
@@ -89,7 +89,7 @@ rule combine_human_chrom_ancestry:
 
 rule all_human_chrom_ancestry: # output file will have a row for each rep x generation x snp position.
 	input:
-		expand("results/human_chr1{sim}/all_frq.txt", sim=["_neutral","_sel1-1000", "_sel1-10","_sel100-200"])
+		expand("results/human_chr1{sim}/all_frq.txt", sim=["_neutral_equilibrium","_neutral_bottleneck","_sel1-1000"])
 
 
 # ===== rules for simulations with periodic recombination =====
