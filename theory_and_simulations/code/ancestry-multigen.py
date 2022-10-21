@@ -18,7 +18,8 @@ for gen in gens:
     for tree in ts2.trees():
         subpop_sum, subpop_weights = 0, 0
         for root in tree.roots:
-            leaves_count = tree.num_samples(root) - 1 # the root is a sample 
+           # leaves_count = tree.num_samples(root) - 1 # the root is a sample 
+            leaves_count = tree.num_samples(root) # the root is NOT a sample after the simplification
             subpop_sum += tree.population(root) * leaves_count 
             # for population 0, this will be 0. for population 1, it will sum the number of individuals descended from that population. 
             subpop_weights += leaves_count
