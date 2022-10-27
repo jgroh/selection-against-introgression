@@ -7,16 +7,15 @@ initialize() {
 		defineConstant("seed", 0);
 		defineConstant("N", 1000);
 
-		rates = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/human/hg38_chr1_slim_recmap.txt");
+		rates = readFile("/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/hg38_chr1_slim_recmap.txt");
 	} else
 	{	
 		defineConstant("outPath", "results/human_chr1_neutral_equilibrium/");
-		//rates = readFile("/Users/Jeff/workspace/selection-against-introgression/datasets/human/hg38_chr1_slim_recmap.txt");
-		rates = readFile("/Users/brogroh/selection-against-introgression/datasets/human/hg38_chr1_slim_recmap.txt");
+		rates = readFile("/Users/brogroh/selection-against-introgression/theory_and_simulations/hg38_chr1_slim_recmap.txt");
 	}
 	
 	initializeTreeSeq();
-	defineConstant("L", 255801);
+	defineConstant("L", 246900);
 	defineConstant("N1", 1);
 	defineConstant("s", 0.4);
 	defineConstant("alpha", 0.5);

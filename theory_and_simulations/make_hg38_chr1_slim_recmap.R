@@ -20,12 +20,12 @@ dcode_interp[, Morgan_dist := c(Morgan_dist[2], Morgan_dist[2:nrow(dcode_interp)
 
 #ggplot(dcode_interp, aes(x=pos, y = Morgan_dist)) + geom_point()
 
-fwrite(dcode_interp[, Morgan_dist],
+fwrite(dcode_interp[, .(Morgan_dist)],
        file = "hg38_chr1_slim_recmap.txt",
        quote=F, sep = "\t",
        col.names = F)
 
-fwrite(dcode_interp[, .(pos, Morgan_dist)],
+fwrite(dcode_interp[, .(pos, cM, Morgan_dist)],
        file = "hg38_chr1_slim_recmap_verbose.txt",
        quote=F, sep = "\t",
        col.names = F)
