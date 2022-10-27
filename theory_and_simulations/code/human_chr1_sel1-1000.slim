@@ -18,6 +18,7 @@ initialize() {
 	defineConstant("N1", 1);
 	defineConstant("s", 0.4);
 	defineConstant("alpha", 0.5);
+	defineConstant("x", 255801);
 
 	initializeMutationRate(0);
 	initializeMutationType("m1", 0.5, "f", 0.0);
@@ -34,8 +35,8 @@ initialize() {
 	sim.addSubpop("p0", N);
 	sim.addSubpop("p1", N1); 
 	
-	// the donor population carries 300 deleterious loci 
-	p1.individuals.genomes.addNewMutation(m1, 0, asInteger(seq(0, L-1, by = L/300))); 
+	// the donor population carries X # deleterious loci 
+	p1.individuals.genomes.addNewMutation(m1, 0, asInteger(seq(0, L-1, by = L/x))); 
 
 	p0.setMigrationRates(p1,alpha);
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
@@ -47,8 +48,8 @@ initialize() {
 3:1002 late() {
 	inds = p0.individuals;
 	introgressed = inds.countOfMutationsOfType(m1);
-	// an individual homozygous for all 300 deleterious loci experiences a fitness reduction of 0.4
-	inds.fitnessScaling = 1.0 - (introgressed/(600))*s;
+	// an individual homozygous for all deleterious loci experiences a fitness reduction of 0.4
+	inds.fitnessScaling = 1.0 - (introgressed/(2*x))*s;
 }
 
 

@@ -60,6 +60,15 @@ rule wavelet_analyses_neutral_sims:
 	
 # ===== rules for simulations of human chromosome 1  =======
 
+rule make_recmap_slim:
+	input:
+		"aau1043_datas3" # sex-averaged recomb map from Halldorsson et al 2019
+	output:
+		"hg38_chr1_slim_recmap.txt",
+		"hg38_chr1_slim_recmap_verbose.txt"
+	shell:
+		"Rscript --vanilla make_hg38_chr1_slim_recmap.R"
+
 rule human_chrom_sims:
 	input:
 	output:
@@ -69,7 +78,7 @@ rule human_chrom_sims:
 
 rule all_human_chrom_sims:
 	input:
-		expand("results/human_chr1{sim}/replicate{rep}.trees", sim = ["neutral_equilibrium","neutral_bottleneck","sel1-1000"], rep = np.arange(30))
+		expand("results/human_chr1{sim}/replicate{rep}.trees", sim = ["neutral_equilibrium","neutral_bottleneck","sel1-1000"], rep = np.arange(10))
 
 rule output_human_chrom_ancestry:
 	input:
@@ -81,7 +90,7 @@ rule output_human_chrom_ancestry:
 
 rule combine_human_chrom_ancestry:
 	input:
-		expand("results/human_chr1{{sim}}/replicate{rep}_frqs.txt", rep=np.arange(30))
+		expand("results/human_chr1{{sim}}/replicate{rep}_frqs.txt", rep=np.arange(10))
 	output:
 		"results/human_chr1{sim}/all_frq.txt"
 	shell:
