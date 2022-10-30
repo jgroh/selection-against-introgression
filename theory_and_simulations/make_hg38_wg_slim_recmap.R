@@ -1,7 +1,8 @@
 library(data.table)
 
 dcode <- fread("aau1043_datas3")
-dcode <- dcode[Chr== "chr1"]
+
+dcode <- dcode[Chr != "chrX"]
 
 # cumulative cM
 #ggplot(dcode, aes(x = Begin, y = cM)) + geom_point() 
@@ -13,20 +14,27 @@ dcode <- dcode[Chr== "chr1"]
 xout <- dcode[, seq(min(End), max(End), by = 1000)]
 
 # cm positions of evenly spaced bp positions
-dcode_interp <- dcode[, approx(x = End, y = cM, xout = xout)]
-setnames(dcode_interp, c("pos", "cM"))
-dcode_interp[, Morgan_dist := (cM-shift(cM))/100]
-dcode_interp[, Morgan_dist := c(Morgan_dist[2], Morgan_dist[2:nrow(dcode_interp)])]
+dcode_interp <- dcode[, approx(x = End, y = cM, xout = seq(min(End), max(End), by = 1e3)), by = Chr]
+setnames(dcode_interp, c("chr", "pos", "cM"))
+dcode_interp[, Morgan_dist := (cM-shift(cM))/100, by = chr]
+# not bothering with map function as map lengths are so small 
+
+dcode_interp[chr=="chr1", Morgan_dist := c(Morgan_dist[2], Morgan_dist[2:nrow(.SD)])]
+# for subsequent chromosomes, set rec rate to 0.5 at first position 
+dcode_interp[chr!="chr1", Morgan_dist := c(0.5, Morgan_dist[2:nrow(.SD)]), by = chr]
+
+dcode_interp[, chr := factor(chr, levels = paste0('chr', 1:22))]
+setkey(dcode_interp, chr)
 
 #ggplot(dcode_interp, aes(x=pos, y = Morgan_dist)) + geom_point()
 
 fwrite(dcode_interp[, .(Morgan_dist)],
-       file = "hg38_chr1_slim_recmap.txt",
+       file = "hg38_wg_slim_recmap.txt",
        quote=F, sep = "\t",
        col.names = F)
 
-fwrite(dcode_interp[, .(pos, cM, Morgan_dist)],
-       file = "hg38_chr1_slim_recmap_verbose.txt",
+fwrite(dcode_interp[, .(chr, pos, cM, Morgan_dist)],
+       file = "hg38_wg_slim_recmap_verbose.txt",
        quote=F, sep = "\t",
        col.names = F)
 

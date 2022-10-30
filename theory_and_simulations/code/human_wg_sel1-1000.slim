@@ -3,22 +3,23 @@
 initialize() {
 	if (exists("slimgui"))
 	{
-		defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/human_chr1_sel1-1000/");
+		defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/human_wg_sel1-1000/");
 		defineConstant("seed", 0);
-		rates = readFile("/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/hg38_chr1_slim_recmap.txt");
+		rates = readFile("/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/hg38_wg_slim_recmap.txt");
 		defineConstant("N", 10000);
 	} else
 	{	
-		defineConstant("outPath", "results/human_chr1_sel1-1000/");
-		rates = readFile("/Users/brogroh/selection-against-introgression/theory_and_simulations/hg38_chr1_slim_recmap.txt");
+		defineConstant("outPath", "results/human_wg_sel1-1000/");
+		rates = readFile("/Users/brogroh/selection-against-introgression/theory_and_simulations/hg38_wg_slim_recmap.txt");
 	}
 	
+	
 	initializeTreeSeq();
-	defineConstant("L", 246900);
+	defineConstant("L", 2753656);
 	defineConstant("N1", 1);
 	defineConstant("s", 0.4);
 	defineConstant("alpha", 0.5);
-	defineConstant("x", 300);
+	defineConstant("x", 1000);
 
 	initializeMutationRate(0);
 	initializeMutationType("m1", 0.5, "f", 0.0);
