@@ -1,9 +1,9 @@
 library(data.table)
-library(ggplot2)
+#library(ggplot2)
 library(cubature)
-source("/Users/Jeff/workspace/gnomwav/R/correlation_decomp.R")
-source("/Users/Jeff/workspace/gnomwav/R/multi_modwts.R")
-source("/Users/Jeff/workspace/gnomwav/R/variance_decomp.R")
+source("/Users/brogroh/gnomwav/R/correlation_decomp.R")
+source("/Users/brogroh/gnomwav/R/multi_modwts.R")
+source("/Users/brogroh/gnomwav/R/variance_decomp.R")
 
 
 # ===== Read Data =====
@@ -12,7 +12,6 @@ args <- commandArgs(trailingOnly = T)
 # ----- simulation results
 frq <- fread(args[1], col.names = c("rep", "gen", "frq"))
 rep <- frq[1, rep]
-#frq <- fread('results/human_wg_sel1-1000/replicate0_frqs.txt', col.names = c("rep","gen","frq"))
 
 # drop first position from slim results, to merge with SNP positions
 frq <- frq[, .SD[-1,], by = .(rep, gen)]
@@ -35,8 +34,6 @@ map[chr != "chr1", rec := c(rec[2], rec[2:nrow(.SD)]), by = chr]
 # combine map and frqs
 frq <- cbind(frq, rbindlist(replicate(7, map, simplify=F)))
 
-# for local testing
-#frq <- frq[chr %in% c("chr21", "chr22")]
 
 # ===== Interpolate ancestry and recombination for analyses in genetic units =====
 #ceiling(log2(map[, mean(Morgan_dist)]))
@@ -61,7 +58,6 @@ frq_rec_interp <- merge(frq_interp, rbindlist(replicate(7, rec_interp, simplify=
 # physical units
 totalvarsP <- frq[,  .(totalvar.frq = var(frq), totalvar.rec = var(rec)), by = .(rep, gen)]
 totalvarsP[, units := "physical"]
-#ggplot(sel_totalvarP, aes(x = log10(gen), y = totalvar.frq)) + geom_point()
 
 # genetic units
 totalvarsG <- frq_rec_interp[, .(totalvar.frq = var(frq), totalvar.rec = var(rec)), by = .(rep, gen)]
@@ -88,25 +84,7 @@ wv_frq_rec_G_wg[, units := "genetic"]
 wv_frq_rec_chrs_all <- rbind(wv_frq_rec_P_chrs, wv_frq_rec_G_chrs)
 wv_frq_rec_wg_all <- rbind(wv_frq_rec_P_wg, wv_frq_rec_G_wg)
 
-# ===== Wavelet Correlations ======
-
-# look at total correlation
-totalcorP <- frq[, .(cor = cor(frq, rec)), by = .(rep, gen)]
-totalcorG <- frq_rec_interp[, .(cor = cor(frq, rec)), by = .(rep, gen)]
-
-# ----- wavelet correlations  -----
-
-# physical map
-wavcorP <- frq[, cor_tbl(.SD, chromosome = 'chr', signals = c("frq", "rec"), rm.boundary = F), by = .(rep, gen)]
-wavcorP[, units := "physical"]
-
-# genetic map
-wavcorG <- frq_rec_interp[, cor_tbl(.SD, chromosome = 'chr', signals = c("frq", "rec"), rm.boundary = F), by = .(rep, gen)]
-wavcorG[, units := "genetic"]
-
-wavcor_all <- rbind(wavcorP, wavcorG)
-
-save(totalvars, wv_frq_rec_all, wavcor_all, file = paste0("replicate", rep, "_wavelet_results.RData"))
+save(totalvars, wv_frq_rec_all, file = paste0("replicate", rep, "_wavelet_results.RData"))
 
 
 

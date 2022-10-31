@@ -3,13 +3,13 @@
 initialize() {
 	if (exists("slimgui"))
 	{
-		defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/human_wg_sel1-1000/");
+		defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/human_wgsim_sel1-1000/");
 		defineConstant("seed", 0);
 		rates = readFile("/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/hg38_wg_slim_recmap.txt");
 		defineConstant("N", 10000);
 	} else
 	{	
-		defineConstant("outPath", "results/human_wg_sel1-1000/");
+		defineConstant("outPath", "results/human_wgsim_sel1-1000/");
 		rates = readFile("/Users/brogroh/selection-against-introgression/theory_and_simulations/hg38_wg_slim_recmap.txt");
 	}
 	
