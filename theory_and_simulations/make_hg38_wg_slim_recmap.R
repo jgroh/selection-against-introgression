@@ -3,12 +3,16 @@ library(data.table)
 dcode <- fread("aau1043_datas3")
 
 dcode <- dcode[Chr != "chrX"]
+dcode[, Chr := factor(Chr, levels = paste0('chr', 1:22))]
+setkey(dcode, Chr)
 
 # cumulative cM
 #ggplot(dcode, aes(x = Begin, y = cM)) + geom_point() 
 
 # rates
 #ggplot(dcode, aes(x = Begin, y = cMperMb)) + geom_point()
+
+# ===== Map1: realistic human rec map at evenly spaced physical positions =====
 
 # want evenly space physical positions, so that deleterious loci are evenly spaced on the physical map
 xout <- dcode[, seq(min(End), max(End), by = 1000)]
@@ -36,6 +40,13 @@ fwrite(dcode_interp[, .(Morgan_dist)],
 fwrite(dcode_interp[, .(chr, pos, cM, Morgan_dist)],
        file = "hg38_wg_slim_recmap_verbose.txt",
        quote=F, sep = "\t",
+       col.names = F)
+
+# ===== Map2: constant recombination rate along chromosomes =====
+
+fwrite(dcode[, .(len = max(cM)/100), by = Chr][, .(len)], 
+       file = "hg38_chr_lengths.txt",
+       quote=F, sep = "\t", 
        col.names = F)
 
 
