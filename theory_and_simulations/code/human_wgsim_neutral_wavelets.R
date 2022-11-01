@@ -34,7 +34,7 @@ map[chr != "chr1", rec := c(rec[2], rec[2:nrow(.SD)]), by = chr]
 # combine map and frqs
 frq <- cbind(frq, rbindlist(replicate(7, map, simplify=F)))
 
-
+#frq <- frq[chr %in% c("chr21", "chr22")]
 # ===== Interpolate ancestry and recombination for analyses in genetic units =====
 #ceiling(log2(map[, mean(Morgan_dist)]))
 #ceiling(log2(map[, median(Morgan_dist)]))
@@ -50,7 +50,7 @@ rec_interp[, rec := c(rec[2], rec[2:nrow(rec_interp)])]
 #ggplot(rec_interp[seq(1, .N, by = 1000)], aes(x = Morgan, y = rec)) + geom_point() + facet_wrap(~chr)
 
 # combine map on frqs on genetic map
-frq_rec_interp <- merge(frq_interp, rbindlist(replicate(7, rec_interp, simplify=F)))
+frq_rec_interp <- merge(frq_interp, rec_interp)
 
 
 # ===== Total Variances: ancestry and recombination =====
@@ -84,7 +84,7 @@ wv_frq_rec_G_wg[, units := "genetic"]
 wv_frq_rec_chrs_all <- rbind(wv_frq_rec_P_chrs, wv_frq_rec_G_chrs)
 wv_frq_rec_wg_all <- rbind(wv_frq_rec_P_wg, wv_frq_rec_G_wg)
 
-save(totalvars, wv_frq_rec_all, file = paste0("replicate", rep, "_wavelet_results.RData"))
+save(totalvars, wv_frq_rec_chrs_all, wv_frq_rec_wg_all, file = gsub("_frqs.txt", "_wavelet_results.RData", args[1]))
 
 
 
