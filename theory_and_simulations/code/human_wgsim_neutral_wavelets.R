@@ -1,17 +1,22 @@
 library(data.table)
 #library(ggplot2)
 library(cubature)
-source("/Users/brogroh/gnomwav/R/correlation_decomp.R")
-source("/Users/brogroh/gnomwav/R/multi_modwts.R")
-source("/Users/brogroh/gnomwav/R/variance_decomp.R")
-
-
-# ===== Read Data =====
-args <- commandArgs(trailingOnly = T)
-
-# ----- simulation results
-frq <- fread(args[1], col.names = c("rep", "gen", "frq"))
-rep <- frq[1, rep]
+if(interactive()){
+  source("/Users/jeff/workspace/gnomwav/R/correlation_decomp.R")
+  source("/Users/jeff/workspace/gnomwav/R/multi_modwts.R")
+  source("/Users/jeff/workspace/gnomwav/R/variance_decomp.R")
+  frq <- fread('results/human_wgsim_neutral_equilibrium/replicate0_frqs.txt', col.names = c("rep","gen","frq"))
+  map <- fread("hg38_wg_slim_recmap_verbose.txt", col.names = c("chr", 'pos_bp', 'cM', 'Morgan_dist'))
+  
+} else{
+  source("/Users/brogroh/gnomwav/R/correlation_decomp.R")
+  source("/Users/brogroh/gnomwav/R/multi_modwts.R")
+  source("/Users/brogroh/gnomwav/R/variance_decomp.R")
+  args <- commandArgs(trailingOnly = T)
+  frq <- fread(args[1], col.names = c("rep", "gen", "frq"))
+  map <- fread(args[2], col.names = c("chr", 'pos_bp', 'cM', 'Morgan_dist'))
+  
+}
 
 # drop first position from slim results, to merge with SNP positions
 frq <- frq[, .SD[-1,], by = .(rep, gen)]
@@ -19,9 +24,7 @@ frq <- frq[, .SD[-1,], by = .(rep, gen)]
 # subtract gen to correspond to thry
 frq[, gen := gen - 2]
 
-# ----- recombination map
-map <- fread(args[2], col.names = c("chr", 'pos_bp', 'cM', 'Morgan_dist'))
-#map <- fread("hg38_wg_slim_recmap_verbose.txt", col.names = c("chr", 'pos_bp', 'cM', 'Morgan_dist'))
+# ----- format recombination map
 map[, Morgan := cM/100][, cM := NULL]
 setnames(map, "Morgan_dist", "rec")
 
@@ -32,7 +35,11 @@ map[chr != "chr1", rec := c(rec[2], rec[2:nrow(.SD)]), by = chr]
 #ceiling(log2(map[, median(Morgan_dist)]))
 
 # combine map and frqs
-frq <- cbind(frq, rbindlist(replicate(7, map, simplify=F)))
+frq <- cbind(frq, map)
+
+
+# for local testing
+#frq <- frq[chr %in% c("chr21", "chr22")]
 
 #frq <- frq[chr %in% c("chr21", "chr22")]
 # ===== Interpolate ancestry and recombination for analyses in genetic units =====
