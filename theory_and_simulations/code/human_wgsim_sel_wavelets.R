@@ -37,7 +37,7 @@ map[chr != "chr1", rec := c(rec[2], rec[2:nrow(.SD)]), by = chr]
 # combine map and frqs
 frq <- cbind(frq, map)
 
-
+#frq <- frq[chr == 'chr1']
 # for local testing
 #frq <- frq[chr %in% c("chr21", "chr22")]
 
@@ -59,6 +59,11 @@ rec_interp[, rec := c(rec[2], rec[2:nrow(rec_interp)])]
 frq_rec_interp <- merge(frq_interp,  rec_interp)
 
 
+# ===== Mean ancestry proportion =====
+
+
+meanfrq <- frq[, .(meanfrq = mean(frq)), by = .(rep, gen)]
+
 # ===== Total Variances: ancestry and recombination =====
 
 # physical units
@@ -72,6 +77,15 @@ totalvarsG[, units := "genetic"]
 
 totalvars <- rbind(totalvarsP, totalvarsG)
 
+
+# ====== Total correlation =====
+totalcorP <- frq[, .(cor = cor(rec, frq)), by = .(rep, gen)]
+totalcorP[, units := 'physical']
+
+totalcorG <- frq_rec_interp[, .(cor= cor(rec, frq)), by = .(rep, gen)]
+totalcorG[, units := 'genetic']
+
+totalcors <- rbind(totalcorG, totalcorP)
 # ===== Wavelet Variances =====
 
 # ----- physical units -----
@@ -93,23 +107,32 @@ wv_frq_rec_wg_all <- rbind(wv_frq_rec_P_wg, wv_frq_rec_G_wg)
 
 # ===== Wavelet Correlations ======
 
-# look at total correlation
-totalcorP <- frq[, .(cor = cor(frq, rec)), by = .(rep, gen)]
-totalcorG <- frq_rec_interp[, .(cor = cor(frq, rec)), by = .(rep, gen)]
 
-# ----- wavelet correlations  -----
+# ----- by chromosome and averaging across chromosomes  -----
 
 # physical map
-wavcorP <- frq[, cor_tbl(.SD, chromosome = 'chr', signals = c("frq", "rec"), rm.boundary = F), by = .(rep, gen)]
-wavcorP[, units := "physical"]
+wavcorP_chrs <- frq[, cor_tbl(.SD, chromosome = NA, signals = c("frq", "rec"), rm.boundary = F), by = .(rep, gen, chr)]
+wavcorP_chrs[, units := "physical"]
+
+#ggplot(wavcorP_chrs, aes(x = gen, y = cor, color = level, group = level)) + geom_line() + facet_wrap(~chr)
+
+wavcorP_wg <- frq[, cor_tbl(.SD, chromosome = 'chr', signals = c("frq", "rec"), rm.boundary = F), by = .(rep, gen)]
+wavcorP_wg[, units := "physical"]
 
 # genetic map
-wavcorG <- frq_rec_interp[, cor_tbl(.SD, chromosome = 'chr', signals = c("frq", "rec"), rm.boundary = F), by = .(rep, gen)]
-wavcorG[, units := "genetic"]
+wavcorG_chrs <- frq_rec_interp[, cor_tbl(.SD, chromosome = NA, signals = c("frq", "rec"), rm.boundary = F), by = .(rep, gen, chr)]
+wavcorG_chrs[, units := "genetic"]
 
-wavcor_all <- rbind(wavcorP, wavcorG)
+#ggplot(wavcorG_chrs, aes(x = gen, y = cor, color = level, group = level)) + geom_line() + facet_wrap(~chr)
 
-save(totalvars, wv_frq_rec_chrs_all, wv_frq_rec_wg_all, wavcor_all, file = gsub("_frqs.txt", "_wavelet_results.RData", args[1]))
+wavcorG_wg <- frq_rec_interp[, cor_tbl(.SD, chromosome = 'chr', signals = c("frq", "rec"), rm.boundary = F), by = .(rep, gen)]
+wavcorG_wg[, units := "genetic"]
+
+
+wavcor_chrs <- rbind(wavcorP_chrs, wavcorG_chrs)
+wavcor_wg <- rbind(wavcorP_wg, wavcorG_wg)
+
+save(meanfrq, totalvars, totalcors, wv_frq_rec_chrs_all, wv_frq_rec_wg_all, wavcor_chrs, wavcor_wg, file = gsub("_frqs.txt", "_wavelet_results.RData", args[1]))
 
 
 
