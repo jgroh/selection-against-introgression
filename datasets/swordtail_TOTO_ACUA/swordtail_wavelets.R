@@ -74,7 +74,7 @@ gnomG[, log10r := log10(r)]
 # physical units
 indWV_P <- gnomP[, gnom_var_decomp(.SD, chromosome = "chr", 
                         signals = c("indivFreq"),
-                        rm.boundary = TRUE, 
+                        rm.boundary = FALSE, 
                         avg.over.chroms = TRUE),
       by = ID]
 
@@ -82,7 +82,7 @@ indWV_P <- gnomP[, gnom_var_decomp(.SD, chromosome = "chr",
 # genetic units
 indWV_G <- gnomG[, gnom_var_decomp(.SD, chromosome = "chr", 
                                    signals = c("indivFreq"),
-                                   rm.boundary = TRUE, 
+                                   rm.boundary = FALSE, 
                                    avg.over.chroms = TRUE),
                  by = ID]
 
@@ -102,13 +102,13 @@ indWV_P[, units := "physical"]
 # ------ mean ancestry, recombination, gene density -----
 meanWV_P <- gnomP[ID==ID[1], gnom_var_decomp(.SD, chromosome = "chr", 
                                    signals = c("meanFreq", "cds_density", "r", "log10r", "dist_to_marker"),
-                                   rm.boundary = TRUE, 
+                                   rm.boundary = FALSE, 
                                    avg.over.chroms = TRUE)]
 
 # ------ mean ancestry, recombination, gene density -----
 meanWV_G <- gnomG[ID==ID[1], gnom_var_decomp(.SD, chromosome = "chr", 
                                              signals = c("meanFreq", "cds_density", "r", "log10r", "dist_to_marker"),
-                                             rm.boundary = TRUE, 
+                                             rm.boundary = FALSE, 
                                              avg.over.chroms = TRUE)]
 
 meanWV_P[, units := "physical"]
