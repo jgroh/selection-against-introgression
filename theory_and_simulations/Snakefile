@@ -58,28 +58,33 @@ rule wavelet_analyses_neutral_sims:
 #	shell:
 #		"python3 code/ancestry.py {input} > {output}"
 	
-# ===== rules for simulations of human chromosome 1  =======
+# ===== rules for simulations of human genome  =======
 
 rule make_recmap_slim:
 	input:
 		"aau1043_datas3" # sex-averaged recomb map from Halldorsson et al 2019
 	output:
 		"hg38_wg_slim_recmap.txt",
-		"hg38_wg_slim_recmap_verbose.txt"
+		"hg38_wg_slim_recmap_verbose.txt",
+		"hg38_chr_lengths.txt",
 	shell:
 		"Rscript --vanilla make_hg38_wg_slim_recmap.R"
 
 rule human_wgsims:
 	input:
-		"hg38_wg_slim_recmap.txt"
+		"hg38_wg_slim_recmap.txt",
+		"hg38_chr_lengths.txt"
 	output:
 		"results/human_wgsim_{sim}/replicate{rep}.trees"
 	shell:
-		"slim -d seed={wildcards.rep} -d N=10000 code/human_wg_{wildcards.sim}.slim"
+		"""
+		mkdir -p results/human_wgsim_{wildcards.sim}/
+		slim -d seed={wildcards.rep} -d N=10000 code/human_wg_{wildcards.sim}.slim
+		"""
 
 rule all_human_wgsims:
 	input:
-		expand("results/human_wgsim_{sim}/replicate{rep}.trees", sim = ["neutral_equilibrium","neutral_bottleneck","sel1-1000"], rep = np.arange(10))
+		expand("results/human_wgsim_{sim}/replicate{rep}.trees", sim = ["neutral_equilibrium","neutral_bottleneck","sel1-1000","sel1-10","sel900-1000","neutral_equilibrium_no_interp"], rep = np.arange(10))
 
 rule output_human_chrom_ancestry:
 	input:
@@ -87,19 +92,11 @@ rule output_human_chrom_ancestry:
 	output:
 		"results/human_wgsim_{sim}/replicate{rep}_frqs.txt"
 	shell:
-		"python3 code/ancestry-multigen.py {input} 3 7 12 52 102 502 1002 > {output}"
+		"python3 code/ancestry-multigen.py {input} 3 4 12 52 102 502 1002 > {output}"
 
-#rule combine_human_chrom_ancestry:
-#	input:
-#		expand("results/human_chr1{{sim}}/replicate{rep}_frqs.txt", rep=np.arange(30))
-#	output:
-#		"results/human_chr1{sim}/all_frq.txt"
-#	shell:
-#		"cat {input} > {output}"
-
-#rule all_human_chrom_ancestry: # output file will have a row for each rep x generation x snp position.
-#	input:
-#		expand("results/human_chr1{sim}/all_frq.txt", sim=["_neutral_equilibrium","_neutral_bottleneck","_sel1-1000"])
+rule all_human_wgsim_ancestry: # output file will have a row for each rep x generation x snp position.
+	input:
+		expand("results/human_wgsim_{sim}/replicate{rep}_frqs.txt",sim = ["neutral_equilibrium","neutral_bottleneck","neutral_equilibrium_no_interp","sel1-1000"], rep = np.arange(20))
 
 rule human_wgsim_neutral_wavelets:
 	input:
@@ -110,6 +107,15 @@ rule human_wgsim_neutral_wavelets:
 	shell:
 		"Rscript --vanilla code/human_wgsim_neutral_wavelets.R {input.frqs} {input.recmap}"
 
+rule human_wgsim_neutral_wavelets_no_interp:
+	input:
+		frqs="results/human_wgsim_neutral_{sim}_no_interp/replicate{rep}_frqs.txt",
+		chrlengths="hg38_chr_lengths.txt"
+	output:
+		"results/human_wgsim_neutral_{sim}_no_interp/replicate{rep}_wavelet_results.txt"
+	shell:
+		"Rscript --vanilla code/human_wgsim_neutral_wv_no_interp.R {input.frqs} {input.chrlengths}"
+		
 rule human_wgsim_sel_wavelets:
 	input:
 		frqs="results/human_wgsim_sel{sim}/replicate{rep}_frqs.txt",
@@ -117,11 +123,13 @@ rule human_wgsim_sel_wavelets:
 	output:
 		"results/human_wgsim_sel{sim}/replicate{rep}_wavelet_results.RData"
 	shell:
-		"Rscript --vanilla code/human_wgsim_neutral_wavelets.R {input.frqs} {input.recmap}"
+		"Rscript --vanilla code/human_wgsim_sel_wavelets.R {input.frqs} {input.recmap}"
 
 rule all_human_wgsim_wavelet_results:
 	input:
-		expand("results/human_wgsim_{sim}/replicate{rep}_wavelet_results.RData", sim = ["neutral_equilibrium","neutral_bottleneck","sel1-1000"], rep = np.arange(10))
+		expand("results/human_wgsim_neutral_{sim}_no_interp/replicate{rep}_wavelet_results.txt", rep = np.arange(10), sim = ['equilibrium','bottleneck']),
+		expand("results/human_wgsim_{sim}/replicate{rep}_wavelet_results.RData",sim=['sel1-1000','sel1-10','sel900-1000'],rep=np.arange(20))
+#		expand("results/human_wgsim_{sim}/replicate{rep}_wavelet_results.RData", sim = ["neutral_equilibrium","neutral_bottleneck","sel1-1000","sel1-10","sel900-1000"], rep = np.arange(10))
 
 # ===== rules for simulations with periodic recombination =====
 

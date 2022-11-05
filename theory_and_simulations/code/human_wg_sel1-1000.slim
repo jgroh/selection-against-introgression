@@ -59,6 +59,9 @@ initialize() {
 3 late() {
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // these are F2s, corresponds to 1 generation under theory model
 }
+4 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // first generation where correlation should appear (F3 offspring)
+}
 7 late() {
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // gen 5
 }

@@ -9,15 +9,6 @@ ruleorder: interpolate_ancestry_single_chrom_2018 > interpolate_ancestry_single_
 rule all:
 	input:
 		expand("ACUA_{year}/wavelet_results.RData", year = years),
-		#expand("ACUA_{year}/allCorDecomp_anc_rec_cds.RData", year = years)
-		#expand("ACUA_{year}/anc_rec_cds_varDecomp.RData",year=years),
-		#expand("ACUA_{year}/anc_rec_cds_corDecomp.RData",year=years),
-		#expand("ACUA_{year}/anc_rec_cds_MODWT.RData",year=years),
-		#expand("ACUA_{year}/anc_rec_cds_DWT.RData",year=years),
-		#expand("ACUA_{year}/chrSignalMeans.RData",year=years),
-		#expand("ACUA_{year}/totalVar.RData",year=years),
-#		"dwt_lm_plot_data.txt"
-#		expand("ACUA_{year}/avgFrq_totalCor.RData",year=years)
 
 rule interpolate_ancestry_single_chrom:
 	input: 
@@ -42,7 +33,7 @@ rule interpolate_ancestry_single_chrom_2018:
 	shell:
 		"Rscript --vanilla interpolate_ancestry_single_chrom.R 2018 xbir_LDRecmap.bed {wildcards.chr}"
 
-rule combine_window_beds:
+rule combine_window_beds: # these are the unit windows where we measure the average values of recombination and gene density
 	input:
 		expand("{chr}_{{units}}_windows.bed", chr=chrs)
 	output:
@@ -54,14 +45,6 @@ rule all_wavelet_inputs:
 	input:
 		expand("ACUA_{year}/{chr}.RData",year=years,chr=chrs),
 		expand("xbir_r_cds_{units}_unit_windows.txt", units=["physical","genetic"])
-
-#rule make_kb_bed:
-#	input:
-#		"xbir10x_chrlengths.txt",
-#	output:
-#		"xbir_1kb.bed",
-#	shell:
-#		"Rscript --vanilla xbir_makeBed_1kb.R | sort -k1,1 -k2,2n > {output}"
 
 rule make_rec_map_bed:
 	input:
@@ -131,25 +114,8 @@ rule combine_chrs_and_run_wavelets:
 		expand("xbir_r_cds_{units}_unit_windows.txt", units=["physical", "genetic"])
 	output:
 		"ACUA_{year}/wavelet_results.RData",
-		#"ACUA_{year}/allCorDecomp_anc_rec_cds.RData"
-	#	"ACUA_{year}/anc_rec_cds_varDecomp.RData",
-	#	"ACUA_{year}/anc_rec_cds_corDecomp.RData",
-	#	"ACUA_{year}/anc_rec_cds_MODWT.RData",
-	#	"ACUA_{year}/anc_rec_cds_DWT.RData",
-	#	"ACUA_{year}/chrSignalMeans.RData",
-	#	"ACUA_{year}/totalVar.RData"
 	shell:
 		"Rscript --vanilla swordtail_wavelets.R {wildcards.year}"
-
-rule lm_analysis:
-	input:
-		dwt="ACUA_2018/anc_rec_cds_DWT.RData",
-		functions="lm_functions.R",
-	output:
-		"dwt_lm_plot_data.txt"
-	threads: 16
-	shell:
-		"Rscript --vanilla lm_dwt_coeffs.R {input.dwt} {output} {threads}"
 
 rule slim_rec_map:
 	input:
