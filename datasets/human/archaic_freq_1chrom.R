@@ -3,7 +3,8 @@ library(data.table)
 
 if(Sys.getenv("RSTUDIO") == "1"){
   archaic_all <- fread("Neanderthal_files/41586_2020_2225_MOESM3_ESM.txt")
-  rmap_all <- fread("recomb-hg38/genetic_map_GRCh38_merged.tab")
+  rmap_all <- fread("aau1043_datas3")
+  #rmap_all <- fread("recomb-hg38/genetic_map_GRCh38_merged.tab")
   chromosome <- 20
 } else {
   args <- commandArgs(trailingOnly = TRUE)
@@ -15,58 +16,20 @@ if(Sys.getenv("RSTUDIO") == "1"){
 
 # subset to focal chrom
 archaic <- archaic_all[chrom == chromosome]
-rmap <- rmap_all[chrom == paste0("chr", chromosome)]
+rmap <- rmap_all[Chr == paste0("chr", chromosome)]
 
-#rmap[, my_rate := (pos_cm-shift(pos_cm))/(pos-shift(pos))]
-#ggplot(rmap, aes(x = recomb_rate, y = my_rate)) + geom_point() + geom_pointdensity()
-#rmap[, my_rate := (pos_cm-shift(pos_cm))/(pos - shift(pos)),  by = chrom]
-#rmap[, cor(my_rate, recomb_rate, "complete.obs")]
-archaic[, freq := freq/55132]
-
-#rmap[, Morgan_width := (stdrate*0.0116)/100]
-
-rmap[, Morgan := pos_cm/100]
-
-
-# ===== Functions for getting allele frequency =====
-
-# not giving expected result atm 
-# frac_overlap <- function(x.start, x.end, y.start, y.end){
-#   # returns fraction of overlap of window covered by an archaic block
-#   x.len <- abs(x.end - x.start)
-#   max.start = max(c(x.start, y.start))
-#   min.end = min(c(x.end, y.end))
-#   overlap = min.end - max.start
-#   overlap = ifelse(overlap <= 0, 0, overlap)
-#   return(overlap / x.len)
-# }
-# 
-# window_freq <- function(wstart, wend){
-#   # gets overlapping archaic blocks, returns average over blocks of frequency weighted by overlap
-#   fragments <- archaic[(start > wstart & start < wend) | (end > wstart & end < wend)]
-#   if(nrow(fragments) == 0){
-#     return(0)
-#   } else{
-#     return(fragments[, freq*frac_overlap(wstart, wend, start, end), by = seq_len(nrow(fragments)) ][, sum(V1)] )
-#   }
-# }
+archaic[, freq := freq/55132] # this is the number of haploid genomes used 
+rmap[, Morgan := cM/100]
 
 
 # ===== Allele frequency in at physical points =====
-# what's the resolution of the recomb map? < 1 kb
-#rmap_all[, pos-shift(pos), by = chrom][, mean(V1, na.rm=T)]
-#rmap_all[, pos-shift(pos), by = chrom][, median(V1, na.rm=T)]
+# get archaic allele frequency at 1kb intervals
+pos1kb <- data.table(pos = seq(rmap[,min(End)], rmap[, max(End)], by = 1e3))
 
-
-# get archaic allele frequency at these locations
-pos1kb <- data.table(pos = seq(rmap[,min(pos)], rmap[, max(pos)], by = 1e3))
-
-#frq1kb <- windows1kb[, .(freq = window_freq(wstart, wend)), by = wstart]
-#ggplot(frq1kb, aes(x = wstart, y = freq)) + geom_point()
-
+# count overlapping fragments at each position
 frq1kb <- pos1kb[, freq := archaic[start < pos & end >= pos, sum(freq)], by = seq_len(nrow(pos1kb))][]
 frq1kb[, chr := chromosome]
-frq1kb[, rec := approx(xout = frq1kb$pos, x = rmap$pos, y = rmap$recomb_rate)$y]
+frq1kb[, rec := approx(xout = frq1kb$pos, x = rmap$End, y = rmap$cMperMb)$y]
 #ggplot(frq1kb, aes(x = pos, y = freq)) + geom_point()
 
 
@@ -82,15 +45,21 @@ frq1kb[, rec := approx(xout = frq1kb$pos, x = rmap$pos, y = rmap$recomb_rate)$y]
 
 xout <- rmap[, seq(min(Morgan), max(Morgan), by = 2^-16)]
 
-posM <- rmap[, approx(x = Morgan, y = pos, xout = xout)]
+posM <- rmap[, approx(x = Morgan, y = End, xout = xout)]
 setnames(posM, c("Morgan", "pos"))
 posM[, pos := round(pos)]
+ggplot(posM, aes(x = pos, y = 1/(pos-shift(pos)))) + geom_point()
 
+# get overlapping fragments
 frqM <- posM[, freq := archaic[start < pos & end >= pos, sum(freq)], by = seq_len(nrow(posM))][]
 frqM[, chr := chromosome]
 
-frqM[, rec := approx(xout = frqM$pos, x = rmap$pos, y = rmap$recomb_rate)$y] 
-#ggplot(frqM, aes(x = pos, y = freq)) + geom_point()
+frqM[, rec1 := 1/(pos-shift(pos))]
+frqM[, rec1 := c(rec[2], rec[2:nrow(.SD)])]
+# gives same answer
+#frqM[, rec2 := approx(xout = frqM$pos, x = rmap$End, y = rmap$cMperMb)$y] 
+#plot(frqM$rec1, frqM$rec2) 
+#abline(0,1)
 
 
 
