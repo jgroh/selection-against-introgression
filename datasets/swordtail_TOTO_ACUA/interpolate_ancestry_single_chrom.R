@@ -1,4 +1,5 @@
 library(data.table)
+options(scipen=999)
 #library(ggplot2)
 
 # 1. Read Data Files ==========
