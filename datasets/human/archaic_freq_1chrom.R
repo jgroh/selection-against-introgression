@@ -5,7 +5,7 @@ if(Sys.getenv("RSTUDIO") == "1"){
   archaic_all <- fread("Neanderthal_files/41586_2020_2225_MOESM3_ESM.txt")
   rmap_all <- fread("aau1043_datas3")
   #rmap_all <- fread("recomb-hg38/genetic_map_GRCh38_merged.tab")
-  chromosome <- 20
+  chromosome <- 21
 } else {
   args <- commandArgs(trailingOnly = TRUE)
   chromosome <- args[1]
@@ -48,14 +48,14 @@ xout <- rmap[, seq(min(Morgan), max(Morgan), by = 2^-16)]
 posM <- rmap[, approx(x = Morgan, y = End, xout = xout)]
 setnames(posM, c("Morgan", "pos"))
 posM[, pos := round(pos)]
-ggplot(posM, aes(x = pos, y = 1/(pos-shift(pos)))) + geom_point()
+# ggplot(posM, aes(x = pos, y = 1/(pos-shift(pos)))) + geom_point()
 
 # get overlapping fragments
 frqM <- posM[, freq := archaic[start < pos & end >= pos, sum(freq)], by = seq_len(nrow(posM))][]
 frqM[, chr := chromosome]
 
-frqM[, rec1 := 1/(pos-shift(pos))]
-frqM[, rec1 := c(rec[2], rec[2:nrow(.SD)])]
+frqM[, rec := 1/(pos-shift(pos))]
+frqM[, rec := c(rec[2], rec[2:nrow(.SD)])]
 # gives same answer
 #frqM[, rec2 := approx(xout = frqM$pos, x = rmap$End, y = rmap$cMperMb)$y] 
 #plot(frqM$rec1, frqM$rec2) 
