@@ -7,9 +7,9 @@ wvlt_analyses = ["wv","wc_freq_rec","wc_freq_gd","wc_rec_gd","lm", "wc_freq_B"]
 rule all:
 	input:
 		expand("archaic_freqs/chr{chrom}_frq_{unit}_windows.txt", chrom = chrs, unit = units),
-		expand("gene_density_{unit}_windows.txt", unit = units),
-		expand("wavelet_results/{analysis}_{unit}.txt", analysis = wvlt_analyses, unit=units),
-		"wavelet_results/wc_freq_gdr_physical.txt"
+#		expand("gene_density_{unit}_windows.txt", unit = units),
+#		expand("wavelet_results/{analysis}_{unit}.txt", analysis = wvlt_analyses, unit=units),
+#		"wavelet_results/wc_freq_gdr_physical.txt"
 
 rule get_freq:
 	input:
@@ -19,30 +19,31 @@ rule get_freq:
 		"""
 		Rscript --vanilla archaic_freq_1chrom.R {wildcards.chr} \
 				Neanderthal_files/41586_2020_2225_MOESM3_ESM.txt \
-				recomb-hg38/genetic_map_GRCh38_merged.tab
+				aau1043_datas3 
 		"""
 
-rule make_window_beds:
+rule make_window_beds: # genetic windows also output Morgan distance to be able to merge with frequency files
 	input:
+		"make_{unit}_windows_bed.R"
 	output:
-		"homo_{unit}_windows.bed"
+		"{unit}_windows.bed"
 	shell:
 		"""
-		Rscript --vanilla homo_make_{wildcards.unit}_windows_bed.R | sort -k1,1 -k2,2n > {output}
+		Rscript --vanilla make_{wildcards.unit}_windows_bed.R | sort -k1,1 -k2,2n > {output}
 		"""
 
 rule gtf_to_bed:
 	input:
-		"hg38.knownGene.gtf"	
+		"hg38.knownGene.gtf"	# obtained from USCS genome browser
 	output:
-		"hg38.knownGene.bed"
+		"hg38_CDS.bed"
 	shell:
-		"gtf2bed < {input} > {output}"
+		"gtf2bed < {input} | grep 'CDS' | sort -k1,1 -k2,2n > {output}"
 
 rule calculate_gene_density_physical:
 	input:
-		A="homo_physical_windows.bed",
-		B="hg38.knownGene.bed"
+		A="physical_windows.bed",
+		B="hg38_CDS.bed"
 	output:
 		out="gene_density_physical_windows.txt",
 	shell:
@@ -53,8 +54,8 @@ rule calculate_gene_density_physical:
 
 rule calculate_gene_density_genetic:
 	input:
-		A="homo_genetic_windows.bed",
-		B="hg38.knownGene.bed"
+		A="genetic_windows.bed",
+		B="hg38_CDS.bed"
 	output:
 		out="gene_density_genetic_windows.txt",
 	shell:
@@ -66,7 +67,7 @@ rule calculate_gene_density_genetic:
 
 rule windowed_B_values:	
 	input:
-		A="homo_{unit}_windows.bed",
+		A="{unit}_windows.bed",
 		B="B_values/hg38/bstat_hg38_v2_sorted.txt"
 	output:
 		"B_vals_{unit}_windows.txt"
