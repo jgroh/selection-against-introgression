@@ -54,14 +54,7 @@ posM[, pos := round(pos)]
 frqM <- posM[, freq := archaic[start < pos & end >= pos, sum(freq)], by = seq_len(nrow(posM))][]
 frqM[, chr := chromosome]
 
-frqM[, rec := 1/(pos-shift(pos))]
-frqM[, rec := c(rec[2], rec[2:nrow(.SD)])]
-# gives same answer
-#frqM[, rec2 := approx(xout = frqM$pos, x = rmap$End, y = rmap$cMperMb)$y] 
-#plot(frqM$rec1, frqM$rec2) 
-#abline(0,1)
-
-
+frqM[, rec := approx(xout = frqM$pos, x = rmap$End, y = rmap$cMperMb)$y] 
 
 
 # === output ===== 
