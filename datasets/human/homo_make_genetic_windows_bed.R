@@ -1,19 +1,22 @@
 library(data.table)
 
-rmap <- fread("recomb-hg38/genetic_map_GRCh38_merged.tab")
-rmap[, Morgan := pos_cm/100]
+rmap <- fread("aau1043_datas3")
+#rmap <- fread("recomb-hg38/genetic_map_GRCh38_merged.tab")
+rmap[, Morgan := cM/100]
 
-bedM <- rmap[chrom != "chrX", .(Morgan = seq(min(Morgan), max(Morgan), by = 2^-16)), by = chrom]
+bedM <- rmap[Chr != "chrX", .(Morgan = seq(min(Morgan), max(Morgan), by = 2^-16)), by = Chr]
 
 bedM[, wstart := Morgan - 0.5*2^-16]
 bedM[, wend := wstart + 2^-16]
 
-bedM[, bp_start := round(approx(x = rmap[chrom == .BY, Morgan], 
-                                y = rmap[chrom == .BY, pos], 
-                                xout = bedM[chrom == .BY, wstart])$y), by = chrom]
-bedM[, bp_end := round(approx(x = rmap[chrom == .BY, Morgan], 
-                              y = rmap[chrom == .BY, pos], 
-                              xout = bedM[chrom == .BY, wend])$y), by = chrom]
+bedM[, bp_start := round(approx(x = rmap[Chr == .BY, Morgan], 
+                                y = rmap[Chr == .BY, End], 
+                                xout = bedM[Chr == .BY, wstart])$y), by = Chr]
+
+bedM[, bp_end := round(approx(x = rmap[Chr == .BY, Morgan], 
+                              y = rmap[Chr == .BY, End], 
+                              xout = bedM[Chr == .BY, wend])$y), by = Chr]
+
 bedM <- bedM[!is.na(bp_start) & !is.na(bp_end)]
 
-fwrite(bedM[, .(chrom, bp_start, bp_end, Morgan)], file = "", quote=F, sep="\t", col.names=F)
+fwrite(bedM[, .(Chr, bp_start, bp_end, Morgan)], file = "", quote=F, sep="\t", col.names=F)
