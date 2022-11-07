@@ -26,9 +26,6 @@ if(windows == "physical"){
   gd <- fread("gene_density_physical_windows.txt", col.names = c("chr", "start", "end", "gd"))
   gd[, pos := start + 500]
   
-  Bvals <- fread("B_vals_physical_windows.txt", col.names = c("chr", "start", "end", "B"))
-  Bvals[, pos := start + 500]
-  
   # read frequency files
   chr_files <- dir(path = "archaic_freqs/", pattern = "chr.*_frq_physical_windows.txt", full.names=T)
   gnom <- rbindlist(lapply(chr_files, fread))
@@ -36,7 +33,14 @@ if(windows == "physical"){
   # combine gd and freq files
   gnom[, chr := paste0("chr", chr)]
   gnom <- merge(gnom, gd,  by = c("chr", "pos"))
-  gnom <- merge(gnom, Bvals)
+
+  # combine with B values (need to interpolate B values )
+  Bvals <- fread("B_vals_physical_windows.txt", col.names = c("chr", "start", "end", "B"))
+  Bvals[, pos := start + 500]
+  
+  B_interp <- Bvals[, approx(x = pos, y = B, xout = pos, rule = 2), by = chr]
+  setnames(B_interp, c("x", "y"), c("pos", "B"))
+  gnom <- merge(gnom, B_interp)
   
   #gnom <- merge(gnom, merge(gd, Bvals, by = c("chr", "pos", "start", "end")), by = c("chr", "pos"))
   gnom[, gdr := gd/rec]
@@ -52,12 +56,15 @@ if(windows == "physical"){
   chr_files <- dir(path = "archaic_freqs/", pattern = "chr.*_frq_genetic_windows.txt", full.names=T)
   gnom <- rbindlist(lapply(chr_files, fread))
   
-  Bvals <- fread("B_vals_genetic_windows.txt", col.names = c("chr", "start", "end", "Morgan", "B"))
-  
   # combine gd and freq files
   gnom[, chr := paste0("chr", chr)]
   gnom <- merge(gd, gnom, by = c("chr", "Morgan"))
-  gnom <- merge(gnom, Bvals)
+  
+  # Bvals
+  Bvals <- fread("B_vals_genetic_windows.txt", col.names = c("chr", "start", "end", "Morgan", "B"))
+  B_interp <- Bvals[, approx(x = Morgan, y = B, xout = Morgan, rule = 2), by = chr]
+  setnames(B_interp, c("x", "y"), c("Morgan", "B"))
+  gnom <- merge(gnom, B_interp)
   
   gnom[, gdr := gd/rec]
   gnom[gdr == Inf, gdr := gnom[gdr != Inf, max(gdr)]]
@@ -74,6 +81,7 @@ outfile <- paste0("wavelet_results/", analysis, "_", windows, ".txt")
 
 # ==== Wavelet Variance ====
 if(analysis == "wv"){
+  
   wv <- gnom[, gnom_var_decomp(.SD, chromosome = "chr", signals = c("freq", "rec", "gd", "B"), rm.boundary = F, avg.over.chroms = T)]
   
   fwrite(wv, file=outfile, sep = "\t", quote=F)
@@ -81,8 +89,6 @@ if(analysis == "wv"){
 
 # ===== Wavelet Correlations =====
 if(analysis == "wc_freq_B"){
-  gnom[, B := gnom[, approx(x = pos, y = B, xout=pos, rule = 2), by = chr]$y]
-
   wc <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("freq", "B"), rm.boundary = F)]
   fwrite(wc, file=outfile, sep = "\t", quote=F)
 }
