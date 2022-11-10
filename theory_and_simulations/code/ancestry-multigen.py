@@ -13,7 +13,6 @@ def ts_get_times(ts):
 # Load the .trees file
 ts = tskit.load(sys.argv[1])
 rep = float(os.path.basename(sys.argv[1]).lstrip('replicate').rstrip('.trees'))
-gens = [int(g) for g in sys.argv[2:]]
 
 frqs = []
 L = int(ts.sequence_length)
