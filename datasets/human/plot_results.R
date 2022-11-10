@@ -5,6 +5,7 @@ library(gridExtra)
 library(ggpubr)
 library(cubature)
 
+setwd("~/workspace/selection-against-introgression/datasets/human/")
 source("~/workspace/gnomwav/R/theory.R")
 
 
@@ -39,26 +40,31 @@ lapply(
 # ===== wavelet variance, physical units =====
 
 lineData_physical <- wv_physical[grepl("d", level, fixed = T)]
+wv_physical_collapsed <- rbind(wv_physical[grepl('s', level, fixed=T), 
+                                         .(level = 'scl', variance.freq = sum(variance.freq), 
+                                           propvar.freq = sum(propvar.freq))], 
+                              wv_physical[!grepl('s', level, fixed=T), 
+                                         .(level, variance.freq, propvar.freq)]
+)
+wv_physical_collapsed[, level := factor(level, levels = c(paste0("d", 1:17), 'scl', 'chr'))] 
 
-ggplot(wv_physical, 
+ggplot(wv_physical_collapsed, 
        #aes(x = level, y = variance.freq, group = 1)) + 
-       aes(x = level, y = propvar.freq, group = 1)) + 
+       aes(x = level, y = variance.freq, group = 1)) + 
   geom_point(size = 2.2) + 
   geom_line(data = lineData_physical) + 
   theme_classic() + 
-  scale_x_discrete(breaks = c(paste0("d", 1:17), paste0("s", 15:17), "chr"), 
-                   labels = c(as.character(1:17), paste0(15:17, " (scaling var)"), "chromosome"))   + 
+  scale_x_discrete(breaks = c(paste0("d", 1:17), 'scl', "chr"), 
+                   labels = c(as.character(0:16),"scl", "chrom"))   + 
   labs(x = expression(Scale: log[2] ("1kb")), 
        #y = "Variance") + 
-       y = "Proportion of genome-wide variance") + 
+       y = "Variance") + 
   theme(aspect.ratio = 1, 
         axis.title = element_text(size = 15),
         axis.text.x = element_text(angle = 90, size = 12),
         axis.text.y = element_text(size = 12),
         axis.line.x = element_blank())  +
-  geom_segment(aes(x = 0, xend = 17, y = -Inf, yend = -Inf)) + 
-  geom_segment(aes(x = 18, xend = 20, y = -Inf, yend = -Inf))  
-
+  geom_segment(aes(x = 0, xend = 17.05, y = -Inf, yend = -Inf)) 
 
 
 # ===== wavelet variance, genetic units =====
@@ -117,15 +123,15 @@ ggplot(wv_genetic_collapsed,
 
 p1 <- ggplot(wc_freq_rec_physical[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack)) + 
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
-  geom_point(size=2) + 
-  geom_errorbar(aes(ymin=lower95ci, ymax = upper95ci), width = 0, size = 1) + 
+  geom_point(size=2, color = "#eb5ab4") + 
+  geom_errorbar(aes(ymin=lower95ci, ymax = upper95ci), width = 0, size = 1, color = "#eb5ab4") + 
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), "chr"), 
-                   labels = c(1:17, 'chrom')) +
-  scale_y_continuous(limits = c(-.45,0.2)) +
+                   labels = c(0:16, 'chrom')) +
+  #scale_y_continuous(limits = c(-.45,0.2)) +
   labs(x = expression(Scale: log[2] ("kb")), 
        y = "Correlation",
-       title = "A") + 
+       title = "") + 
   geom_segment(aes(x = 0, xend = 17, y = -Inf, yend = -Inf))  +
   theme(aspect.ratio = 1,
       text = element_text(size=15),
@@ -142,8 +148,8 @@ p1
 
 p2 <- ggplot(wc_freq_gd_physical[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack)) + 
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
-  geom_point(size=2) + 
-  geom_errorbar(aes(ymin=lower95ci, ymax = upper95ci), width = 0, size = 1) + 
+  geom_point(size=2, col = '#eda915') + 
+  geom_errorbar(aes(ymin=lower95ci, ymax = upper95ci), width = 0, size = 1, col = '#eda915') + 
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), "chr"), 
                    labels = c(1:17, 'chrom')) +
@@ -162,16 +168,24 @@ p2 <- ggplot(wc_freq_gd_physical[!grepl('s',level,fixed=T)], aes(x = level, y = 
         plot.title = element_text(hjust = -.1))
 
 p2
-p1 + p2 
+
+# correlation of recomb and gene density in same plot
+p1 + geom_point(data = wc_freq_gd_physical[!grepl('s',level,fixed=T)], size=2, col = '#3dc2b9') + 
+  geom_errorbar(data = wc_freq_gd_physical[!grepl('s',level,fixed=T)], aes(ymin=lower95ci, ymax = upper95ci), width = 0, size = 1, col = '#3dc2b9') + 
+  geom_point(data = wc_rec_gd_physical[!grepl('s',level,fixed=T)], size=2, col = '#e89a1b') + 
+  geom_errorbar(data = wc_rec_gd_physical[!grepl('s',level,fixed=T)], aes(ymin=lower95ci, ymax = upper95ci), width = 0, size = 1, col = '#e89a1b')  
+  
 
 p3 <- ggplot(wc_rec_gd_physical[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack)) + 
+  geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
   geom_point(size=2) + 
   geom_errorbar(aes(ymin=lower95ci, ymax = upper95ci), width = 0, size = 1) + 
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), "chr"), 
                    labels = c(1:17, 'chrom')) +
   labs(x = expression(Scale: log[2] ("kb")), 
-       y = "Correlation") + 
+       y = "Correlation", 
+       title = "A") + 
   geom_segment(aes(x = 0, xend = 17, y = -Inf, yend = -Inf))  +
   theme(aspect.ratio = 1,
         text = element_text(size=15),
@@ -179,7 +193,7 @@ p3 <- ggplot(wc_rec_gd_physical[!grepl('s',level,fixed=T)], aes(x = level, y = c
         axis.line.x = element_blank(),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
         axis.text.y = element_text(size=12),
-        axis.title.y = element_text(hjust=.4,margin=margin(r=10))) 
+        axis.title.y = element_text(hjust=.4,margin=margin(r=10)),plot.title = element_text(hjust = -.1)) 
 
 p3
 p1 + p2 
@@ -206,13 +220,15 @@ p4
 
 
 p5 <- ggplot(wc_freq_B_physical[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack)) + 
+  geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
   geom_point(size=2) + 
   geom_errorbar(aes(ymin=lower95ci, ymax = upper95ci), width = 0, size = 1) + 
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), "chr"), 
-                   labels = c(1:17, 'chrom')) +
+                   labels = c(0:16, 'chrom')) +
   labs(x = expression(Scale: log[2] ("kb")), 
-       y = "Correlation") + 
+       y = "Correlation", 
+       title = "") + 
   geom_segment(aes(x = 0, xend = 17, y = -Inf, yend = -Inf))  +
   theme(aspect.ratio = 1,
         text = element_text(size=15),
@@ -220,9 +236,11 @@ p5 <- ggplot(wc_freq_B_physical[!grepl('s',level,fixed=T)], aes(x = level, y = c
         axis.line.x = element_blank(),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
         axis.text.y = element_text(size=12),
+        plot.title = element_text(hjust = -.1),
         axis.title.y = element_text(hjust=.4,margin=margin(r=10))) 
 
 p5
+p3 + p5
 
 
 # ----- genetic units ----
@@ -350,7 +368,7 @@ p5.1
 # ===== Contribution to Correlation ====
 
 # ---- physical -----
-allWav_physical <- merge(wv_physical, wc_freq_gdr_physical)
+allWav_physical <- merge(wv_physical, wc_freq_rec_physical)
 allWav_physical[, contribution := cor_jack*sqrt(propvar.freq*propvar.rec)]
 
 ggplot(allWav_physical[!grepl("s", level,fixed=T)]) + 

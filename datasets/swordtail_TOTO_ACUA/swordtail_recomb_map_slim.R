@@ -9,7 +9,7 @@ chrLen <- fread(args[1], col.names = c("chr", "len")) # physical lengths
 #chrLen <- fread("xbir10x_chrlengths.txt", col.names = c("chr", "len"))  
 
 par1 <- fread(args[2], nrows=1)
-#par1 <- fread("ancestry-probs-par1_allchrs_ACUA_historical_2018.tsv", nrows=1)
+#par1 <- fread("ancestry-probs-par1_allchrs_ACUA_historical_2006.tsv", nrows=1)
 
 # merge by ID 
 setnames(par1, "V1", "ID")
@@ -17,7 +17,7 @@ setnames(par1, "V1", "ID")
 # concatenate SNP recombination distances for each chromosome
 
 recVec <- NULL
-
+chrVec <- NULL
 
 for(chrz in chrLen$chr){
   chromCols <- names(par1)[grep(paste0(chrz,":"), names(par1))]
@@ -59,8 +59,13 @@ for(chrz in chrLen$chr){
   #print(c(chrz, length(SNP_positions)/max(MorganVec)))
   
   recVec <- c(recVec, 0.5, diff(MorganPositions))
+  chrVec <- c(chrVec, rep(chrz, length(diff(MorganPositions)) + 1))
   #hist(log10(diff(MorganPositions)), xlab = "log10(Morgans) between adjacent SNPs")
 }
 
+
 fwrite(list(recVec[-1]), 
             file = "swordtail_SNP_recMap_slim_rhoCap0.005.txt")
+fwrite(data.table(chrVec, recVec)[-1], 
+       file = "swordtail_SNP_recMap_slim_rhoCap0.005_verbose.txt")
+

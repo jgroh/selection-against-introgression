@@ -2,7 +2,9 @@ library(data.table)
 library(tidyverse)
 library(gridExtra)
 library(grid)
+source("~/workspace/gnomwav/R/theory.R")
 
+setwd("~/workspace/selection-against-introgression/datasets/swordtail_TOTO_ACUA/")
 
 # 1. ===== Load Data =====
 chrLen <- fread("xbir10x_chrlengths.txt")
@@ -76,6 +78,38 @@ wv <- wavvarm_collapsedG[variable == "variance.meanFreq"] %>%
         axis.title.y = element_text(hjust=.4,margin=margin(r=10)))
 
 wv
+
+# ----- compare to theory -----
+# generation time? 2 gens per year vs 3 gens per year
+g <- 2
+a <- 120
+wvtheory <- wavelet_variance_equilbrium(n.pop = 600, n.sample = 200, unit.dist = 2^-15, gen = c(a-12*g, a), level = 1:13, alpha = 0.5)
+wvtheory[, year := as.character((1/g)*gen + (2018 - a/g))]
+wvtheory[, propvar := variance/sum(variance), by = .(year)]
+
+wvdetail <- wavvarm_collapsedG[variable == "variance.meanFreq" & grepl('d', level, fixed=T)]
+wvdetail[, propvar := value/sum(value), by = year]
+
+wvdetail[year %in% c(2006,2018)] %>% 
+  ggplot(aes(x = level, y = value, group = year, color = year)) +
+  geom_point(size=3) + 
+  geom_line(aes(group = year), size=1.5) + 
+  geom_line(data = wvtheory, aes(x = level, y = variance), lty=11, size=1.5) +
+  labs(x = expression(Scale: log[2](Morgans)), 
+       y = "Proportion of variance",
+       color = "Year", shape = "") +
+  scale_x_discrete(breaks = c(paste0("d",1:13)), labels = c(as.character(-14:-2))) + 
+  theme_classic() +
+  geom_segment(aes(x=.95,xend=13.05,y=-Inf,yend=-Inf),color="black")+
+  theme(aspect.ratio = 1,
+        text = element_text(size=15),
+        axis.ticks.x = element_line(size=1),
+        axis.line.x = element_blank(),
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
+        axis.text.y = element_text(size=12),
+        axis.title.y = element_text(hjust=.4,margin=margin(r=10)))
+
+
 
 
 # ---- physical 
