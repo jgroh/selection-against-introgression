@@ -42,7 +42,8 @@ if(windows == "physical"){
   setnames(B_interp, c("x", "y"), c("pos", "B"))
   gnom <- merge(gnom, B_interp)
   
-  #gnom <- merge(gnom, merge(gd, Bvals, by = c("chr", "pos", "start", "end")), by = c("chr", "pos"))
+  gnom[, log10rec := log10(rec)]
+  gnom[is.infinite(log10rec), log10rec := min(gnom[!is.infinite(log10rec), log10rec])]
   gnom[, gdr := gd/rec]
   gnom[gdr == Inf, gdr := gnom[gdr != Inf, max(gdr)]]
   gnom[gd==0 & rec==0, gdr := gnom[, mean(gdr, na.rm=T)]][]
@@ -65,6 +66,9 @@ if(windows == "physical"){
   B_interp <- Bvals[, approx(x = Morgan, y = B, xout = Morgan, rule = 2), by = chr]
   setnames(B_interp, c("x", "y"), c("Morgan", "B"))
   gnom <- merge(gnom, B_interp)
+  
+  gnom[, log10rec := log10(rec)]
+  gnom[is.infinite(log10rec), log10rec := min(gnom[!is.infinite(log10rec), log10rec])]
   
   gnom[, gdr := gd/rec]
   gnom[gdr == Inf, gdr := gnom[gdr != Inf, max(gdr)]]
@@ -98,6 +102,11 @@ if(analysis == "wc_freq_rec"){
   fwrite(wc, file=outfile, sep = "\t", quote=F)
 }
 
+if(analysis == "wc_freq_log10rec"){
+  wc <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("freq", "log10rec"), rm.boundary = F)]
+  fwrite(wc, file=outfile, sep = "\t", quote=F)
+}
+
 if(analysis == "wc_freq_gd"){
   wc <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("freq", "gd"), rm.boundary = F)]
   fwrite(wc, file=outfile, sep = "\t", quote=F)
@@ -115,7 +124,12 @@ if(analysis == "wc_rec_gd"){
 
 # ===== Linear Model Analysis =====
 if(analysis == "lm"){
-  z <- wvlt_lm(data = gnom, chromosome = "chr", yvar = "freq", xvars = c("rec", "gd"))
+  z1 <- modwt_lm_rsqrd(data = gnom, chromosome = "chr", yvar = "freq", xvars = c("rec", "gd"))
+  z1[, model := "rec_cds_density"]
+  z2 <- modwt_lm_rsqrd(data = gnom, chromosome = "chr", yvar = "freq", xvars = c("log10rec", "gd"))
+  z2[, model := "log10rec_cds_density"]
+  
+  z <- rbind(z1, z2)
   fwrite(z, file=outfile, sep = "\t", quote=F)
 }
 
