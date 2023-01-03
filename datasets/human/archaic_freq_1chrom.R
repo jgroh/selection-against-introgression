@@ -29,7 +29,15 @@ pos1kb <- data.table(pos = seq(rmap[,min(End)], rmap[, max(End)], by = 1e3))
 # count overlapping fragments at each position
 frq1kb <- pos1kb[, freq := archaic[start < pos & end >= pos, sum(freq)], by = seq_len(nrow(pos1kb))][]
 frq1kb[, chr := chromosome]
-frq1kb[, rec := approx(xout = frq1kb$pos, x = rmap$End, y = rmap$cMperMb)$y]
+
+frq1kb[, Morgan := approx(xout = frq1kb$pos, x = rmap$End, y = rmap$Morgan)$y]
+frq1kb[, rec := (Morgan-shift(Morgan))/(pos-shift(pos))]
+frq1kb[, rec := c(.SD[2, rec], .SD[2:nrow(.SD), rec])]
+
+#frq1kb[, mean(rec)]
+
+# previously calculated rec this way, was giving weird correlation
+#frq1kb[, rec := approx(xout = frq1kb$pos, x = rmap$End, y = rmap$cMperMb)$y]
 #ggplot(frq1kb, aes(x = pos, y = freq)) + geom_point()
 
 
@@ -47,14 +55,18 @@ xout <- rmap[, seq(min(Morgan), max(Morgan), by = 2^-16)]
 
 posM <- rmap[, approx(x = Morgan, y = End, xout = xout)]
 setnames(posM, c("Morgan", "pos"))
-posM[, pos := round(pos)]
+#posM[, pos := round(pos)]
 # ggplot(posM, aes(x = pos, y = 1/(pos-shift(pos)))) + geom_point()
 
 # get overlapping fragments
 frqM <- posM[, freq := archaic[start < pos & end >= pos, sum(freq)], by = seq_len(nrow(posM))][]
 frqM[, chr := chromosome]
 
-frqM[, rec := approx(xout = frqM$pos, x = rmap$End, y = rmap$cMperMb)$y] 
+frqM[, rec := (Morgan-shift(Morgan))/(pos-shift(pos))]
+frqM[, rec := c(.SD[2, rec], .SD[2:nrow(.SD), rec])]
+
+#frqM[, mean(rec)]
+#frqM[, rec := approx(xout = frqM$pos, x = rmap$End, y = rmap$cMperMb)$y] 
 
 
 # === output ===== 

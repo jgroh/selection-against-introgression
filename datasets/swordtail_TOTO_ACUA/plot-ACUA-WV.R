@@ -2,6 +2,7 @@ library(data.table)
 library(tidyverse)
 library(gridExtra)
 library(grid)
+library(cubature)
 source("~/workspace/gnomwav/R/theory.R")
 
 setwd("~/workspace/selection-against-introgression/datasets/swordtail_TOTO_ACUA/")
@@ -10,7 +11,7 @@ setwd("~/workspace/selection-against-introgression/datasets/swordtail_TOTO_ACUA/
 chrLen <- fread("xbir10x_chrlengths.txt")
 #(chrLen[, floor(log2(V2/1000))])
 
-loadFrom=function(file, name){e=new.env();load(file,env=e);e[[name]]} 
+loadFrom=function(file, name){e=new.env();load(file,env=e);e[[name]]}
 
 
 acua2006var <- data.table(loadFrom("ACUA_2006/wavelet_results.RData", "wavvar")); acua2006var[,year := "2006"]
@@ -40,8 +41,8 @@ rsqrd <- rbindlist(list(acua2006rs,acua2008rs,acua2013rs,acua2015rs,acua2018rs))
 
 # ==== wav var
 
-wavvarm_collapsed  <- rbind(wavvarm[grepl('s',level,fixed=T), 
-                                    .(level = 'scl', value = sum(value)), 
+wavvarm_collapsed  <- rbind(wavvarm[grepl('s',level,fixed=T),
+                                    .(level = 'scl', value = sum(value)),
                                     by = .(units,year,variable)],
                             wavvarm[!grepl('s',level,fixed=T), .(units,year,variable,level,value)]
 )
@@ -54,17 +55,17 @@ wavvarm_collapsedG[, level := factor(level, levels = c(paste0("d", 1:13), "scl",
 lineDataG <- wavvarm_collapsedG[!level %in% c("scl", "chr")]
 
 
-wv <- wavvarm_collapsedG[variable == "variance.meanFreq"] %>% 
+wv <- wavvarm_collapsedG[variable == "variance.meanFreq"] %>%
   ggplot(aes(x = level, y = value, group = year, color = year)) +
   geom_point(size=3) +
-  geom_line(data = lineDataG[variable %in% c("variance.meanFreq")], 
-            aes(group = year), size=02) + 
-  labs(x = expression(Scale: log[2](Morgans)), 
+  geom_line(data = lineDataG[variable %in% c("variance.meanFreq")],
+            aes(group = year), size=02) +
+  labs(x = expression(Scale: log[2](Morgans)),
       #x = expression(Scale: log[2](kb)),
        y = "Variance",
        color = "Year", shape = "") +
-  scale_x_discrete(breaks = c(paste0("d",1:15),"s13","chr"), labels = c(as.character(-14:0),"scl", 'chrom')) + 
-  #scale_x_discrete(breaks = c(paste0("d",1:15),"s13", "s14", "s15", "chr"), labels = c(as.character(0:14),"13 (scaling var)", "14 (scaling var)", "15 (scaling var)", "chromosome")) + 
+  scale_x_discrete(breaks = c(paste0("d",1:15),"s13","chr"), labels = c(as.character(-14:0),"scl", 'chrom')) +
+  #scale_x_discrete(breaks = c(paste0("d",1:15),"s13", "s14", "s15", "chr"), labels = c(as.character(0:14),"13 (scaling var)", "14 (scaling var)", "15 (scaling var)", "chromosome")) +
   scale_shape_discrete(labels = c("Mean ancestry", "Individual ancestry"))+
   theme_classic() +
   scale_colour_viridis_d(option = 'E') +
@@ -90,15 +91,15 @@ wvtheory[, propvar := variance/sum(variance), by = .(year)]
 wvdetail <- wavvarm_collapsedG[variable == "variance.meanFreq" & grepl('d', level, fixed=T)]
 wvdetail[, propvar := value/sum(value), by = year]
 
-wvdetail[year %in% c(2006,2018)] %>% 
+wvdetail[year %in% c(2006,2018)] %>%
   ggplot(aes(x = level, y = value, group = year, color = year)) +
-  geom_point(size=3) + 
-  geom_line(aes(group = year), size=1.5) + 
+  geom_point(size=3) +
+  geom_line(aes(group = year), size=1.5) +
   geom_line(data = wvtheory, aes(x = level, y = variance), lty=11, size=1.5) +
-  labs(x = expression(Scale: log[2](Morgans)), 
+  labs(x = expression(Scale: log[2](Morgans)),
        y = "Proportion of variance",
        color = "Year", shape = "") +
-  scale_x_discrete(breaks = c(paste0("d",1:13)), labels = c(as.character(-14:-2))) + 
+  scale_x_discrete(breaks = c(paste0("d",1:13)), labels = c(as.character(-14:-2))) +
   theme_classic() +
   geom_segment(aes(x=.95,xend=13.05,y=-Inf,yend=-Inf),color="black")+
   theme(aspect.ratio = 1,
@@ -112,24 +113,24 @@ wvdetail[year %in% c(2006,2018)] %>%
 
 
 
-# ---- physical 
+# ---- physical
 wavvarm_collapsedP <- wavvarm_collapsed[units == 'physical']
 wavvarm_collapsedP[, level := droplevels(wavvarm_collapsedP$level)]
 wavvarm_collapsedP[, level := factor(level, levels = c(paste0("d", 1:15), "scl", "chr"))]
 
 lineDataP <- wavvarm_collapsedP[!level %in% c("scl", "chr")]
 
-wv.1 <- wavvarm_collapsedP[units == "physical" & variable == "variance.meanFreq"] %>% 
+wv.1 <- wavvarm_collapsedP[units == "physical" & variable == "variance.meanFreq"] %>%
   ggplot(aes(x = level, y = value, group = year, color = year)) +
   geom_point(size=3) +
-  geom_line(data = lineDataP[variable %in% c("variance.meanFreq")], 
-            aes(group = year), size=02) + 
-  labs(#x = expression(Scale: log[2](Morgans)), 
+  geom_line(data = lineDataP[variable %in% c("variance.meanFreq")],
+            aes(group = year), size=02) +
+  labs(#x = expression(Scale: log[2](Morgans)),
        x = expression(Scale: log[2](kb)),
        y = "Variance",
        color = "Year", shape = "") +
-  #scale_x_discrete(breaks = c(paste0("d",1:15),"s13","chr"), labels = c(as.character(-14:0),"scl", 'chrom')) + 
-  scale_x_discrete(breaks = c(paste0("d",1:15),"scl", "chr"), labels = c(as.character(1:15),"scl", "chrom")) + 
+  #scale_x_discrete(breaks = c(paste0("d",1:15),"s13","chr"), labels = c(as.character(-14:0),"scl", 'chrom')) +
+  scale_x_discrete(breaks = c(paste0("d",1:15),"scl", "chr"), labels = c(as.character(1:15),"scl", "chrom")) +
   scale_shape_discrete(labels = c("Mean ancestry", "Individual ancestry"))+
   theme_classic() +
   scale_colour_viridis_d(option = 'E') +
@@ -163,17 +164,17 @@ wavcor_collapsedP[, level := factor(level, levels = c(paste0("d", 1:15), 'scl', 
 
 
 # --- freq, recomb ----
-wc_plot1 <- ggplot(wavcor_collapsedP[year == "2018"], 
-                  aes(x = level, y = cor_jack.meanFreq_r, group = year))+ #, color = year)) +
+wc_plot1 <- ggplot(wavcor_collapsedP[year == "2018" & vars == 'meanFreq_r'],
+                  aes(x = level, y = cor_jack, group = year))+ #, color = year)) +
   geom_point(size = 2) +
-  geom_errorbar(aes(ymin=lower95ci.meanFreq_r, ymax=upper95ci.meanFreq_r), width = 0, size=1)+
-  scale_x_discrete(breaks = c(paste0("d",1:15),"chr"), labels = c(as.character(0:14),"chrom")) + 
-  labs(#x = expression(Scale: log[2]("Morgan")), 
-    x = expression(Scale: log[2]("1kb")), 
+  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax=cor_jack + 1.96*cor_jack_se), width = 0, size=1)+
+  scale_x_discrete(breaks = c(paste0("d",1:15),"chr"), labels = c(as.character(0:14),"chrom")) +
+  labs(#x = expression(Scale: log[2]("Morgan")),
+    x = expression(Scale: log[2]("1kb")),
   y = "Correlation",
-  title = "A") + 
+  title = "A") +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
- 
+
   theme_classic() +
   theme(aspect.ratio = 1,
         text = element_text(size=15),
@@ -186,16 +187,16 @@ wc_plot1 <- ggplot(wavcor_collapsedP[year == "2018"],
 
 wc_plot1
 
-wc_plot1.1 <- ggplot(wavcor_collapsedG[year == "2018"], 
-                   aes(x = level, y = cor_jack.meanFreq_r, group = year))+ #, color = year)) +
+wc_plot1.1 <- ggplot(wavcor_collapsedG[year == "2018" & vars == 'meanFreq_r'],
+                   aes(x = level, y = cor_jack, group = year))+ #, color = year)) +
   geom_point(size = 2) +
-  geom_errorbar(aes(ymin=lower95ci.meanFreq_r, ymax=upper95ci.meanFreq_r), width = 0, size=1)+
-  scale_x_discrete(breaks = c(paste0("d",1:13),"chr"), labels = c(as.character(-14:-2),"chrom")) + 
-  labs(x = expression(Scale: log[2]("Morgan")), 
+  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax=cor_jack + 1.96*cor_jack_se), width = 0, size=1)+
+  scale_x_discrete(breaks = c(paste0("d",1:13),"chr"), labels = c(as.character(-14:-2),"chrom")) +
+  labs(x = expression(Scale: log[2]("Morgan")),
     y = "Correlation",
-    title = "A") + 
+    title = "A") +
   geom_segment(aes(x=.95,xend=13.05,y=-Inf,yend=-Inf),color="black")+
-  
+
   theme_classic() +
   theme(aspect.ratio = 1,
         text = element_text(size=15),
@@ -210,18 +211,18 @@ wc_plot1.1
 
 
 # ----- mean freq, cds ----
-wc_plot2 <- ggplot(wavcor_collapsedP[year == "2018" ], 
-                   aes(x = level, y = cor_jack.meanFreq_cds, group = year))+ #, color = year)) +
+wc_plot2 <- ggplot(wavcor_collapsedP[year == "2018" & vars == 'meanFreq_cds_density'],
+                   aes(x = level, y = cor_jack, group = year))+ #, color = year)) +
   geom_point(size = 2) +
-  geom_errorbar(aes(ymin=lower95ci.meanFreq_cds, ymax=upper95ci.meanFreq_cds), width = .1, size=1)+
-  scale_x_discrete(breaks = c(paste0("d",1:15),"chr"), labels = c(as.character(0:14), "chrom")) + 
-  #scale_x_discrete(breaks = c(paste0("d",1:15),"chr"), labels = c(as.character(0:14),  "chrom")) + 
-  labs(#x = expression(Scale: log[2]("Morgan")), 
-    x = expression(Scale: log[2]("1kb")), 
+  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax=cor_jack + 1.96*cor_jack_se), width = 0, size=1)+
+  scale_x_discrete(breaks = c(paste0("d",1:15),"chr"), labels = c(as.character(0:14), "chrom")) +
+  #scale_x_discrete(breaks = c(paste0("d",1:15),"chr"), labels = c(as.character(0:14),  "chrom")) +
+  labs(#x = expression(Scale: log[2]("Morgan")),
+    x = expression(Scale: log[2]("1kb")),
     # y = "Pearson cor (mean freq, CDS density)") +
     y = "Correlation",
-    title = "A") + 
-  #y = "Pearson cor (log10 r, CDS density)" ) + 
+    title = "A") +
+  #y = "Pearson cor (log10 r, CDS density)" ) +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
   theme_classic() +
   theme(aspect.ratio = 1,
@@ -235,14 +236,14 @@ wc_plot2 <- ggplot(wavcor_collapsedP[year == "2018" ],
 
 wc_plot2
 
-wc_plot2.1 <- ggplot(wavcor_collapsedG[year == "2018" ], 
-                   aes(x = level, y = cor_jack.meanFreq_cds, group = year))+ #, color = year)) +
+wc_plot2.1 <- ggplot(wavcor_collapsedG[year == "2018" & vars == 'meanFreq_cds_density'],
+                   aes(x = level, y = cor_jack, group = year))+ #, color = year)) +
   geom_point(size = 2) +
-  geom_errorbar(aes(ymin=lower95ci.meanFreq_cds, ymax=upper95ci.meanFreq_cds), width = .1, size=1)+
-  scale_x_discrete(breaks = c(paste0("d",1:13),"chr"), labels = c(as.character(-14:-2),  "chrom")) + 
-  labs(x = expression(Scale: log[2]("Morgan")), 
+  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax=cor_jack + 1.96*cor_jack_se), width = 0, size=1)+
+  scale_x_discrete(breaks = c(paste0("d",1:13),"chr"), labels = c(as.character(-14:-2),  "chrom")) +
+  labs(x = expression(Scale: log[2]("Morgan")),
     y = "Correlation",
-    title = "A") + 
+    title = "A") +
   geom_segment(aes(x=.95,xend=13.05,y=-Inf,yend=-Inf),color="black")+
   theme_classic() +
   theme(aspect.ratio = 1,
@@ -258,18 +259,18 @@ wc_plot2.1
 
 
 # ----- rec, cds -----
-wc_plot3 <- ggplot(wavcor_collapsedP[year == "2018"], 
-                   aes(x = level, y = cor_jack.r_cds, group = year))+ #, color = year)) +
+wc_plot3 <- ggplot(wavcor_collapsedP[year == "2018" & vars == 'r_cds_density'],
+                   aes(x = level, y = cor_jack, group = year))+ #, color = year)) +
   geom_point(size = 2) +
-  geom_errorbar(aes(ymin=lower95ci.r_cds, ymax=upper95ci.r_cds), width = .1, size=1)+
-  scale_x_discrete(breaks = c(paste0("d",1:15),"chr"), labels = c(as.character(0:14), "chrom")) + 
-  #scale_x_discrete(breaks = c(paste0("d",1:15),"chr"), labels = c(as.character(0:14),  "chrom")) + 
-  labs(#x = expression(Scale: log[2]("Morgan")), 
-    x = expression(Scale: log[2]("1kb")), 
+  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax=cor_jack + 1.96*cor_jack_se), width = 0, size=1)+
+  scale_x_discrete(breaks = c(paste0("d",1:15),"chr"), labels = c(as.character(0:14), "chrom")) +
+  #scale_x_discrete(breaks = c(paste0("d",1:15),"chr"), labels = c(as.character(0:14),  "chrom")) +
+  labs(#x = expression(Scale: log[2]("Morgan")),
+    x = expression(Scale: log[2]("1kb")),
     # y = "Pearson cor (mean freq, CDS density)") +
     y = "Correlation",
-    title = "B") + 
-  #y = "Pearson cor (log10 r, CDS density)" ) + 
+    title = "B") +
+  #y = "Pearson cor (log10 r, CDS density)" ) +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
   theme_classic() +
   theme(aspect.ratio = 1,
@@ -283,14 +284,14 @@ wc_plot3 <- ggplot(wavcor_collapsedP[year == "2018"],
 
 wc_plot3
 
-wc_plot3.1 <- ggplot(wavcor_collapsedG[year == "2018"], 
-                   aes(x = level, y = cor_jack.r_cds, group = year))+ #, color = year)) +
+wc_plot3.1 <- ggplot(wavcor_collapsedG[year == "2018" & vars == 'r_cds_density'],
+                   aes(x = level, y = cor_jack, group = year))+ #, color = year)) +
   geom_point(size = 2) +
-  geom_errorbar(aes(ymin=lower95ci.r_cds, ymax=upper95ci.r_cds), width = .1, size=1)+
-  scale_x_discrete(breaks = c(paste0("d",1:13),"chr"), labels = c(as.character(-14:-2),  "chrom")) + 
-  labs(x = expression(Scale: log[2]("Morgan")), 
+  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax=cor_jack + 1.96*cor_jack_se), width = 0, size=1)+
+  scale_x_discrete(breaks = c(paste0("d",1:13),"chr"), labels = c(as.character(-14:-2),  "chrom")) +
+  labs(x = expression(Scale: log[2]("Morgan")),
     y = "Correlation",
-    title = "B") + 
+    title = "B") +
   geom_segment(aes(x=.95,xend=13.05,y=-Inf,yend=-Inf),color="black")+
   theme_classic() +
   theme(aspect.ratio = 1,
@@ -322,19 +323,18 @@ rsqrdG[, level := droplevels(level)]
 rsqrdG[, level := factor(level, c(paste0("d", 1:13), "chr"))]
 
 
-rsqrd_plot <- ggplot(rsqrdP[year == "2018" & variable == "rsqrd"], 
-       aes(x = level, y = jn_bc_estimate, group = year, color = model)) + #, color = year)) + # y = cor_meanFreq_log10r)) + 
-  geom_point(size=2) + 
-  geom_errorbar(aes(ymin = jn_bc_estimate - 1.96*jn_se, ymax= jn_bc_estimate + 1.96*jn_se), width = 0, size=1) +
-  geom_errorbar(aes(ymin = jn_bc_estimate - 1.96*jn_se, ymax= jn_bc_estimate + 1.96*jn_se), width = 0, size=1) +
-  
-  #scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2), "-2s", "chromosome")) + 
-  scale_x_discrete(breaks = c(paste0("d",1:15),"chr"), labels = c(as.character(0:14), "chrom")) + 
-  labs(#x = expression(Scale: log[2]("Morgan")), 
-        x = expression(Scale: log[2]("1kb")), 
+rsqrd_plot <- ggplot(rsqrdP[year == "2018" & model %in% 'r_cdsDensity'],
+       aes(x = level, y = rsqrd_jack, group = year)) +
+  geom_point(size=2) +
+  geom_errorbar(aes(ymin = rsqrd_jack - 1.96*rsqrd_jack_se, ymax= rsqrd_jack + 1.96*rsqrd_jack_se), width = 0, size=1) +
+
+  #scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2), "-2s", "chromosome")) +
+  scale_x_discrete(breaks = c(paste0("d",1:15),"chr"), labels = c(as.character(0:14), "chrom")) +
+  labs(#x = expression(Scale: log[2]("Morgan")),
+        x = expression(Scale: log[2]("1kb")),
        y = "R squared",
        title= "C") +
-       #y = "Pearson cor (mean freq, log10 r)" ) + 
+       #y = "Pearson cor (mean freq, log10 r)" ) +
   theme_classic() +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
   theme(aspect.ratio = 1,
@@ -349,12 +349,12 @@ rsqrd_plot <- ggplot(rsqrdP[year == "2018" & variable == "rsqrd"],
 rsqrd_plot
 
 
-rsqrd_plot.1 <- ggplot(rsqrdG[year == "2018" & variable == "rsqrd" & model == "r_cdsDensity"], 
-                     aes(x = level, y = jn_bc_estimate, group = year)) + #, color = year)) + # y = cor_meanFreq_log10r)) + 
-  geom_point(size=2) + 
-  geom_errorbar(aes(ymin = jn_bc_estimate - 1.96*jn_se, ymax= jn_bc_estimate + 1.96*jn_se), width = 0, size=1) +
-  scale_x_discrete(breaks = c(paste0("d",1:13),"chr"), labels = c(as.character(-14:-2), "chrom")) + 
-  labs(x = expression(Scale: log[2]("Morgan")), 
+rsqrd_plot.1 <- ggplot(rsqrdG[year == "2018" & model == "r_cdsDensity"],
+                     aes(x = level, y = rsqrd_jack, group = year)) + #, color = year)) + # y = cor_meanFreq_log10r)) +
+  geom_point(size=2) +
+  geom_errorbar(aes(ymin = rsqrd_jack - 1.96*rsqrd_jack_se, ymax= rsqrd_jack + 1.96*rsqrd_jack_se), width = 0, size=1) +
+  scale_x_discrete(breaks = c(paste0("d",1:13),"chr"), labels = c(as.character(-14:-2), "chrom")) +
+  labs(x = expression(Scale: log[2]("Morgan")),
     y = "R squared",
     title= "C") +
   theme_classic() +
@@ -399,8 +399,8 @@ detailcols <- viridis_pal()(15)
 
 cntrb_plot <- ggplot(allwav_collapsedP[year == "2018"]) +
   geom_bar(aes(fill = level, x = year, y = normcor), position = "stack", stat = "identity") +
-  scale_fill_manual(values = c(detailcols, 'lightgrey', 'darkgrey'), labels  = c(as.character(0:14), "scl", "chrom")) + 
-  labs(x = "", 
+  scale_fill_manual(values = c(detailcols, 'lightgrey', 'darkgrey'), labels  = c(as.character(0:14), "scl", "chrom")) +
+  labs(x = "",
        y = "Contribution to correlation",
        fill = expression(Scale: log[2](kb)), title = "B") +
   scale_y_continuous(limits =c(0,1), expand = c(0,0)) +
@@ -422,8 +422,8 @@ detailcols.1 <- viridis_pal()(13)
 
 cntrb_plot.1 <- ggplot(allwav_collapsedG[year == "2018"]) +
   geom_bar(aes(fill = level, x = year, y = normcor), position = "stack", stat = "identity") +
-  scale_fill_manual(values = c(detailcols.1, 'lightgrey', 'darkgrey'), labels  = c(as.character(-14:-2), "scl", "chrom")) + 
-  labs(x = "", 
+  scale_fill_manual(values = c(detailcols.1, 'lightgrey', 'darkgrey'), labels  = c(as.character(-14:-2), "scl", "chrom")) +
+  labs(x = "",
        y = "Contribution to correlation",
        fill = expression(Scale: log[2](Morgan)),
        title = "B") +
@@ -442,7 +442,7 @@ cntrb_plot.1 <- ggplot(allwav_collapsedG[year == "2018"]) +
 cntrb_plot.1
 
 
-wc_plot1 
+wc_plot1
 cntrb_plot
 rsqrd_plot
 
@@ -450,7 +450,7 @@ rsqrd_plot
 
 
 
-# =====plot simulation and real data together ===== 
+# =====plot simulation and real data together =====
 simVarDecomp <- loadFrom("varDecomp_simulation_rhoCap0.005.RData", "allVarDecomp")
 simVarDecomp <- simVarDecomp[N_diploids == 100]
 
@@ -471,23 +471,23 @@ lineData <- sim_and_real[!level %in% c("s12","s13","s14","s15","chr")]
 lineData[, levels(level)]
 
 
-ggplot(sim_and_real[units == "genetic"], aes(x = level, 
-                         y = variance, 
+ggplot(sim_and_real[units == "genetic"], aes(x = level,
+                         y = variance,
                          group = gen,
                          color = interaction(data_source, gen))) +
-  geom_point(aes(shape = data_source)) + 
-  geom_line(data = lineData[units == "genetic"], aes(group=gen, linetype = data_source), size=0.5) + 
-  labs(x = expression(Scale: log[2](Morgans)), 
+  geom_point(aes(shape = data_source)) +
+  geom_line(data = lineData[units == "genetic"], aes(group=gen, linetype = data_source), size=0.5) +
+  labs(x = expression(Scale: log[2](Morgans)),
        # x = expression(Scale: log[2] (kbp)),
        y = "Ancestry variance",
        color = "") +
-  #scale_x_discrete(breaks = c(paste0("d",1:14),"s12","s13","s14","chr"), labels = c(as.character(-14:-1), paste0(-3:-1," (scaling var)"), "chromosome")) + 
-  scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2), " -2 (scaling var)", "chromosome")) + 
-  
-  #scale_x_discrete(breaks = c(paste0("d",1:15),"s13","s14","s15","chr"), labels = c(as.character(1:15), paste0(13:15," (scaling var)"), "chromosome")) + 
+  #scale_x_discrete(breaks = c(paste0("d",1:14),"s12","s13","s14","chr"), labels = c(as.character(-14:-1), paste0(-3:-1," (scaling var)"), "chromosome")) +
+  scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2), " -2 (scaling var)", "chromosome")) +
+
+  #scale_x_discrete(breaks = c(paste0("d",1:15),"s13","s14","s15","chr"), labels = c(as.character(1:15), paste0(13:15," (scaling var)"), "chromosome")) +
   theme_classic() +
   scale_colour_viridis_d() +
-  #geom_segment(aes(x=.95,xend=13.05,y=-Inf,yend=-Inf),color="black") + 
+  #geom_segment(aes(x=.95,xend=13.05,y=-Inf,yend=-Inf),color="black") +
   theme(aspect.ratio = 1,
         text = element_text(size=15),
         axis.line.x = element_blank(),
@@ -501,13 +501,13 @@ ggplot(sim_and_real[units == "genetic"], aes(x = level,
 
 acua2018cor <- data.table(loadFrom("ACUA_2018/allCorDecomp_anc_rec_cds.RData", "allCorDecomp_anc_rec_cds"))
 
-ggplot(acua2018cor[!grepl("s", level)], 
+ggplot(acua2018cor[!grepl("s", level)],
        aes(x=level, y=rec_anc_cor)) +
-  geom_point() + 
+  geom_point() +
   scale_x_discrete(breaks = c(paste0("d",1:15),"chr"), labels = c(as.character(1:15),  "chrom")) +
-  theme_classic() + 
+  theme_classic() +
   labs(x = expression(Scale: log[2](kb)), y = "Correlation")
-  
+
 
 
 
@@ -519,11 +519,11 @@ lineData <- allVar[!level %in% c("s13", "s14", "chr")]
 
 allVar[units == "genetic"] %>% ggplot(aes(x = level, y = variance.meanFreq, group = interaction(signal, year), color = year)) +
   geom_point(aes(shape = signal), size=2.2) +
-  geom_line(data = lineData[units == "genetic"], size=0.5, linetype=2) + 
-  labs(x = expression(Scale: log[2](Morgans)), 
+  geom_line(data = lineData[units == "genetic"], size=0.5, linetype=2) +
+  labs(x = expression(Scale: log[2](Morgans)),
        y = "Variance",
        color = "Year") +#, #shape = "Signal") +
-  scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2),"-2 (scaling var)", "chromosome")) + 
+  scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2),"-2 (scaling var)", "chromosome")) +
   scale_shape_discrete(labels = c("Individual", "Mean"))+
   theme_classic() +
   scale_colour_viridis_d() +
@@ -539,11 +539,11 @@ allVar[units == "genetic"] %>% ggplot(aes(x = level, y = variance.meanFreq, grou
 
 allVar[units == "genetic"] %>% ggplot(aes(x = level, y = propVar, group = interaction(signal, year), color = year)) +
   geom_point(aes(shape = signal), size=2.2) +
-  geom_line(data = lineData[units == "genetic"], size=0.5, linetype=2) + 
-  labs(x = expression(Scale: log[2](Morgans)), 
+  geom_line(data = lineData[units == "genetic"], size=0.5, linetype=2) +
+  labs(x = expression(Scale: log[2](Morgans)),
        y = "Proportion of genome-wide variance",
        color = "Year", shape = "Signal") +
-  scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2),"-2 (scaling var)", "chromosome")) + 
+  scale_x_discrete(breaks = c(paste0("d",1:13),"s13","chr"), labels = c(as.character(-14:-2),"-2 (scaling var)", "chromosome")) +
   scale_shape_discrete(labels = c("Individual", "Mean"))+
   theme_classic() +
   scale_colour_viridis_d() +
@@ -562,11 +562,11 @@ allVar[, level := factor(level, levels = c(paste0("d",1:15), paste0("s",13:15), 
 lineData <- allVar[!level %in% c("s13", "s14", "s15", "chr")]
 allVar[units == "physical"] %>% ggplot(aes(x = level, y = variance, group = interaction(signal, year), color = year)) +
   geom_point(aes(shape = signal), size=2.2) +
-  geom_line(data = lineData[units == "physical"], size=0.5, linetype=2) + 
-  labs(x = expression(Scale: log[2](kbp)), 
+  geom_line(data = lineData[units == "physical"], size=0.5, linetype=2) +
+  labs(x = expression(Scale: log[2](kbp)),
        y = "Variance",
        color = "Year", shape = "Signal") +
-  scale_x_discrete(breaks = c(paste0("d",1:15),"s13","s14","s15","chr"), labels = c(as.character(0:14),"12(scaling)", "13(scaling)", "14(scaling)", "chromosome")) + 
+  scale_x_discrete(breaks = c(paste0("d",1:15),"s13","s14","s15","chr"), labels = c(as.character(0:14),"12(scaling)", "13(scaling)", "14(scaling)", "chromosome")) +
   scale_shape_discrete(labels = c("Individual", "Mean"))+
   theme_classic() +
   scale_colour_viridis_d() +
@@ -582,11 +582,11 @@ allVar[units == "physical"] %>% ggplot(aes(x = level, y = variance, group = inte
 
 allVar[units == "physical"] %>% ggplot(aes(x = level, y = propVar, group = interaction(signal, year), color = year)) +
   geom_point(aes(shape = signal), size=2.2) +
-  geom_line(data = lineData[units == "physical"], size=0.5, linetype=2) + 
-  labs(x = expression(Scale: log[2](kbp)), 
+  geom_line(data = lineData[units == "physical"], size=0.5, linetype=2) +
+  labs(x = expression(Scale: log[2](kbp)),
        y = "Proportion of total genomic variance",
        color = "Year", shape = "Signal") +
-  scale_x_discrete(breaks = c(paste0("d",1:15),"s13","s14","s15","chr"), labels = c(as.character(0:14),"12(scaling)", "13(scaling)", "14(scaling)", "chromosome")) + 
+  scale_x_discrete(breaks = c(paste0("d",1:15),"s13","s14","s15","chr"), labels = c(as.character(0:14),"12(scaling)", "13(scaling)", "14(scaling)", "chromosome")) +
   scale_shape_discrete(labels = c("Individual", "Mean"))+
   theme_classic() +
   scale_colour_viridis_d() +
@@ -651,9 +651,9 @@ acua2018var <- data.table(var=loadFrom("ACUA_2018/totalVar.RData", "totalVar"));
 allVar <- rbindlist(list(acua2006var,acua2008var,acua2013var,acua2015var,acua2018var))
 
 
-ggplot(allVar, aes(x = year, y = var)) + 
-  geom_point(size=2) + 
-  theme_classic() + 
+ggplot(allVar, aes(x = year, y = var)) +
+  geom_point(size=2) +
+  theme_classic() +
   labs(y="Total variance")
 
 
@@ -696,11 +696,11 @@ lineData <- allVar[scale < 17]
 
 allVar[distance == "genetic"] %>% ggplot(aes(x = scale, y = anc_variance, group = interaction(decomp, year), color = year)) +
   geom_point(aes(shape = decomp), size=2.2) +
-  geom_line(data = lineData[distance == "genetic"], size=0.5, linetype=2) + 
-  labs(x = expression(Scale: log[2](Morgans)), 
+  geom_line(data = lineData[distance == "genetic"], size=0.5, linetype=2) +
+  labs(x = expression(Scale: log[2](Morgans)),
        y = "Variance",
        color = "Year", shape = "Signal") +
-  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(-15:-1),"chromosome\nlevel")) + 
+  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(-15:-1),"chromosome\nlevel")) +
   scale_shape_discrete(labels = c("Individual", "Mean"))+
   theme_classic() +
   scale_colour_viridis_d() +
@@ -717,14 +717,14 @@ allVar[distance == "genetic"] %>% ggplot(aes(x = scale, y = anc_variance, group 
 # 2.1. ----- Plot proportion ---------------
 allVar[, propVar := anc_variance/sum(anc_variance), by = .(decomp,distance,year)]
 lineDataProp <- allVar[scale < 17]
-  
+
 allVar[decomp == "pop_mean" & distance == "genetic"] %>% ggplot(aes(x = scale, y = propVar, group = interaction(decomp, year), color = year)) +
   geom_point(aes(shape = decomp),size=2.2) +
-  geom_line(data = lineDataProp[decomp == "pop_mean" & distance == "genetic"], size=0.5,linetype=2) + 
-  labs(x = expression(Scale: log[2](Morgans)), 
+  geom_line(data = lineDataProp[decomp == "pop_mean" & distance == "genetic"], size=0.5,linetype=2) +
+  labs(x = expression(Scale: log[2](Morgans)),
        y = "Proportion of variance",
        color = "Year", shape = "Signal") +
-  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(-15:-1),"chromosome\nlevel")) + 
+  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(-15:-1),"chromosome\nlevel")) +
   scale_shape_discrete(labels = c("Individual","Pop mean"))+
   theme_classic() +
   scale_colour_viridis_d() +
@@ -741,8 +741,8 @@ allVar[decomp == "pop_mean" & distance == "genetic"] %>% ggplot(aes(x = scale, y
 acua2006_wvChrG <- loadFrom("ACUA_2006/anc_rec_cds_varDecomp.RData", "wvChrsAll"); acua2006_wvChrG[,year := "2006"]
 
 acua2006_wvChrG[distance == "genetic"] %>%
-  ggplot(aes(x = scale, y = anc_variance, group = chr, color = chr)) + 
-  geom_point() + geom_line() + 
+  ggplot(aes(x = scale, y = anc_variance, group = chr, color = chr)) +
+  geom_point() + geom_line() +
   theme(legend.position = "none")
 
 
@@ -763,8 +763,8 @@ acua2006_wvChrG[chr %in% selChrs, BDMI := "yes"]
 acua2006_wvChrG[!chr %in% selChrs, BDMI := "no"]
 
 acua2006_wvChrG[distance == "genetic"] %>%
-  ggplot(aes(x = scale, y = anc_variance, group = chr, color = BDMI)) + 
-  geom_point() + geom_line() #+ 
+  ggplot(aes(x = scale, y = anc_variance, group = chr, color = BDMI)) +
+  geom_point() + geom_line() #+
   #theme(legend.position = "none")
 
 
@@ -773,11 +773,11 @@ acua2006_wvChrG[distance == "genetic"] %>%
 # 3.1. ----- Ancestry -----
 allVar[distance == "physical"] %>% ggplot(aes(x = scale, y =anc_variance, group = interaction(decomp, year), color = year)) +
   geom_point(aes(shape = decomp),size=2.2) +
-  geom_line(data = lineData[distance == "physical"], size=0.5,linetype=2) + 
-  labs(x = expression(Scale: log[2](kbp)), 
+  geom_line(data = lineData[distance == "physical"], size=0.5,linetype=2) +
+  labs(x = expression(Scale: log[2](kbp)),
        y = "Variance",
        color = "Year", shape = "Signal") +
-  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chromosome\nlevel")) + 
+  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chromosome\nlevel")) +
   scale_shape_discrete(labels = c("Individual","Pop mean"))+
   theme_classic() +
   scale_colour_viridis_d() +
@@ -791,11 +791,11 @@ allVar[distance == "physical"] %>% ggplot(aes(x = scale, y =anc_variance, group 
 
 allVar[distance == "physical"] %>% ggplot(aes(x = scale, y = anc_variance, group = interaction(decomp, year), color = year)) +
   geom_point(aes(shape = rev(decomp)),size=2.2) +
-  geom_line(data = lineDataProp[distance == "physical"], size=0.5,linetype=2) + 
-  labs(x = expression(Scale: log[2](kbp)), 
+  geom_line(data = lineDataProp[distance == "physical"], size=0.5,linetype=2) +
+  labs(x = expression(Scale: log[2](kbp)),
        y = "Variance",
        color = "Year", shape = "Signal") +
-  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chrom")) + 
+  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chrom")) +
   scale_shape_discrete(labels = c("Sample mean", "Individual"))+
   theme_classic() +
   scale_colour_viridis_d() +
@@ -816,11 +816,11 @@ ggplot(data=chrLen, aes(x = scale, y = 1)) + geom_boxplot()
 
 allVar[distance == "physical" & year == "2018" & decomp == "pop_mean"] %>% ggplot(aes(x = scale, y =rec_variance)) +
   geom_point(size=2.2) +
-  geom_line(data = lineData[distance == "physical" & decomp == "pop_mean"], size=0.5,linetype=2,group=year) + 
-  labs(x = expression(Scale: log[2](kbp)), 
+  geom_line(data = lineData[distance == "physical" & decomp == "pop_mean"], size=0.5,linetype=2,group=year) +
+  labs(x = expression(Scale: log[2](kbp)),
        y = "Variance",
        color = "Year") +
-  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chromosome\nlevel")) + 
+  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chromosome\nlevel")) +
   theme_classic() +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
   geom_segment(aes(x=16.5,xend=17.5,y=-Inf,yend=-Inf),color="black")+
@@ -833,11 +833,11 @@ allVar[distance == "physical" & year == "2018" & decomp == "pop_mean"] %>% ggplo
 
 allVar[distance == "physical" & year == "2018" & decomp == "pop_mean"] %>% ggplot(aes(x = scale, y =cds_variance)) +
   geom_point(size=2.2) +
-  geom_line(data = lineData[distance == "physical" & decomp == "pop_mean"], size=0.5,linetype=2,group=year) + 
-  labs(x = expression(Scale: log[2](kbp)), 
+  geom_line(data = lineData[distance == "physical" & decomp == "pop_mean"], size=0.5,linetype=2,group=year) +
+  labs(x = expression(Scale: log[2](kbp)),
        y = "Variance",
        color = "Year") +
-  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chromosome\nlevel")) + 
+  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chromosome\nlevel")) +
   theme_classic() +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
   geom_segment(aes(x=16.5,xend=17.5,y=-Inf,yend=-Inf),color="black")+
@@ -851,11 +851,11 @@ allVar[distance == "physical" & year == "2018" & decomp == "pop_mean"] %>% ggplo
 
 allVar[distance == "physical" & year == "2018" & decomp == "pop_mean"] %>% ggplot(aes(x = scale, y =cdsPerCm_variance)) +
   geom_point(size=2.2) +
-  geom_line(data = lineData[distance == "physical" & decomp == "pop_mean"], size=0.5,linetype=2,group=year) + 
-  labs(x = expression(Scale: log[2](kbp)), 
+  geom_line(data = lineData[distance == "physical" & decomp == "pop_mean"], size=0.5,linetype=2,group=year) +
+  labs(x = expression(Scale: log[2](kbp)),
        y = "Variance",
        color = "Year") +
-  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chromosome\nlevel")) + 
+  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chromosome\nlevel")) +
   theme_classic() +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
   geom_segment(aes(x=16.5,xend=17.5,y=-Inf,yend=-Inf),color="black")+
@@ -871,13 +871,13 @@ lineDataCor <- allCor[scale < 17]
 
 # 4.1. ----- Rec x Ancestry -----
 allCor %>%
-  ggplot(aes(x = scale, y = rec_anc_cor, group = year, color = year)) + 
-  geom_point(size=2.2) + 
-  geom_line(data = lineDataCor, size=0.5,linetype=2) + 
-  labs(x = expression(Scale: log[2](kbp)), 
+  ggplot(aes(x = scale, y = rec_anc_cor, group = year, color = year)) +
+  geom_point(size=2.2) +
+  geom_line(data = lineDataCor, size=0.5,linetype=2) +
+  labs(x = expression(Scale: log[2](kbp)),
        y = "Wavelet correlation",
        color = "Year") +
-  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chrom")) +  
+  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chrom")) +
   theme_classic() +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
   geom_segment(aes(x=16.5,xend=17.5,y=-Inf,yend=-Inf),color="black") +
@@ -890,13 +890,13 @@ allCor %>%
 
 # 4.2. ----- CDS x Ancestry -----
 allCor %>%
-  ggplot(aes(x = scale, y = cds_anc_cor, group = year, color = year)) + 
-  geom_point() + 
-  geom_line(data = lineDataCor, size=0.5,linetype=2) + 
-  labs(x = expression(Scale: log[2](kbp)), 
+  ggplot(aes(x = scale, y = cds_anc_cor, group = year, color = year)) +
+  geom_point() +
+  geom_line(data = lineDataCor, size=0.5,linetype=2) +
+  labs(x = expression(Scale: log[2](kbp)),
        y = "Pearson correlation coefficient",
        color = "Year") +
-  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chromosome\nlevel")) + 
+  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chromosome\nlevel")) +
   theme_classic() +
   scale_colour_viridis_d() +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
@@ -906,13 +906,13 @@ allCor %>%
 
 # 4.3. ----- CDS x Rec -----
 allCor %>%
-  ggplot(aes(x = scale, y = cds_rec_cor)) + 
-  geom_point() + 
-  geom_line(data = lineDataCor, size=0.5,linetype=2) + 
-  labs(x = expression(Scale: log[2](kbp)), 
+  ggplot(aes(x = scale, y = cds_rec_cor)) +
+  geom_point() +
+  geom_line(data = lineDataCor, size=0.5,linetype=2) +
+  labs(x = expression(Scale: log[2](kbp)),
        y = "Pearson correlation coefficient",
        color = "Year") +
-  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chromosome\nlevel")) + 
+  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chromosome\nlevel")) +
   theme_classic() +
   scale_colour_viridis_d() +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
@@ -922,13 +922,13 @@ allCor %>%
 
 # 4.3. ----- cdsPerCm x Anc -----
 allCor %>%
-  ggplot(aes(x = scale, y = cdsPerCm_anc_cor)) + 
-  geom_point() + 
-  geom_line(data = lineDataCor, size=0.5,linetype=2) + 
-  labs(x = expression(Scale: log[2](kbp)), 
+  ggplot(aes(x = scale, y = cdsPerCm_anc_cor)) +
+  geom_point() +
+  geom_line(data = lineDataCor, size=0.5,linetype=2) +
+  labs(x = expression(Scale: log[2](kbp)),
        y = "Pearson correlation coefficient",
        color = "Year") +
-  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chromosome\nlevel")) + 
+  scale_x_continuous(breaks = c(1:15,17), labels = c(as.character(0:14),"chromosome\nlevel")) +
   theme_classic() +
   scale_colour_viridis_d() +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
@@ -952,13 +952,13 @@ mrgd[, norm_cor := contribution/sum(contribution), by = .(year)]
 
 
 mrgd[scale < 17] %>%
-  ggplot() + 
+  ggplot() +
   geom_bar(aes(fill = reorder(as.factor(scale), desc(as.factor(scale))), x = year, y = contribution),
-               position = "stack", stat = "identity", color = "black") + 
-  scale_fill_viridis_d(option = "plasma") + 
-  labs(x = "Year", 
+               position = "stack", stat = "identity", color = "black") +
+  scale_fill_viridis_d(option = "plasma") +
+  labs(x = "Year",
        y = "Normalized wavelet correlation",
-       fill = expression(Scale: log[2](kb))) + 
+       fill = expression(Scale: log[2](kb))) +
   theme(text = element_text(size = 15))
   theme_classic()
 
@@ -972,8 +972,8 @@ setnames(wavcorGnomWide, "V1", "correlation")
 # wav var: plot proportion
 wavcorGnomWide[signal == "pop_mean"] %>% ggplot(aes(x = year, y = correlation, group = interaction(signal, scale), color = scale)) +
   geom_point(size=1.8) +
-  geom_line(aes(linetype=signal), size=0.5) + 
-  labs(x = "Year", 
+  geom_line(aes(linetype=signal), size=0.5) +
+  labs(x = "Year",
        y = "Wavelet correlation",
        color = "scale", linetype = "Signal") +
   #scale_linetype_discrete(labels = c("Individual","Pop mean"))+
@@ -984,10 +984,10 @@ wavcorGnomWide[, norm_cor := correlation/ sum(correlation, na.rm=T), by = .(sign
 # stacked barplot
 ggplot(wavcorGnomWide[signal == "pop_mean",]) +
   geom_bar(aes(fill = scale, x = year, y = norm_cor), position = "stack", stat = "identity", color = "black") +
-  scale_fill_viridis_d(option = "plasma") + 
-  labs(x = "Year", 
+  scale_fill_viridis_d(option = "plasma") +
+  labs(x = "Year",
        y = "Normalized wavelet correlation",
-       fill = expression(Scale: log[2](kb))) + 
+       fill = expression(Scale: log[2](kb))) +
   theme_classic()
 
 

@@ -80,23 +80,26 @@ lineData_genetic <- wv_genetic[grepl("d", level, fixed = T)]
 
 wv_genetic_collapsed <- rbind(wv_genetic[grepl('s', level, fixed=T), 
                                          .(level = 'scl', variance.freq = sum(variance.freq), 
-                                           propvar.freq = sum(propvar.freq))], 
+                                           propvar.freq = sum(propvar.freq), variance.freq.jack.se = NA)], 
                               wv_genetic[!grepl('s', level, fixed=T), 
-                                         .(level, variance.freq, propvar.freq)]
+                                         .(level,  propvar.freq, variance.freq, variance.freq.jack.se)]
       )
 
 wv_genetic_collapsed[, level := factor(level, levels = c(paste0("d", 1:17), 'scl', 'chr'))] 
 
+wv_genetic_collapsed[, variance.freq.jack.se.scld := variance.freq.jack.se/sum(variance.freq)]
 
 ggplot(wv_genetic_collapsed, 
        #aes(x = level, y = variance.freq, group = 1)) + 
        aes(x = level, y = propvar.freq)) + 
   #geom_point(data = wvtheory, aes(x = level, y = propvar.freq), size=3, color = "#c24633") +
-  geom_point(size = 3) + 
+  geom_point(size = 2) + 
   
   geom_line(data = wvtheory, aes(x = level, y = propvar.freq), group = 1, color = "darkgrey", size = 1) +
   #geom_line(data = lineData_genetic, group = 1, size = 2, color = 'dodgerblue') + 
-  geom_point(size = 3) + 
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin=propvar.freq - 1.96*variance.freq.jack.se.scld, ymax=propvar.freq+1.96*variance.freq.jack.se.scld)) +
+  
   
   labs(color = "") +
   theme_classic() + 
@@ -123,8 +126,8 @@ ggplot(wv_genetic_collapsed,
 
 p1 <- ggplot(wc_freq_rec_physical[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack)) + 
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
-  geom_point(size=2, color = "#eb5ab4") + 
-  geom_errorbar(aes(ymin=lower95ci, ymax = upper95ci), width = 0, size = 1, color = "#eb5ab4") + 
+  geom_point(size=2, color = "#329a9c") + 
+  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1, color = '#329a9c') + 
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), "chr"), 
                    labels = c(0:16, 'chrom')) +
@@ -149,14 +152,14 @@ p1
 p2 <- ggplot(wc_freq_gd_physical[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack)) + 
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
   geom_point(size=2, col = '#eda915') + 
-  geom_errorbar(aes(ymin=lower95ci, ymax = upper95ci), width = 0, size = 1, col = '#eda915') + 
+  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1, col = '#eda915') + 
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), "chr"), 
                    labels = c(1:17, 'chrom')) +
   labs(x = expression(Scale: log[2] ("kb")), 
        y = "Correlation", 
        title = "B") + 
-  scale_y_continuous(limits = c(-.45,0.2)) +
+  scale_y_continuous(limits = c(-1,0.5)) +
   geom_segment(aes(x = 0, xend = 17, y = -Inf, yend = -Inf))  +
   theme(aspect.ratio = 1,
         text = element_text(size=15),
@@ -170,16 +173,15 @@ p2 <- ggplot(wc_freq_gd_physical[!grepl('s',level,fixed=T)], aes(x = level, y = 
 p2
 
 # correlation of recomb and gene density in same plot
-p1 + geom_point(data = wc_freq_gd_physical[!grepl('s',level,fixed=T)], size=2, col = '#3dc2b9') + 
-  geom_errorbar(data = wc_freq_gd_physical[!grepl('s',level,fixed=T)], aes(ymin=lower95ci, ymax = upper95ci), width = 0, size = 1, col = '#3dc2b9') + 
-  geom_point(data = wc_rec_gd_physical[!grepl('s',level,fixed=T)], size=2, col = '#e89a1b') + 
-  geom_errorbar(data = wc_rec_gd_physical[!grepl('s',level,fixed=T)], aes(ymin=lower95ci, ymax = upper95ci), width = 0, size = 1, col = '#e89a1b')  
-  
+p1 + geom_point(data = wc_freq_gd_physical[!grepl('s',level,fixed=T)], aes(x = 1:18 - 0.2), size=2, col = "#d49e9b") + 
+  geom_errorbar(data = wc_freq_gd_physical[!grepl('s',level,fixed=T)], aes(x = 1:18 - 0.2, ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1, col = "#d49e9b", position = pd) + 
+  geom_point(data = wc_rec_gd_physical[!grepl('s',level,fixed=T)], aes(x = 1:18 + 0.2), size=2, col = "#cfc13f") + 
+  geom_errorbar(data = wc_rec_gd_physical[!grepl('s',level,fixed=T)], aes(x = 1:18 + 0.2, ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1, col = "#cfc13f")  
 
 p3 <- ggplot(wc_rec_gd_physical[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack)) + 
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
   geom_point(size=2) + 
-  geom_errorbar(aes(ymin=lower95ci, ymax = upper95ci), width = 0, size = 1) + 
+  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1) + 
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), "chr"), 
                    labels = c(1:17, 'chrom')) +
@@ -201,7 +203,7 @@ p1 + p2
 
 p4 <- ggplot(wc_freq_gdr_physical[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack)) + 
   geom_point(size=2) + 
-  geom_errorbar(aes(ymin=lower95ci, ymax = upper95ci), width = 0, size = 1) + 
+  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1) + 
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), "chr"), 
                    labels = c(1:17, 'chrom')) +
@@ -222,7 +224,7 @@ p4
 p5 <- ggplot(wc_freq_B_physical[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack)) + 
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
   geom_point(size=2) + 
-  geom_errorbar(aes(ymin=lower95ci, ymax = upper95ci), width = 0, size = 1) + 
+  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1) + 
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), "chr"), 
                    labels = c(0:16, 'chrom')) +
@@ -241,6 +243,28 @@ p5 <- ggplot(wc_freq_B_physical[!grepl('s',level,fixed=T)], aes(x = level, y = c
 
 p5
 p3 + p5
+
+
+ggplot(lm_physical[model=='log10rec_cds_density' & !grepl('s',level,fixed=T)], aes(x = level, y = rsqrd_n)) + geom_point() +
+  geom_errorbar(aes(ymin=rsqrd_n - 1.96*rsqrd_jack_se, ymax=rsqrd_n + 1.96*rsqrd_jack_se)) + 
+  geom_segment(aes(x = 0, xend = 17, y = -Inf, yend = -Inf))  +
+  theme_classic() +
+  scale_x_discrete(breaks = c(paste0("d", 1:17), "chr"), 
+                   labels = c(0:16, 'chrom')) +
+  labs(x = expression(Scale: log[2] ("kb")), 
+       y = "R squared", 
+       title = "") + 
+  theme(aspect.ratio = 1,
+        text = element_text(size=15),
+        axis.ticks.x = element_line(size=1),
+        axis.line.x = element_blank(),
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
+        axis.text.y = element_text(size=12),
+        plot.title = element_text(hjust = -.1),
+        axis.title.y = element_text(hjust=.4,margin=margin(r=10))) 
+
+
+
 
 
 # ----- genetic units ----
