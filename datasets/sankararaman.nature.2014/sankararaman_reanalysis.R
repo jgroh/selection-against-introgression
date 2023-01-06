@@ -10,15 +10,18 @@ for(i in 1:22){
   
   # col 2 is chromosome, 4 is physical position, col 11 is average marginal posterior probability
   dt <- fread(filename)
+  dt[, Morgan := V3 /100]
   
   # interpolate to physical grid. first try 1kb for comparison to skov analysis
   frq <- dt[, approx(xout = seq(min(V4), max(V4), by = 1e3), x = V4, y = V11), by = V2]
   setnames(frq, c("chr", "pos", "frq"))
   
+  # calculate recombination rate
   rec <- dt[, approx(xout = seq(min(V4), max(V4), by = 1e3), x = V4, y = Morgan), by = V2]
   setnames(rec, c("chr", "pos", "Morgan"))
   rec[, rec := (Morgan - shift(Morgan))/(pos-shift(pos))]
   rec[, rec := c(.SD[2, rec], .SD[2:nrow(.SD), rec])]
+  
   frq <- merge(frq, rec)
   frqList[[i]] <- frq
   
