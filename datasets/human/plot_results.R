@@ -174,7 +174,7 @@ p2
 
 # correlation of recomb and gene density in same plot
 p1 + geom_point(data = wc_freq_gd_physical[!grepl('s',level,fixed=T)], aes(x = 1:18 - 0.2), size=2, col = "#d49e9b") + 
-  geom_errorbar(data = wc_freq_gd_physical[!grepl('s',level,fixed=T)], aes(x = 1:18 - 0.2, ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1, col = "#d49e9b", position = pd) + 
+  geom_errorbar(data = wc_freq_gd_physical[!grepl('s',level,fixed=T)], aes(x = 1:18 - 0.2, ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1, col = "#d49e9b") + 
   geom_point(data = wc_rec_gd_physical[!grepl('s',level,fixed=T)], aes(x = 1:18 + 0.2), size=2, col = "#cfc13f") + 
   geom_errorbar(data = wc_rec_gd_physical[!grepl('s',level,fixed=T)], aes(x = 1:18 + 0.2, ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1, col = "#cfc13f")  
 
