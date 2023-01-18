@@ -59,7 +59,7 @@ frq1kb[, Morgan_start := approx(xout = frq1kb$start, x = rmap$End, y = rmap$Morg
 frq1kb[, rec := (Morgan_end-Morgan_start)/1e3]
 frq1kb[, rec := c(.SD[2, rec], .SD[2:nrow(.SD), rec])]
 
-frq1kb[, Morgan_end := NULL][, Morgan_start := NULL][, start := NULL][, end := NULL]
+frq1kb[, start := NULL][, end := NULL]
 
 # ---- method 2: count overlapping fragments at bp in center of window
 # frq1kb[, skov_freq2 := archaic[start < pos & end >= pos, sum(freq)], by = seq_len(nrow(frq1kb))][]
