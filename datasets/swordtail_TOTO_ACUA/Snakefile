@@ -9,6 +9,7 @@ ruleorder: interpolate_ancestry_single_chrom_2018 > interpolate_ancestry_single_
 rule all:
 	input:
 		expand("ACUA_{year}/wavelet_results.RData", year = years),
+		expand("neutral_sims/replicate{rep}_frqs.txt.gz", rep = np.arange(10))
 
 rule interpolate_ancestry_single_chrom:
 	input: 
@@ -125,3 +126,20 @@ rule slim_rec_map:
 		"swordtail_SNP_recMap_slim_rhoCap0.005.txt"	
 	shell:
 		"Rscript --vanilla swordtail_recomb_map_slim.R {input.chrLen} {input.genotypeFile}"
+
+rule neutral_sims:
+	input:
+		"swordtail_SNP_recMap_slim_rhoCap0.005.txt"
+	output:
+		"neutral_sims/replicate{rep}.trees"
+	shell:
+		"slim -d seed={wildcards.rep} -d N=1000 swordtail_neutral.slim"
+
+rule neutral_sim_ancestry:
+	input:
+		"neutral_sims/replicate{rep}.trees"
+	output:
+		"neutral_sims/replicate{rep}_frqs.txt.gz"
+	shell:
+		"python ancestry-multigen-swordtail.py {input} 98 122 | gzip > {output}"
+

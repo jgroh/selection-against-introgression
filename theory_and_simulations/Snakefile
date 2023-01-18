@@ -84,7 +84,7 @@ rule human_wgsims:
 
 rule all_human_wgsims:
 	input:
-		expand("results/human_wgsim_{sim}/replicate{rep}.trees", sim = ["neutral_equilibrium","neutral_bottleneck","sel1-1000_S0.4","sel1-10_S0.4","sel900-1000_S0.4","neutral_equilibrium_no_interp","neutral_bottleneck_no_interp","sel1-1000_S0.8","sel1-10_S0.8", "sel900-1000_S0.8"], rep = np.arange(10))
+		expand("results/human_wgsim_{sim}/replicate{rep}.trees", sim = ["neutral_equilibrium","neutral_bottleneck","sel1-1000_S0.4","sel1-10_S0.4","sel900-1000_S0.4","neutral_equilibrium_no_interp","neutral_bottleneck_no_interp","sel1-1000_S1","sel1-10_S1", "sel900-1000_S1"], rep = np.arange(10))
 
 rule output_human_chrom_ancestry:
 	input:
@@ -92,7 +92,7 @@ rule output_human_chrom_ancestry:
 	output:
 		"results/human_wgsim_{sim}/replicate{rep}_frqs.txt"
 	shell:
-		"python3 code/ancestry-multigen.py {input} 3 4 12 52 102 502 1002 > {output}"
+		"python code/ancestry-multigen.py {input} > {output}"
 
 #rule all_human_wgsim_ancestry: # output file will have a row for each rep x generation x snp position.
 #	input:
@@ -127,8 +127,8 @@ rule human_wgsim_sel_wavelets:
 
 rule all_human_wgsim_wavelet_results:
 	input:
-		expand("results/human_wgsim_neutral_{sim}_no_interp/replicate{rep}_wavelet_results.txt", rep = np.arange(10), sim = ['equilibrium','bottleneck']),
-		expand("results/human_wgsim_{selsim}_S{S}/replicate{rep}_wavelet_results.RData",selsim=['sel1-1000','sel1-10','sel900-1000'],S=['0.4','0.8'], rep=np.arange(10))
+#		expand("results/human_wgsim_neutral_{sim}_no_interp/replicate{rep}_wavelet_results.txt", rep = np.arange(10), sim = ['equilibrium','bottleneck']),
+		expand("results/human_wgsim_{selsim}_S{S}/replicate{rep}_wavelet_results.RData",selsim=['sel1-1000','sel1-10','sel900-1000'],S=['0.4','1'], rep=np.arange(10))
 #		expand("results/human_wgsim_{sim}/replicate{rep}_wavelet_results.RData", sim = ["neutral_equilibrium","neutral_bottleneck","sel1-1000","sel1-10","sel900-1000"], rep = np.arange(10))
 
 # ===== rules for simulations with periodic recombination =====
