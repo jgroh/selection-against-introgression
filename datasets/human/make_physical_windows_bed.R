@@ -1,8 +1,7 @@
 library(data.table)
 options(scipen=999)
 
-rmap <- fread("aau1043_datas3")
-#rmap <- fread("recomb-hg38/genetic_map_GRCh38_merged.tab")
+rmap <- fread("Halldorsson_etal_2019_data/aau1043_datas3")
 rmap[, Morgan := cM/100]
 
 bed1kb <- rmap[Chr != "chrX", .(seq(min(End), max(End), by = 1e3) - 500,
