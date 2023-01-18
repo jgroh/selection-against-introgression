@@ -78,7 +78,7 @@ windowsM[,
            , pos := approx(x = rmap$Morgan, y = rmap$End, xout = windowsM$Morgan)$y][
              , end := approx(x = rmap$Morgan, y = rmap$End, xout = windowsM$Morgan + 2^-17)$y
            ]
-if(is.na(windowsM[1, start])){ windowsM[1, start := end - windowsM[2, end-start]] }
+windowsM <- windowsM[!is.na(start) & !is.na(end)]
 
 
 # find all fragments that overlap grid windows
