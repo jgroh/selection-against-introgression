@@ -1,25 +1,37 @@
 import numpy as np
-chrs = np.arange(1, 23)
+chrs = [str(x) for x in range(1,23)]
+chrs.append("X")
 units = ["physical", "genetic"]
+
 # analyses common to both units. note gene density analysis differs between physical and genetic
-wvlt_analyses = ["wv","wc_freq_rec","wc_freq_gd","wc_rec_gd","lm", "wc_freq_B"]
+#
+wvlt_analyses = ["wv","wc_freq_log10rec","wc_freq_rec","wc_freq_gd","wc_rec_gd","lm", "wc_freq_B"]
 
 rule all:
 	input:
 		expand("archaic_freqs/chr{chrom}_frq_{unit}_windows.txt", chrom = chrs, unit = units),
-#		expand("gene_density_{unit}_windows.txt", unit = units),
 #		expand("wavelet_results/{analysis}_{unit}.txt", analysis = wvlt_analyses, unit=units),
 #		"wavelet_results/wc_freq_gdr_physical.txt"
 
 rule get_freq:
 	input:
+		skov_fragments="Skov_etal_2020_data/41586_2020_2225_MOESM3_ESM.txt",
+		sank_calls="Sankararaman_etal_2014_data/summaries.release/CEU.hapmap/summaries/chr-{chr}.thresh-90.length-0.00.gz",
+		sank_snps="Sankararaman_etal_2014_data/sankHg19ToHg38Snps.bed", # produced with liftOver
+		stein_calls="Steinrucken_etal_2018_data/March2018/CEU_lax_chr{chr}/chr{chr}_frqs.txt",
+		stein_snps="Steinrucken_etal_2018_data/March2018/steinHg19ToHg38Snps.bed",
+		recmap="Halldorsson_etal_2019_data/aau1043_datas3"
 	output:
 		expand("archaic_freqs/chr{{chr}}_frq_{unit}_windows.txt",unit=units)
 	shell:
 		"""
 		Rscript --vanilla archaic_freq_1chrom.R {wildcards.chr} \
-				Neanderthal_files/41586_2020_2225_MOESM3_ESM.txt \
-				aau1043_datas3 
+				{input.skov_fragments} \
+				{input.sank_calls} \
+				{input.sank_snps} \
+				{input.stein_calls} \
+				{input.stein_snps} \
+				{input.recmap} 
 		"""
 
 rule make_window_beds: # genetic windows also output Morgan distance to be able to merge with frequency files
@@ -46,9 +58,9 @@ rule calculate_gene_density_physical:
 		B="hg38_CDS.bed"
 	output:
 		out="gene_density_physical_windows.txt",
-	shell:
+	shell: # this gets the number of coding base pairs per window
 		"""
-		bedtools coverage -a {input.A} -b {input.B} | cut -f1-3,7 |\
+		bedtools coverage -a {input.A} -b {input.B} | cut -f1-3,5 |\
 		sort -k1,1 -k2,2n > {output.out}
 		"""
 
@@ -60,7 +72,7 @@ rule calculate_gene_density_genetic:
 		out="gene_density_genetic_windows.txt",
 	shell:
 		"""
-		# for genetic windows kept Morgan for id so there's an extra col in output, also we take # of coding bp instead of density
+		# for genetic windows kept Morgan for id so there's an extra col in output
 		bedtools coverage -a {input.A} -b {input.B} | cut -f1-4,6 |\
 		sort -k1,1 -k2,2n > {output.out}
 		"""
@@ -86,3 +98,4 @@ rule run_wavelets:
 		"""
 		Rscript --vanilla wavelet_analyses.R {wildcards.unit} {wildcards.analysis}
 		"""
+

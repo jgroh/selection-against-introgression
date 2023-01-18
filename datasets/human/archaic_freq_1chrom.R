@@ -74,9 +74,9 @@ frq1kb[, Morgan_end := NULL][, Morgan_start := NULL][, start := NULL][, end := N
 
 windowsM <- data.table(chrom = chromosome, Morgan = rmap[, seq(min(Morgan), max(Morgan), by = 2^-16)])
 windowsM[, 
-         start := approx(x = rmap$Morgan, y = rmap$End, xout = windowsM$Morgan - 2^-17)$y][
-           , pos := approx(x = rmap$Morgan, y = rmap$End, xout = windowsM$Morgan)$y][
-             , end := approx(x = rmap$Morgan, y = rmap$End, xout = windowsM$Morgan + 2^-17)$y
+         start := round(approx(x = rmap$Morgan, y = rmap$End, xout = windowsM$Morgan - 2^-17)$y)][
+           , pos := round(approx(x = rmap$Morgan, y = rmap$End, xout = windowsM$Morgan)$y)][
+             , end := round(approx(x = rmap$Morgan, y = rmap$End, xout = windowsM$Morgan + 2^-17)$y)
            ]
 windowsM <- windowsM[!is.na(start) & !is.na(end)]
 
