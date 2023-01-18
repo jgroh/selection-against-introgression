@@ -56,8 +56,8 @@ setnames(frq1kb, c("i.start", "i.end"), c("start", "end"))
 frq1kb[, Morgan_end := approx(xout = frq1kb$end, x = rmap$End, y = rmap$Morgan)$y]
 frq1kb[, Morgan_start := approx(xout = frq1kb$start, x = rmap$End, y = rmap$Morgan)$y]
 
+frq1kb <- frq1kb[!is.na(Morgan_start) & !is.na(Morgan_end)]
 frq1kb[, rec := (Morgan_end-Morgan_start)/1e3]
-frq1kb[, rec := c(.SD[2, rec], .SD[2:nrow(.SD), rec])]
 
 frq1kb[, start := NULL][, end := NULL]
 
