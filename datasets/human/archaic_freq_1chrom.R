@@ -2,7 +2,7 @@ library(data.table)
 
 
 if(Sys.getenv("RSTUDIO") == "1"){
-  chromosome <- 22
+  chromosome <- 1
   skov_fragments <- fread("Skov_etal_2020_data/41586_2020_2225_MOESM3_ESM.txt")
   sank_calls <- fread("Sankararaman_etal_2014_data/chr-22.thresh-90.length-0.00.gz")
   sank_snps <- fread("Sankararaman_etal_2014_data/sankHg19ToHg38Snps.bed", col.names = c("chr", "start", "end", "hg19_id"))
@@ -35,7 +35,7 @@ rmap[, Morgan := cM/100]
 # ===== Skov frequency physical windows  =====
 
 # ----- method 1, weighted average of fragment frequencies -----
-windows <- data.table(chrom=chromosome, pos = seq(rmap[,min(End)], rmap[, max(End)], by = 1e3))
+windows <- data.table(chrom=as.character(chromosome), pos = seq(rmap[,min(End)], rmap[, max(End)], by = 1e3))
 windows[, start := pos - 500][, end := pos + 500]
 
 
@@ -63,6 +63,7 @@ frq1kb[, start := NULL][, end := NULL]
 
 # ---- method 2: count overlapping fragments at bp in center of window
 # frq1kb[, skov_freq2 := archaic[start < pos & end >= pos, sum(freq)], by = seq_len(nrow(frq1kb))][]
+# ggplot(frq1kb, aes(x = skov_freq, y = skov_freq2)) + geom_point()
 
 
 # ===== Skov allele frequency in genetic windows =====
@@ -72,7 +73,7 @@ frq1kb[, start := NULL][, end := NULL]
 # this is between 2^-16 and 2^-17
 # rmap[, mean(Morgan - shift(Morgan), na.rm=T)]
 
-windowsM <- data.table(chrom = chromosome, Morgan = rmap[, seq(min(Morgan), max(Morgan), by = 2^-16)])
+windowsM <- data.table(chrom = as.character(chromosome), Morgan = rmap[, seq(min(Morgan), max(Morgan), by = 2^-16)])
 windowsM[, 
          start := round(approx(x = rmap$Morgan, y = rmap$End, xout = windowsM$Morgan - 2^-17)$y)][
            , pos := round(approx(x = rmap$Morgan, y = rmap$End, xout = windowsM$Morgan)$y)][
@@ -85,13 +86,12 @@ windowsM <- windowsM[!is.na(start) & !is.na(end)]
 overlapsM <- foverlaps(windowsM, archaic, by.x=c("chrom","start","end"), by.y=c("chrom","start","end"))
 
 # weight frequency by length of fragment overlap
-overlapsM[, weighted_freq := freq*(pmin(end, i.end) - pmax(start, i.start))/(end-start), by=.(chrom,start,end)]
+overlapsM[, weighted_freq := freq*(pmin(end, i.end) - pmax(start, i.start))/(i.end-i.start), by=.(chrom,i.start,i.end)]
 
 # windows with no overlap get frequency zero
 overlapsM[is.na(freq), weighted_freq := 0]
 
-#ggplot(overlapsM, aes(x = freq, y = weighted_freq)) + geom_point() + geom_abline()
-
+#ggplot(overlapsM, aes(x = pos, y = weighted_freq)) + geom_point() 
 
 # sum weighted frequencies of fragments in each window
 frqM <- overlapsM[, .(skov_freq = sum(weighted_freq)), by = .(chrom, Morgan, i.start, pos, i.end)]
@@ -99,6 +99,12 @@ setnames(frqM, c("i.start", "i.end"), c("start", "end"))
 
 frqM[, rec := 2^-16/(end-start)]
 
+# alternate method
+# frqM[, skov_freq2 := archaic[start < pos & end >= pos, sum(freq)], by = seq_len(nrow(frqM))][]
+# ggplot(frqM, aes(x = skov_freq, y = skov_freq2)) + geom_point()
+
+#ggplot(frq1kb[, gnom_var_decomp(.SD, chromosome = NA, signals = "skov_freq")], aes(x = level, y = variance.skov_freq))+ geom_point()
+# ggplot(frqM, aes(x = pos, y = skov_freq)) + geom_point()
 
 # ggplot(frq1kb, aes(x = pos)) + geom_point(aes(y = skov_freq)) + 
 #  geom_point(data=frqM, aes(x = end, y = skov_freq, color = 'red'))
