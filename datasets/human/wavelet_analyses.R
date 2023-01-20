@@ -81,12 +81,21 @@ if(windows == "physical"){
   setnames(B_interp, c("x", "y"), c("Morgan", "B"))
   gnom <- merge(gnom, B_interp, by = c("chr", "Morgan"))
   
+  # fix NA freq values
+  # these are places where the Morgan window has zero bp length
+  # gnom[is.na(sank_freq), end-start]
+  gnom_complete_obs0 <- gnom[!is.na(skov_freq) & !is.infinite(skov_freq) & !is.nan(skov_freq)]
+  gnom[, skov_freq := approx(x = gnom_complete_obs0[chr == .BY, Morgan], 
+                       y = gnom_complete_obs0[chr == .BY, skov_freq],
+                       xout = gnom[chr == .BY, Morgan], rule = 2)$y, by = chr]
+  
+  
   # fix infinite rec values with interpolation
   # this occurs bc bp interpolation gives same bp for adjacent Morgan intervals
-  gnom_complete_obs <- gnom[!is.na(rec) & !is.infinite(rec) & !is.nan(rec)]
-  gnom[, rec := approx(x = gnom_complete_obs[chr == .BY, pos], 
-                            y = gnom_complete_obs[chr == .BY, rec],
-                            xout = gnom[chr == .BY, pos], rule = 2)$y, by = chr]
+  gnom_complete_obs1 <- gnom[!is.na(rec) & !is.infinite(rec) & !is.nan(rec)]
+  gnom[, rec := approx(x = gnom_complete_obs1[chr == .BY, Morgan], 
+                            y = gnom_complete_obs1[chr == .BY, rec],
+                            xout = gnom[chr == .BY, Morgan], rule = 2)$y, by = chr]
   # log transform of recomb
   gnom[, log10rec := log10(rec)]
   
@@ -94,9 +103,9 @@ if(windows == "physical"){
 
   # interpolate to remove inf values
   gnom_complete_obs2 <- gnom[!is.na(log10rec) & !is.infinite(log10rec) & !is.nan(log10rec)]
-  gnom[, log10rec := approx(x = gnom_complete_obs2[chr == .BY, pos], 
+  gnom[, log10rec := approx(x = gnom_complete_obs2[chr == .BY, Morgan], 
                             y = gnom_complete_obs2[chr == .BY, log10rec],
-                            xout = gnom[chr == .BY, pos], rule = 2)$y, by = chr]
+                            xout = gnom[chr == .BY, Morgan], rule = 2)$y, by = chr]
   
   # now, just cds base pairs takes into account cds density and recomb rate,
   # make new variable just to run parallel with physical window analysis
