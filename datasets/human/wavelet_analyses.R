@@ -133,6 +133,7 @@ if(analysis == "wc_calls"){
   wc_sank_stein[, study := "sank_vs_stein"]
   
   wc <- rbindlist(list(wc_skov_sank, wc_sank_stein, wc_skov_stein))
+  fwrite(wc, file=outfile, sep = "\t", quote=F)
   
 }
 
@@ -178,7 +179,7 @@ if(analysis == "wc_freq_log10rec"){
   fwrite(wc, file=outfile, sep = "\t", quote=F)
 }
 
-if(analysis == "wc_freq_gd"){
+if(analysis == "wc_freq_cds"){
   wc_skov <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("skov_freq", "cds"), rm.boundary = F)]
   wc_skov[, study := "skov"]
   

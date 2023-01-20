@@ -5,12 +5,12 @@ units = ["physical", "genetic"]
 
 # analyses common to both units. note gene density analysis differs between physical and genetic
 #
-wvlt_analyses = ["wv","wc_freq_log10rec","wc_freq_rec","wc_freq_gd","wc_rec_gd","lm", "wc_freq_B"]
+wvlt_analyses = ["wv","wc_calls", "wc_freq_log10rec","wc_freq_rec","wc_freq_cds","wc_rec_cds", "wc_freq_cdsM","lm", "wc_freq_B"]
 
 rule all:
 	input:
 		expand("archaic_freqs/chr{chrom}_frq_{unit}_windows.txt", chrom = chrs, unit = units),
-#		expand("wavelet_results/{analysis}_{unit}.txt", analysis = wvlt_analyses, unit=units),
+		expand("wavelet_results/{analysis}_{unit}.txt", analysis = wvlt_analyses, unit=units),
 #		"wavelet_results/wc_freq_gdr_physical.txt"
 
 rule get_freq:
