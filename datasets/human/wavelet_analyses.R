@@ -27,7 +27,7 @@ if(windows == "physical"){
   cds[, pos := start + 500]
   
   # read frequency files
-  chr_files <- dir(path = "archaic_freqs/", pattern = "chr.*_frq_physical_windows.txt", full.names=T)
+  chr_files <- dir(path = "archaic_freqs_hg38/", pattern = "chr.*_frq_physical_windows.txt", full.names=T)
   gnom <- rbindlist(lapply(chr_files, fread))
   
   # combine gd and freq files
@@ -68,7 +68,7 @@ if(windows == "physical"){
   cds <- fread("gene_density_genetic_windows.txt", col.names = c("chr", "start", "end", "Morgan", "cds"))
   
   # read frequency files
-  chr_files <- dir(path = "archaic_freqs/", pattern = "chr.*_frq_genetic_windows.txt", full.names=T)
+  chr_files <- dir(path = "archaic_freqs_hg38/", pattern = "chr.*_frq_genetic_windows.txt", full.names=T)
   gnom <- rbindlist(lapply(chr_files, fread))
   
   # combine gd and freq files
