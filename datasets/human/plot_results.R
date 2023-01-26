@@ -105,7 +105,7 @@ ggplot(wv_physical_collapsed,
 
 # ===== wavelet variance, genetic units =====
 
-wvtheory <- wavelet_variance_equilbrium(n.pop=20000, n.sample = 20000, unit.dist = 2^-16, level = 1:17, alpha = 0.005, gen = 2000)
+wvtheory <- wavelet_variance_equilbrium(n.pop=2000, n.sample = 2000, unit.dist = 2^-16, level = 1:17, alpha = 0.01, gen = 2000)
 setnames(wvtheory, "variance", "variance.freq")
 wvtheory[, propvar.freq := variance.freq/sum(variance.freq)]
 wvtheory[, data := "theory"]
@@ -166,11 +166,12 @@ ggplot(wv_genetic_plot_data,
        aes(x = level, y = propvar, color = study)) + 
   #geom_point(data = wvtheory, aes(x = level, y = propvar.freq), size=3, color = "#c24633") +
   geom_point(size = 2) + 
-  
-  geom_line(data = wvtheory, aes(x = level, y = propvar.freq), group = 1, color = "darkgrey", size = 1) +
+  scale_color_manual(values = c("#19CEBF", "#EFCA2F", "#E87DE0")) +  
+  geom_line(data = wvtheory, aes(x = level, y = propvar.freq), group = 1, color = "black", size = 1) +
   #geom_line(data = lineData_genetic, group = 1, size = 2, color = 'dodgerblue') + 
   geom_point(size = 2) +
-  geom_errorbar(aes(ymin=propvar.freq - 1.96*variance.freq.jack.se.scld, ymax=propvar.freq+1.96*variance.freq.jack.se.scld)) +
+  geom_line(data=wv_genetic_plot_data[grepl('d', level, fixed=T)], size = 1, aes(group = study)) +
+  #geom_errorbar(aes(ymin=propvar - 1.96*se.scld, ymax=propvar+1.96*se.scld)) +
   
   
   labs(color = "") +
@@ -180,7 +181,7 @@ ggplot(wv_genetic_plot_data,
   labs(x = expression(Scale: log[2] (Morgan)), 
        #y = "Variance") + 
        y = "Proportion of variance") + 
-  geom_segment(aes(x = 0, xend = 17.05, y = -Inf, yend = -Inf))  +
+  geom_segment(aes(x = 0, xend = 17.05, y = -Inf, yend = -Inf), color = 'black')  +
   #geom_line(data = wvtheory, aes(x = level, y = propvar.freq), group = 1, color = 'red') +
   theme(aspect.ratio = 1,
         text = element_text(size=15),
@@ -196,10 +197,13 @@ ggplot(wv_genetic_plot_data,
 # ---- physical scale 
 
 
-p1 <- ggplot(wc_freq_rec_physical[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack)) + 
+p1 <- ggplot(wc_freq_rec_physical[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack, color = study)) + 
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
-  geom_point(size=2, color = "#329a9c") + 
-  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1, color = '#329a9c') + 
+  #geom_point(size=2, color = "#329a9c") + 
+  geom_point(size=2) + 
+  scale_color_manual(values = c("#19CEBF", "#EFCA2F", "#E87DE0")) +  
+
+  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1) + 
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), "chr"), 
                    labels = c(0:16, 'chrom')) +
@@ -207,7 +211,7 @@ p1 <- ggplot(wc_freq_rec_physical[!grepl('s',level,fixed=T)], aes(x = level, y =
   labs(x = expression(Scale: log[2] ("kb")), 
        y = "Correlation",
        title = "") + 
-  geom_segment(aes(x = 0, xend = 17, y = -Inf, yend = -Inf))  +
+  geom_segment(aes(x = 0, xend = 17, y = -Inf, yend = -Inf), color = 'black')  +
   theme(aspect.ratio = 1,
       text = element_text(size=15),
       axis.ticks.x = element_line(size=1),
@@ -221,10 +225,12 @@ p1 <- ggplot(wc_freq_rec_physical[!grepl('s',level,fixed=T)], aes(x = level, y =
 p1
 
 
-p2 <- ggplot(wc_freq_gd_physical[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack)) + 
+p2 <- ggplot(wc_freq_cdsM_physical[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack, color = study)) + 
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
-  geom_point(size=2, col = '#eda915') + 
-  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1, col = '#eda915') + 
+  #geom_point(size=2, col = '#eda915') + 
+  geom_point(size=2) + 
+  
+  #geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1) + 
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), "chr"), 
                    labels = c(1:17, 'chrom')) +

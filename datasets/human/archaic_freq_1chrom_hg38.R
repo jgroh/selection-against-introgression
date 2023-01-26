@@ -141,8 +141,8 @@ frqM[, stein_freq := approx(x = stein$pos, y = stein$freq, xout = frqM$pos)$y]
 
 
 # === output ===== 
-fwrite(frq1kb, file = paste0("archaic_freqs/chr", chromosome, "_frq_physical_windows.txt"), quote = F, sep = "\t")
-fwrite(frqM, file = paste0("archaic_freqs/chr", chromosome, "_frq_genetic_windows.txt"), quote = F, sep = "\t")
+fwrite(frq1kb, file = paste0("archaic_freqs_hg38/chr", chromosome, "_frq_physical_windows.txt"), quote = F, sep = "\t")
+fwrite(frqM, file = paste0("archaic_freqs_hg38/chr", chromosome, "_frq_genetic_windows.txt"), quote = F, sep = "\t")
 
 
 #ggplot(frq, aes(x = wstart, y = freq)) + geom_point()
