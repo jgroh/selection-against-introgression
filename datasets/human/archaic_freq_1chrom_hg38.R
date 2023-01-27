@@ -2,11 +2,11 @@ library(data.table)
 
 
 if(Sys.getenv("RSTUDIO") == "1"){
-  chromosome <- 1
+  chromosome <- 4
   skov_fragments <- fread("Skov_etal_2020_data/41586_2020_2225_MOESM3_ESM.txt")
-  sank_calls <- fread("Sankararaman_etal_2014_data/chr-22.thresh-90.length-0.00.gz")
+  sank_calls <- fread("Sankararaman_etal_2014_data/chr-4.thresh-90.length-0.00.gz")
   sank_snps <- fread("Sankararaman_etal_2014_data/sankHg19ToHg38Snps.bed", col.names = c("chr", "start", "end", "hg19_id"))
-  stein_calls <- fread("Steinrucken_etal_2018/March2018/CEU_lax_chr22/chr22_frqs.txt", col.names = c("chr", "pos", "freq"))
+  stein_calls <- fread("Steinrucken_etal_2018/March2018/CEU_lax_chr4/chr4_frqs.txt", col.names = c("chr", "pos", "freq"))
   stein_snps <- fread("Steinrucken_etal_2018/March2018/steinHg19ToHg38Snps.bed", col.names = c("chr", "start", "end", "hg19_id"))
   rmap_all <- fread("Halldorsson_etal_2019_data/aau1043_datas3")
 } else {
@@ -90,8 +90,6 @@ overlapsM[, weighted_freq := freq*(pmin(end, i.end) - pmax(start, i.start))/(i.e
 
 # windows with no overlap get frequency zero
 overlapsM[is.na(freq), weighted_freq := 0]
-
-#ggplot(overlapsM, aes(x = pos, y = weighted_freq)) + geom_point() 
 
 # sum weighted frequencies of fragments in each window
 frqM <- overlapsM[, .(skov_freq = sum(weighted_freq)), by = .(chrom, Morgan, i.start, pos, i.end)]

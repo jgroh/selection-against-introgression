@@ -7,6 +7,7 @@ if(interactive()){
   source("~/workspace/gnomwav/R/correlation_decomp.R")
   windows <- 'physical'
   analysis <- 'wv'
+  assembly <- 'hg19'
 
 } else{
   source("/Users/brogroh/gnomwav/R/multi_modwts.R")
@@ -15,19 +16,21 @@ if(interactive()){
   args <- commandArgs(trailingOnly = TRUE)
   windows <- args[1]
   analysis <- args[2]
+  assembly <- args[3]
 }
 
 
 # ===== read and format data =====
 
+cds_file <- paste0("gene_density_", windows, "_windows_", assembly, ".txt")
 
 if(windows == "physical"){
   # read cds files
-  cds <- fread("gene_density_physical_windows.txt", col.names = c("chr", "start", "end", "cds"))
+  cds <- fread(cds_file, col.names = c("chr", "start", "end", "cds"))
   cds[, pos := start + 500]
   
   # read frequency files
-  chr_files <- dir(path = "archaic_freqs_hg38/", pattern = "chr.*_frq_physical_windows.txt", full.names=T)
+  chr_files <- dir(path = paste0("archaic_freqs_", assembly, "/"), pattern = "chr.*_frq_physical_windows.txt", full.names=T)
   gnom <- rbindlist(lapply(chr_files, fread))
   
   # combine gd and freq files
@@ -35,12 +38,12 @@ if(windows == "physical"){
   gnom <- merge(gnom, cds,  by = c("chr", "pos"))
 
   # combine with B values (need to interpolate B values )
-  Bvals <- fread("B_vals_physical_windows.txt", col.names = c("chr", "start", "end", "B"))
+  Bvals <- fread(paste0("B_vals_physical_windows_", assembly, ".txt"), col.names = c("chr", "start", "end", "B"))
   Bvals[, pos := start + 500]
   
-  B_interp <- Bvals[, approx(x = pos, y = B, xout = pos, rule = 2), by = chr]
+  B_interp <- Bvals[chr != 'chrX', approx(x = pos, y = B, xout = pos, rule = 2), by = chr]
   setnames(B_interp, c("x", "y"), c("pos", "B"))
-  gnom <- merge(gnom, B_interp)
+  gnom <- merge(gnom, B_interp, by = c("chr", "pos"))
   
   # log transform of recomb
   gnom[, log10rec := log10(rec)]
