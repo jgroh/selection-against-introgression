@@ -123,7 +123,7 @@ if(interactive()){
   gnom <- gnom[chr %in% paste0("chr", 20:22)][seq(1, .N, by=100)]
 } 
 
-outfile <- paste0("wavelet_results/", analysis, "_", windows, ".txt")
+outfile <- paste0("wavelet_results/", analysis, "_", windows, "_", assembly, ".txt")
 
 # ==== Wavelet Variance ====
 if(analysis == "wv"){
