@@ -6,7 +6,7 @@ bedM <- NULL
 for(i in c(1:22, "X")){
   
   chr <- i
-  s <- suppressWarnings(fread(paste0("Sankararaman_etal_2014_data/chr-", chr, ".thresh-90.length-0.00.gz")))
+  s <- suppressWarnings(fread(paste0("Sankararaman_etal_2014_data/summaries.release/CEU.hapmap/summaries/chr-", chr, ".thresh-90.length-0.00.gz")))
   
   xoutM <- seq(min(s$V3)/100, max(s$V3/100), by = 2^-16)
   
@@ -17,5 +17,5 @@ for(i in c(1:22, "X")){
   bedM <- rbind(bedM, bed)
 }
 
-bedM <- bed[!is.na(start) & !is.na(end)]
+bedM <- bedM[!is.na(start) & !is.na(end)]
 fwrite(bedM[, .(chr, start, end, Morgan)], file = "", quote=F, sep="\t", col.names=F)

@@ -5,8 +5,8 @@ bed1kb <- NULL
 
 for(i in c(1:22, "X")){
   chr <- i
-  file1 <- paste0("Sankararaman_etal_2014_data/chr-", chr, ".thresh-90.length-0.00.gz")
-  file2 <- paste0("Steinrucken_etal_2018/March2018/CEU_lax_chr", chr, "/chr", chr, "_frqs.txt")
+  file1 <- paste0("Sankararaman_etal_2014_data/summaries.release/CEU.hapmap/summaries/chr-", chr, ".thresh-90.length-0.00.gz")
+  file2 <- paste0("Steinrucken_etal_2018_data/March2018/CEU_lax_chr", chr, "/chr", chr, "_frqs.txt")
   
   sank_calls <- suppressWarnings(fread(file1))
   stein_calls <- fread(file2, col.names = c("chr", "pos", "freq"))
