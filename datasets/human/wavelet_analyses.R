@@ -8,6 +8,7 @@ if(interactive()){
   windows <- 'physical'
   analysis <- 'wv'
   assembly <- 'hg19'
+  thresh <- 'thresh'
 
 } else{
   source("/Users/brogroh/gnomwav/R/multi_modwts.R")
@@ -17,6 +18,7 @@ if(interactive()){
   windows <- args[1]
   analysis <- args[2]
   assembly <- args[3]
+  thresh <- args[4]
 }
 
 
@@ -119,11 +121,17 @@ if(windows == "physical"){
   
 }
 
-if(interactive()){
-  gnom <- gnom[chr %in% paste0("chr", 20:22)][seq(1, .N, by=100)]
-} 
+# threshold posterior?
 
-outfile <- paste0("wavelet_results/", analysis, "_", windows, "_", assembly, ".txt")
+if(thresh == 'thresh'){
+  gnom[, sank_freq := sank_freq_thresh]
+  gnom[, stein_freq := stein_freq_thresh]
+} else{
+  gnom[, sank_freq := sank_freq_nothresh]
+  gnom[, stein_freq := stein_freq_nothresh]
+}
+
+outfile <- paste0("wavelet_results/", analysis, "_", windows, "_", assembly, "_", thresh, ".txt")
 
 # ==== Wavelet Variance ====
 if(analysis == "wv"){
