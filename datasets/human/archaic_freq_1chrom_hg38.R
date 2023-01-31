@@ -2,12 +2,12 @@ library(data.table)
 
 
 if(Sys.getenv("RSTUDIO") == "1"){
-  chromosome <- 4
+  chromosome <- 22
   skov_fragments <- fread("Skov_etal_2020_data/41586_2020_2225_MOESM3_ESM.txt")
-  sank_calls <- fread("Sankararaman_etal_2014_data/chr-4.thresh-90.length-0.00.gz")
+  sank_calls <- fread("Sankararaman_etal_2014_data/chr-22.thresh-90.length-0.00.gz")
   sank_snps <- fread("Sankararaman_etal_2014_data/sankHg19ToHg38Snps.bed", col.names = c("chr", "start", "end", "hg19_id"))
-  stein_calls <- fread("Steinrucken_etal_2018/March2018/CEU_lax_chr4/chr4_frqs.txt", col.names = c("chr", "pos", "freq"))
-  stein_snps <- fread("Steinrucken_etal_2018/March2018/steinHg19ToHg38Snps.bed", col.names = c("chr", "start", "end", "hg19_id"))
+  stein_calls <- fread("Steinrucken_etal_2018_data/March2018/CEU_lax_chr22/chr22_frqs.txt", col.names = c("chr", "pos", "freq", "freq_thresh"))
+  stein_snps <- fread("Steinrucken_etal_2018_data/March2018/steinHg19ToHg38Snps.bed", col.names = c("chr", "start", "end", "hg19_id"))
   rmap_all <- fread("Halldorsson_etal_2019_data/aau1043_datas3")
 } else {
   args <- commandArgs(trailingOnly = TRUE)
@@ -15,7 +15,7 @@ if(Sys.getenv("RSTUDIO") == "1"){
   skov_fragments <- fread(args[2])
   sank_calls <- fread(args[3])
   sank_snps <- fread(args[4], col.names = c("chr", "start", "end", "hg19_id"))
-  stein_calls <- fread(args[5], col.names = c("chr", "pos", "freq"))
+  stein_calls <- fread(args[5], col.names = c("chr", "pos", "freq", "freq_thresh"))
   stein_snps <- fread(args[6], col.names = c("chr", "start", "end", "hg19_id"))
   rmap_all <- fread(args[7])
 }
@@ -30,6 +30,11 @@ archaic[, freq := freq/55132]
 # Morgans
 rmap[, Morgan := cM/100]
 
+# column names of sank_calls
+# col2: chromosome, col3: genetic position, col4: physical position, col11: average posterior probability of N
+setnames(sank_calls, paste0("V", 1:17))
+setnames(sank_calls, c("V2", "V3","V4", "V11", "V15"), c("chr", "cM", "pos", "freq", "freq_thresh"))
+sank_calls[, freq_thresh := freq_thresh/170] # haploid sample size of CEU pop, see Table SI 3.1 from Sankararaman et al. 2014
 
 
 # ===== Skov frequency physical windows  =====
@@ -110,16 +115,19 @@ frqM[, rec := 2^-16/(end-start)]
 
 # ===== Frequency estimates from Sankararaman et al 2014 =====
 sank <- merge(sank_snps, 
-      sank_calls[, hg19_id := paste0("chr", V2, "_", V4)][, .(sank_freq = V11, hg19_id)], 
+      sank_calls[, hg19_id := paste0("chr", chr, "_", pos)][, .(sank_freq = freq, sank_freq_thresh=freq_thresh, hg19_id)], 
       by = "hg19_id")
 sank[, start := NULL]
 setnames(sank, "end", "pos")
 
-frq1kb[, sank_freq := approx(x = sank$pos, y = sank$sank_freq, xout = frq1kb$pos)$y]
+frq1kb[, sank_freq_nothresh := approx(x = sank$pos, y = sank$sank_freq, xout = frq1kb$pos)$y]
+frq1kb[, sank_freq_thresh := approx(x = sank$pos, y = sank$sank_freq_thresh, xout = frq1kb$pos)$y]
 
 #ggplot(frq1kb, aes(x = pos, y=skov_freq)) + geom_point() + geom_point(aes(x = pos, y= sank_freq, color = 'red'))
 
-frqM[, sank_freq := approx(x = sank$pos, y = sank$sank_freq, xout = frqM$pos)$y]
+frqM[, sank_freq_nothresh := approx(x = sank$pos, y = sank$sank_freq, xout = frqM$pos)$y]
+frqM[, sank_freq_thresh := approx(x = sank$pos, y = sank$sank_freq_thresh, xout = frqM$pos)$y]
+
 
 #ggplot(frqM, aes(x = pos, y=skov_freq)) + geom_point() + geom_point(aes(x = pos, y= sank_freq, color = 'red', alpha = 0.5))
 
@@ -129,10 +137,14 @@ stein_calls[, hg19_id := paste0("chr", chr, "_", pos)]
 stein_snps[, start := NULL]
 setnames(stein_snps, "end", "pos")
 
-stein <- merge(stein_snps, stein_calls[, .(freq, hg19_id)], by = 'hg19_id')
+stein <- merge(stein_snps, stein_calls[, .(freq, freq_thresh, hg19_id)], by = 'hg19_id')
 
-frq1kb[, stein_freq := approx(x = stein$pos, y = stein$freq, xout = frq1kb$pos)$y]
-frqM[, stein_freq := approx(x = stein$pos, y = stein$freq, xout = frqM$pos)$y]
+frq1kb[, stein_freq_nothresh := approx(x = stein$pos, y = stein$freq, xout = frq1kb$pos)$y]
+frq1kb[, stein_freq_thresh := approx(x = stein$pos, y = stein$freq_thresh, xout = frq1kb$pos)$y]
+
+frqM[, stein_freq_nothresh := approx(x = stein$pos, y = stein$freq, xout = frqM$pos)$y]
+frqM[, stein_freq_thresh := approx(x = stein$pos, y = stein$freq_thresh, xout = frqM$pos)$y]
+
 
 #ggplot(frq1kb, aes(x = pos, y = sank_freq)) + geom_point() + geom_point(aes(y = stein_freq), color = 'blue')
 #ggplot(frq1kb, aes(x = stein_freq, y = sank_freq)) + geom_point()

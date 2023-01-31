@@ -2,16 +2,16 @@ library(data.table)
 
 
 if(Sys.getenv("RSTUDIO") == "1"){
-  chromosome <- 4
+  chromosome <- 22
   skov_fragments <- fread("Skov_etal_2020_data/41586_2020_2225_MOESM3_ESM.txt")
   skov_loc <- fread("Skov_etal_2020_data/Skov_fragments_hg19.bed", col.names = c("chr", "start", "end", "hg38_loc"))
-  sank_calls <- suppressWarnings(fread("Sankararaman_etal_2014_data/chr-4.thresh-90.length-0.00.gz"))
-  stein_calls <- fread("Steinrucken_etal_2018/March2018/CEU_lax_chr4/chr4_frqs.txt", col.names = c("chr", "pos", "freq"))
+  sank_calls <- suppressWarnings(fread("Sankararaman_etal_2014_data/chr-22.thresh-90.length-0.00.gz"))
+  stein_calls <- fread("Steinrucken_etal_2018_data/March2018/CEU_lax_chr22/chr22_frqs.txt", col.names = c("chr", "pos", "freq", "freq_thresh"))
 } else {
   args <- commandArgs(trailingOnly = TRUE)
   chromosome <- args[1]
   sank_calls <- fread(args[2])
-  stein_calls <- fread(args[3], col.names = c("chr", "pos", "freq"))
+  stein_calls <- fread(args[3], col.names = c("chr", "pos", "freq", "freq_thresh"))
   skov_fragments <- fread(args[4])
   skov_loc <- fread(args[5], col.names = c("chr", "start", "end", "hg38_loc"))
 }
@@ -21,13 +21,15 @@ if(Sys.getenv("RSTUDIO") == "1"){
 # column names of sank_calls
 # col2: chromosome, col3: genetic position, col4: physical position, col11: average posterior probability of N
 setnames(sank_calls, paste0("V", 1:17))
-setnames(sank_calls, c("V2", "V3","V4", "V11"), c("chr", "cM", "pos", "freq"))
+setnames(sank_calls, c("V2", "V3","V4", "V11", "V15"), c("chr", "cM", "pos", "freq", "freq_thresh"))
+sank_calls[, freq_thresh := freq_thresh/170] # haploid sample size of CEU pop, see Table SI 3.1 from Sankararaman et al. 2014
 
 # icelander neanderthal fragment locations in hg19 coordinates
 skov_fragments[, hg38_loc := paste0(chrom, "_", start, "_", end, "_", .I)]
 skov_fragments <- merge(skov_fragments[chrom == chromosome, .(hg38_loc, freq)], skov_loc[, .(start, end, hg38_loc)], by = "hg38_loc")
 skov_fragments[, freq := freq/55132] 
 skov_fragments[, chrom := as.character(chromosome)]
+
 
 # ===== Neanderthal frequency in physical windows
 windows <- data.table(chrom=as.character(chromosome), pos = seq(min(sank_calls$pos), max(sank_calls$pos), by = 1e3))
@@ -50,8 +52,14 @@ setnames(frq1kb, c("i.start", "i.end"), c("start", "end"))
 
 
 # ---- add Sankararaman and Steinrucken estimates 
-frq1kb[, sank_freq := approx(x = sank_calls$pos, y = sank_calls$freq, xout = pos)$y, by = chrom]
-frq1kb[, stein_freq := approx(x = stein_calls$pos, y = stein_calls$freq, xout = pos)$y, by = chrom]
+
+# using marginal posterior probabilities directly
+frq1kb[, sank_freq_nothresh := approx(x = sank_calls$pos, y = sank_calls$freq, xout = pos)$y, by = chrom]
+frq1kb[, stein_freq_nothresh := approx(x = stein_calls$pos, y = stein_calls$freq, xout = pos)$y, by = chrom]
+
+# using thresholded marginal posterior probabilities
+frq1kb[, sank_freq_thresh := approx(x = sank_calls$pos, y = sank_calls$freq_thresh, xout = pos)$y, by = chrom]
+frq1kb[, stein_freq_thresh := approx(x = stein_calls$pos, y = stein_calls$freq_thresh, xout = pos)$y, by = chrom]
 
 
 # ------ add recomb info 
@@ -95,8 +103,11 @@ frqM[, rec := 2^-16/(end-start)]
 
 # ----- add Sankararaman and Steinrucken estimates
 
-frqM[, sank_freq := approx(x=sank_calls$pos, y = sank_calls$freq, xout=pos)$y]
-frqM[, stein_freq := approx(x=stein_calls$pos, y = stein_calls$freq, xout=pos)$y]
+frqM[, sank_freq_nothresh := approx(x=sank_calls$pos, y = sank_calls$freq, xout=pos)$y]
+frqM[, stein_freq_nothresh := approx(x=stein_calls$pos, y = stein_calls$freq, xout=pos)$y]
+
+frqM[, sank_freq_thresh := approx(x=sank_calls$pos, y = sank_calls$freq_thresh, xout=pos)$y]
+frqM[, stein_freq_thresh := approx(x=stein_calls$pos, y = stein_calls$freq_thresh, xout=pos)$y]
 
 
 # === output ===== 

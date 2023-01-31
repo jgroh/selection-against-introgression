@@ -8,32 +8,34 @@ library(cubature)
 setwd("~/workspace/selection-against-introgression/datasets/human/")
 source("~/workspace/gnomwav/R/theory.R")
 
-wc_calls_physical <- fread("wavelet_results/wc_calls_physical.txt")
-wc_calls_genetic <- fread("wavelet_results/wc_calls_genetic.txt")
+wc_calls_physical_hg19 <- fread("wavelet_results/wc_calls_physical_hg19.txt")
+wc_calls_genetic_hg19 <- fread("wavelet_results/wc_calls_genetic_hg19.txt")
 
-wv_physical <- fread("wavelet_results/wv_physical.txt")
-wv_genetic <- fread("wavelet_results/wv_genetic.txt")
+wv_physical_hg19 <- fread("wavelet_results/wv_physical_hg19.txt")
+wv_genetic_hg19 <- fread("wavelet_results/wv_genetic_hg19.txt")
 
-wc_freq_rec_physical <- fread("wavelet_results/wc_freq_rec_physical.txt")
-wc_freq_rec_genetic <- fread("wavelet_results/wc_freq_rec_genetic.txt")
+wc_freq_rec_physical_hg19 <- fread("wavelet_results/wc_freq_rec_physical_hg19.txt")
+wc_freq_rec_genetic_hg19 <- fread("wavelet_results/wc_freq_rec_genetic_hg19.txt")
 
-wc_freq_cds_physical <- fread("wavelet_results/wc_freq_cds_physical.txt")
-wc_freq_cds_genetic <- fread("wavelet_results/wc_freq_cds_genetic.txt")
+wc_freq_cds_physical_hg19 <- fread("wavelet_results/wc_freq_cds_physical_hg19.txt")
+wc_freq_cds_genetic_hg19 <- fread("wavelet_results/wc_freq_cds_genetic_hg19.txt")
 
-wc_freq_cdsM_physical <- fread("wavelet_results/wc_freq_cdsM_physical.txt")
+wc_freq_cdsM_physical_hg19 <- fread("wavelet_results/wc_freq_cdsM_physical_hg19.txt")
 
-wc_rec_cds_physical <- fread("wavelet_results/wc_rec_cds_physical.txt")
-wc_rec_cds_genetic <- fread("wavelet_results/wc_rec_cds_genetic.txt")
+wc_rec_cds_physical_hg19 <- fread("wavelet_results/wc_rec_cds_physical_hg19.txt")
+wc_rec_cds_genetic_hg19 <- fread("wavelet_results/wc_rec_cds_genetic_hg19.txt")
 
-lm_physical <- fread("wavelet_results/lm_physical.txt")
-lm_genetic <- fread("wavelet_results/lm_genetic.txt")
+lm_physical_hg19 <- fread("wavelet_results/lm_physical_hg19.txt")
+lm_genetic_hg19 <- fread("wavelet_results/lm_genetic_hg19.txt")
 
-wc_freq_B_physical <- fread("wavelet_results/wc_freq_B_physical.txt")
-wc_freq_B_genetic <- fread("wavelet_results/wc_freq_B_genetic.txt")
+wc_freq_B_physical_hg19 <- fread("wavelet_results/wc_freq_B_physical_hg19.txt")
+wc_freq_B_genetic_hg19 <- fread("wavelet_results/wc_freq_B_genetic_hg19.txt")
 
 lapply(
-  list(wc_calls_physical, wc_calls_genetic, wv_physical, wv_genetic, wc_freq_rec_physical,wc_freq_B_physical, wc_freq_B_genetic, wc_freq_rec_genetic, wc_freq_cds_physical, wc_freq_cds_genetic, 
-            wc_freq_cdsM_physical,  lm_physical, lm_genetic), 
+  list(wc_calls_physical_hg19, wc_calls_genetic_hg19, wv_physical_hg19, wv_genetic_hg19, 
+       wc_freq_rec_physical_hg19,wc_freq_B_physical_hg19, wc_freq_B_genetic_hg19, wc_freq_rec_genetic_hg19, 
+       wc_freq_cds_physical_hg19, wc_freq_cds_genetic_hg19, 
+            wc_freq_cdsM_physical_hg19,  lm_physical_hg19, lm_genetic_hg19), 
   function(x){
     x[, level := factor(level, levels = c(paste0("d", 1:17), paste0("s", 14:17), "chr"))]
   }
@@ -41,15 +43,16 @@ lapply(
 
 # ===== Compare calls =====
 
-ggplot(wc_calls_physical[!grepl("s", level, fixed = T)], aes(x = level, y = cor_n, color = study)) + geom_point(size = 2.2) + 
-  geom_line(data = wc_calls_physical[grepl("d", level, fixed = T)], aes(group = study)) +
+ggplot(wc_calls_physical_hg19[!grepl("s", level, fixed = T)], aes(x = level, y = cor_n, color = study)) + geom_point(size = 2.2) + 
+  geom_line(data = wc_calls_physical_hg19[grepl("d", level, fixed = T)], aes(group = study)) +
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), 'scl', "chr"), 
                    labels = c(as.character(0:16),"scl", "chrom"))   + 
-  labs(x = expression(Scale: log[2] ("1kb")), 
+  labs(x = expression(Scale: log[2] ("kb")), 
        color = "Comparison", 
        y = "Correlation") + 
-  scale_color_manual(values = c("#19CEBF", "#EFCA2F", "#E87DE0")) +
+  #scale_color_manual(values = c("#19CEBF", "#EFCA2F", "#E87DE0")) +
+  scale_color_brewer(type = 'qual', palette = 'Accent') +
   theme(aspect.ratio = 1, 
         axis.title = element_text(size = 15),
         axis.text.y = element_text(size = 12),
@@ -62,33 +65,33 @@ ggplot(wc_calls_physical[!grepl("s", level, fixed = T)], aes(x = level, y = cor_
 
 # ===== wavelet variance, physical units =====
 
-lineData_physical <- wv_physical[grepl("d", level, fixed = T)]
+lineData_physical_hg19 <- wv_physical_hg19[grepl("d", level, fixed = T)]
 
-wv_physical
-wv_physical_collapsed <- rbind(wv_physical[grepl('s', level, fixed=T), 
+
+wv_physical_collapsed_hg19 <- rbind(wv_physical_hg19[grepl('s', level, fixed=T), 
                                          .(level = 'scl', variance.skov_freq = sum(variance.skov_freq), 
                                            variance.sank_freq = sum(variance.sank_freq), 
                                            variance.stein_freq = sum(variance.stein_freq),
                                            propvar.skov_freq = sum(propvar.skov_freq),
                                            propvar.sank_freq = sum(propvar.sank_freq),
                                            propvar.stein_freq = sum(propvar.stein_freq))], 
-                              wv_physical[!grepl('s', level, fixed=T), 
+                              wv_physical_hg19[!grepl('s', level, fixed=T), 
                                          .(level, variance.skov_freq, propvar.skov_freq, 
                                            variance.sank_freq, propvar.sank_freq, 
                                            variance.stein_freq, propvar.stein_freq)]
 )
-wv_physical_collapsed[, level := factor(level, levels = c(paste0("d", 1:17), 'scl', 'chr'))] 
+wv_physical_collapsed_hg19[, level := factor(level, levels = c(paste0("d", 1:17), 'scl', 'chr'))] 
 
-wv_physical_collapsed <- melt(wv_physical_collapsed, measure.vars = c("variance.skov_freq", "variance.sank_freq", "variance.stein_freq"), 
+wv_physical_collapsed_hg19 <- melt(wv_physical_collapsed_hg19, measure.vars = c("variance.skov_freq", "variance.sank_freq", "variance.stein_freq"), 
      variable.name = "study", value.name = "variance")
-wv_physical_collapsed[, study := gsub("_freq", "", gsub("variance.","",study))]
+wv_physical_collapsed_hg19[, study := gsub("_freq", "", gsub("variance.","",study))]
 
-ggplot(wv_physical_collapsed, 
+ggplot(wv_physical_collapsed_hg19, 
        #aes(x = level, y = variance.freq, group = 1)) + 
        aes(x = level, y = variance, group = study, color = study)) + 
   theme_classic() + 
   geom_point(size = 2.2) +
-  geom_line(data=wv_physical_collapsed[grep("d", level, fixed=T)]) +
+  geom_line(data=wv_physical_collapsed_hg19[grep("d", level, fixed=T)]) +
   scale_x_discrete(breaks = c(paste0("d", 1:17), 'scl', "chr"), 
                    labels = c(as.character(0:16),"scl", "chrom"))   + 
   labs(x = expression(Scale: log[2] ("kb")), 
@@ -113,9 +116,9 @@ wvtheory[, level := paste0("d", level)]
 wvtheory[, level := factor(level, levels = c(paste0("d", 1:17), 'scl', 'chr'))] 
 
 # reformat data for plotting
-lineData_genetic <- wv_genetic[grepl("d", level, fixed = T)]
+lineData_genetic_hg19 <- wv_genetic_hg19[grepl("d", level, fixed = T)]
 
-wv_genetic_collapsed <- rbind(wv_genetic[grepl('s', level, fixed=T), 
+wv_genetic_collapsed_hg19 <- rbind(wv_genetic_hg19[grepl('s', level, fixed=T), 
                                            .(level = 'scl', 
                                              variance.skov_freq = sum(variance.skov_freq),
                                              variance.stein_freq = sum(variance.stein_freq),
@@ -126,7 +129,7 @@ wv_genetic_collapsed <- rbind(wv_genetic[grepl('s', level, fixed=T),
                                              variance.skov_freq.jack.se, 
                                              variance.sank_freq.jack.se, 
                                              variance.stein_freq.jack.se)], 
-                               wv_genetic[!grepl('s', level, fixed=T), 
+                               wv_genetic_hg19[!grepl('s', level, fixed=T), 
                                            .(level, 
                                              variance.skov_freq,
                                              variance.sank_freq,
@@ -138,30 +141,30 @@ wv_genetic_collapsed <- rbind(wv_genetic[grepl('s', level, fixed=T),
                                              variance.sank_freq.jack.se, 
                                              variance.stein_freq.jack.se)]
 )
-wv_genetic_collapsed[, level := factor(level, levels = c(paste0("d", 1:17), 'scl', 'chr'))] 
+wv_genetic_collapsed_hg19[, level := factor(level, levels = c(paste0("d", 1:17), 'scl', 'chr'))] 
 
-wv_genetic_collapsed_variances <- melt(wv_genetic_collapsed[, .(level, variance.skov_freq, variance.sank_freq, variance.stein_freq)], measure.vars = c("variance.skov_freq", "variance.sank_freq", "variance.stein_freq"), 
+wv_genetic_collapsed_variances_hg19 <- melt(wv_genetic_collapsed_hg19[, .(level, variance.skov_freq, variance.sank_freq, variance.stein_freq)], measure.vars = c("variance.skov_freq", "variance.sank_freq", "variance.stein_freq"), 
                                       variable.name = "study", value.name = "variance")
-wv_genetic_collapsed_variances[, study := gsub("_freq", "", gsub("variance.", "", study))]
+wv_genetic_collapsed_variances_hg19[, study := gsub("_freq", "", gsub("variance.", "", study))]
 
-wv_genetic_collapsed_propvars <- melt(wv_genetic_collapsed[, .(level, propvar.skov_freq, propvar.sank_freq, propvar.stein_freq)], measure.vars = c("propvar.skov_freq", "propvar.sank_freq", "propvar.stein_freq"), 
+wv_genetic_collapsed_propvars_hg19 <- melt(wv_genetic_collapsed_hg19[, .(level, propvar.skov_freq, propvar.sank_freq, propvar.stein_freq)], measure.vars = c("propvar.skov_freq", "propvar.sank_freq", "propvar.stein_freq"), 
                               variable.name = "study", value.name = "propvar")
-wv_genetic_collapsed_propvars[, study := gsub("_freq", "", gsub("propvar.", "", study))]
+wv_genetic_collapsed_propvars_hg19[, study := gsub("_freq", "", gsub("propvar.", "", study))]
 
-wv_genetic_collapsed_se <- melt(wv_genetic_collapsed[, .(level, variance.skov_freq.jack.se, 
+wv_genetic_collapsed_se_hg19 <- melt(wv_genetic_collapsed_hg19[, .(level, variance.skov_freq.jack.se, 
                                                          variance.sank_freq.jack.se, 
                                                          variance.stein_freq.jack.se)], 
                                 measure.vars = c("variance.skov_freq.jack.se", 
                                                  "variance.sank_freq.jack.se", 
                                                  "variance.stein_freq.jack.se"), 
                                 variable.name = "study", value.name = "se") 
-wv_genetic_collapsed_se[, study := gsub("_freq.jack.se", "", gsub("variance.", "", study))]
+wv_genetic_collapsed_se_hg19[, study := gsub("_freq.jack.se", "", gsub("variance.", "", study))]
 
 
-wv_genetic_plot_data <- merge(merge(wv_genetic_collapsed_variances, wv_genetic_collapsed_propvars), wv_genetic_collapsed_se)
-wv_genetic_plot_data[, se.scld := se/sum(variance), by = study]
+wv_genetic_plot_data_hg19 <- merge(merge(wv_genetic_collapsed_variances_hg19, wv_genetic_collapsed_propvars_hg19), wv_genetic_collapsed_se_hg19)
+wv_genetic_plot_data_hg19[, se.scld := se/sum(variance), by = study]
 
-ggplot(wv_genetic_plot_data, 
+ggplot(wv_genetic_plot_data_hg19, 
        #aes(x = level, y = variance.freq, group = 1)) + 
        aes(x = level, y = propvar, color = study)) + 
   #geom_point(data = wvtheory, aes(x = level, y = propvar.freq), size=3, color = "#c24633") +
@@ -170,7 +173,7 @@ ggplot(wv_genetic_plot_data,
   geom_line(data = wvtheory, aes(x = level, y = propvar.freq), group = 1, color = "black", size = 1) +
   #geom_line(data = lineData_genetic, group = 1, size = 2, color = 'dodgerblue') + 
   geom_point(size = 2) +
-  geom_line(data=wv_genetic_plot_data[grepl('d', level, fixed=T)], size = 1, aes(group = study)) +
+  geom_line(data=wv_genetic_plot_data_hg19[grepl('d', level, fixed=T)], linewidth = 1, aes(group = study)) +
   #geom_errorbar(aes(ymin=propvar - 1.96*se.scld, ymax=propvar+1.96*se.scld)) +
   
   
@@ -197,7 +200,7 @@ ggplot(wv_genetic_plot_data,
 # ---- physical scale 
 
 
-p1 <- ggplot(wc_freq_rec_physical[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack, color = study)) + 
+p1 <- ggplot(wc_freq_rec_physical_hg19[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack, color = study)) + 
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
   #geom_point(size=2, color = "#329a9c") + 
   geom_point(size=2) + 
@@ -225,7 +228,7 @@ p1 <- ggplot(wc_freq_rec_physical[!grepl('s',level,fixed=T)], aes(x = level, y =
 p1
 
 
-p2 <- ggplot(wc_freq_cdsM_physical[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack, color = study)) + 
+p2 <- ggplot(wc_freq_cdsM_physical_hg19[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack, color = study)) + 
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
   #geom_point(size=2, col = '#eda915') + 
   geom_point(size=2) + 
@@ -251,12 +254,24 @@ p2 <- ggplot(wc_freq_cdsM_physical[!grepl('s',level,fixed=T)], aes(x = level, y 
 p2
 
 # correlation of recomb and gene density in same plot
-p1 + geom_point(data = wc_freq_gd_physical[!grepl('s',level,fixed=T)], aes(x = 1:18 - 0.2), size=2, col = "#d49e9b") + 
-  geom_errorbar(data = wc_freq_gd_physical[!grepl('s',level,fixed=T)], aes(x = 1:18 - 0.2, ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1, col = "#d49e9b") + 
-  geom_point(data = wc_rec_gd_physical[!grepl('s',level,fixed=T)], aes(x = 1:18 + 0.2), size=2, col = "#cfc13f") + 
-  geom_errorbar(data = wc_rec_gd_physical[!grepl('s',level,fixed=T)], aes(x = 1:18 + 0.2, ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1, col = "#cfc13f")  
+wc_freq_rec_physical_hg19[, vars := 'frq_rec']
+wc_rec_cds_physical_hg19[, vars := 'rec_cds']
+wc_freq_cds_physical_hg19[, vars := 'frq_cds']
 
-p3 <- ggplot(wc_rec_gd_physical[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack)) + 
+ggplot(rbindlist(list(wc_freq_rec_physical_hg19, 
+             wc_rec_cds_physical_hg19,
+             wc_freq_cds_physical_hg19))[!grepl('s',level)], 
+       aes(x = level, y = cor_n, color = vars)) + geom_point() + facet_wrap(~study) + 
+  theme_classic() + 
+  theme(aspect.ratio = 1,
+        axis.text.x = element_text(angle=90)) + 
+  scale_x_discrete(breaks = c(paste0("d", 1:17), "chr"), 
+                   labels = c(1:17, 'chrom')) #+
+  #geom_errorbar(aes(ymin=cor_n -1.96*cor_jack_se, 
+        #        ymax=cor_n + 1.96*cor_jack_se))
+ 
+
+p3 <- ggplot(wc_rec_cds_physical_hg19[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack)) + 
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
   geom_point(size=2) + 
   geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1) + 
@@ -299,8 +314,8 @@ p4 <- ggplot(wc_freq_gdr_physical[!grepl('s',level,fixed=T)], aes(x = level, y =
 p4
 
 
-p5 <- ggplot(wc_freq_B_physical[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack)) + 
-  geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
+p5 <- ggplot(wc_freq_B_physical_hg19[!grepl('s',level,fixed=T)], aes(x = level, y = cor_jack)) + 
+  geom_abline(slope = 0, intercept = 0, col = 'darkgrey') + facet_wrap(~study) +
   geom_point(size=2) + 
   geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1) + 
   theme_classic() + 
