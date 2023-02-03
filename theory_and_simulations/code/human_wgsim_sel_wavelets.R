@@ -5,7 +5,7 @@ if(interactive()){
   source("/Users/jeff/workspace/gnomwav/R/correlation_decomp.R")
   source("/Users/jeff/workspace/gnomwav/R/multi_modwts.R")
   source("/Users/jeff/workspace/gnomwav/R/variance_decomp.R")
-  frq <- fread('results/human_wgsim_sel1-1000/replicate0_frqs.txt', col.names = c("rep","gen","frq"))
+  frq <- fread('results/human_wgsim_sel900-1000_S1/replicate4_frqs.txt', col.names = c("rep","gen","frq"))
   map <- fread("hg38_wg_slim_recmap_verbose.txt", col.names = c("chr", 'pos_bp', 'cM', 'Morgan_dist'))
   
 } else{
@@ -111,21 +111,22 @@ wv_frq_rec_wg_all <- rbind(wv_frq_rec_P_wg, wv_frq_rec_G_wg)
 # ----- by chromosome and averaging across chromosomes  -----
 
 # physical map
-wavcorP_chrs <- frq[, cor_tbl(.SD, chromosome = NA, signals = c("frq", "rec"), rm.boundary = F), by = .(rep, gen, chr)]
+
+wavcorP_chrs <- frq[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("frq", "rec"), rm.boundary = F), by = .(rep, gen, chr)]
 wavcorP_chrs[, units := "physical"]
 
 #ggplot(wavcorP_chrs, aes(x = gen, y = cor, color = level, group = level)) + geom_line() + facet_wrap(~chr)
 
-wavcorP_wg <- frq[, cor_tbl(.SD, chromosome = 'chr', signals = c("frq", "rec"), rm.boundary = F), by = .(rep, gen)]
+wavcorP_wg <- frq[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "rec"), rm.boundary = F), by = .(rep, gen)]
 wavcorP_wg[, units := "physical"]
 
 # genetic map
-wavcorG_chrs <- frq_rec_interp[, cor_tbl(.SD, chromosome = NA, signals = c("frq", "rec"), rm.boundary = F), by = .(rep, gen, chr)]
+wavcorG_chrs <- frq_rec_interp[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("frq", "rec"), rm.boundary = F), by = .(rep, gen, chr)]
 wavcorG_chrs[, units := "genetic"]
 
 #ggplot(wavcorG_chrs, aes(x = gen, y = cor, color = level, group = level)) + geom_line() + facet_wrap(~chr)
 
-wavcorG_wg <- frq_rec_interp[, cor_tbl(.SD, chromosome = 'chr', signals = c("frq", "rec"), rm.boundary = F), by = .(rep, gen)]
+wavcorG_wg <- frq_rec_interp[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "rec"), rm.boundary = F), by = .(rep, gen)]
 wavcorG_wg[, units := "genetic"]
 
 
