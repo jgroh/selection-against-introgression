@@ -1,0 +1,294 @@
+import numpy as np
+reps = np.arange(8)
+hg1_sim_reps = np.arange(8)
+snp_stat_reps = np.arange(10)
+
+gens = [1,10,100,1000]
+gens_swordtail = [10,100,200]
+swordtail_N = 1000
+
+# ===== rules for producing neutral simulation results ======
+rule all_neutral_wv:
+	input:
+		expand("results/neutral_sims/{sim}/replicate{rep}_wavelet_results.RData", rep=np.arange(10), sim = ['equilibrium', 'bottleneck'])
+
+#rule all_neutral_sims:
+#	input:
+#		expand("results/neutral_sims/{sim}/replicate{rep}.trees", sim=['equilibrium','bottleneck'], rep=np.arange(10))
+
+rule neutral_sims: # this runs simulations for neutral admixture pulse: (1) demographic equilibrium and (2) early bottleneck
+	input:
+	output:
+		"results/neutral_sims/{sim}/replicate{rep}.trees" #trees file includes remembered individuals from various gens
+	shell:
+		"slim -d seed={wildcards.rep} -d N=10000 code/{wildcards.sim}.slim"
+
+rule ancestry_neutral_sims: # calculates ancestry fractions for the neutral sims
+	input:
+		"results/neutral_sims/{sim}/replicate{rep}.trees"
+	output:
+		expand("results/neutral_sims/{{sim}}/replicate{{rep}}_{data}.txt", data=['hap_ancestry', 'hap_SNP_stat','mean_SNP_stat'])
+	shell:
+		"python code/ancestry_haps_frqs.py {input} 10000 20"
+
+rule all_ancestry_neutral_sims:
+	input:
+		expand("results/neutral_sims/{sim}/replicate{rep}_{data}.txt", sim =['bottleneck','equilibrium'], rep=np.arange(10), data=['hap_ancestry','haps','frqs'])
+
+rule wavelet_analyses_neutral_sims:
+	input:
+		expand("results/neutral_sims/{{sim}}/replicate{{rep}}_{data}.txt", data=['hap_ancestry','haps','frqs'])
+	output:
+		"results/neutral_sims/{sim}/replicate{rep}_wavelet_results.RData"
+	shell:
+		"Rscript --vanilla code/wavelet_analyses_ancestry_haps_frqs.R 20 {input}" 
+
+#rule simulation_swordtail:
+#	input:
+#	output:
+#		temp(expand("results/swordtail_neutral/swordtail_replicate{{rep}}_{gen}_N{{N}}.trees", gen = gens_swordtail))
+#	shell:
+#		"slim -d seed={wildcards.rep} -d N={wildcards.N} code/swordtail_neutral.slim"
+
+#rule avg_ancestry_calc_swordtail:
+#	input:
+#		"results/swordtail_neutral/swordtail_{rep_gen_N}.trees"
+#	output:
+#		temp("results/swordtail_neutral/swordtail_{rep_gen_N}_ancestry.txt")
+#	shell:
+#		"python3 code/ancestry.py {input} > {output}"
+	
+# ===== rules for simulations of human genome  =======
+
+rule make_recmap_slim:
+	input:
+		"aau1043_datas3" # sex-averaged recomb map from Halldorsson et al 2019
+	output:
+		"hg38_wg_slim_recmap.txt",
+		"hg38_wg_slim_recmap_verbose.txt",
+		"hg38_chr_lengths.txt",
+	shell:
+		"Rscript --vanilla make_hg38_wg_slim_recmap.R"
+
+rule human_wgsims:
+	input:
+		"hg38_wg_slim_recmap.txt",
+		"hg38_chr_lengths.txt"
+	output:
+		temp("results/human_wgsim_{sim}/replicate{rep}.trees")
+	shell:
+		"""
+		mkdir -p results/human_wgsim_{wildcards.sim}/
+		slim -d seed={wildcards.rep} -d N=10000 code/human_wg_{wildcards.sim}.slim
+		"""
+
+rule all_human_wgsims:
+	input:
+		#expand("results/human_wgsim_{sim}/replicate{rep}.trees", sim = ["neutral_equilibrium","neutral_bottleneck","sel1-1000_S0.4","sel1-10_S0.4","sel900-1000_S0.4","neutral_equilibrium_no_interp","neutral_bottleneck_no_interp","sel1-1000_S1","sel1-10_S1", "sel900-1000_S1"], rep = np.arange(10))
+		expand("results/human_wgsim_{sim}/replicate{rep}.trees", sim = ["neutral_equilibrium","neutral_bottleneck","sel1-1000_S1","sel1-10_S1","sel900-1000_S1"], rep = np.arange(20))
+
+rule output_human_chrom_ancestry:
+	input:
+		"results/human_wgsim_{sim}/replicate{rep}.trees"
+	output:
+		"results/human_wgsim_{sim}/replicate{rep}_frqs.txt"
+	shell:
+		"python code/ancestry-multigen.py {input} > {output}"
+
+#rule all_human_wgsim_ancestry: # output file will have a row for each rep x generation x snp position.
+#	input:
+#		expand("results/human_wgsim_{sim}/replicate{rep}_frqs.txt",sim = ["neutral_equilibrium","neutral_bottleneck","neutral_equilibrium_no_interp","sel1-1000"], rep = np.arange(20))
+
+rule human_wgsim_neutral_wavelets:
+	input:
+		frqs="results/human_wgsim_neutral_{sim}/replicate{rep}_frqs.txt",
+		recmap="hg38_wg_slim_recmap_verbose.txt"
+	output:
+		"results/human_wgsim_neutral_{sim}/replicate{rep}_wavelet_results.RData"
+	shell:
+		"Rscript --vanilla code/human_wgsim_neutral_wavelets.R {input.frqs} {input.recmap}"
+
+rule human_wgsim_neutral_wavelets_no_interp:
+	input:
+		frqs="results/human_wgsim_neutral_{sim}_no_interp/replicate{rep}_frqs.txt",
+		chrlengths="hg38_chr_lengths.txt"
+	output:
+		"results/human_wgsim_neutral_{sim}_no_interp/replicate{rep}_wavelet_results.txt"
+	shell:
+		"Rscript --vanilla code/human_wgsim_neutral_wv_no_interp.R {input.frqs} {input.chrlengths}"
+		
+rule human_wgsim_sel_wavelets:
+	input:
+		frqs="results/human_wgsim_sel{sim}/replicate{rep}_frqs.txt",
+		recmap="hg38_wg_slim_recmap_verbose.txt"
+	output:
+		"results/human_wgsim_sel{sim}/replicate{rep}_wavelet_results.RData"
+	shell:
+		"Rscript --vanilla code/human_wgsim_sel_wavelets.R {input.frqs} {input.recmap}"
+
+rule all_human_wgsim_wavelet_results:
+	input:
+#		expand("results/human_wgsim_neutral_{sim}_no_interp/replicate{rep}_wavelet_results.txt", rep = np.arange(10), sim = ['equilibrium','bottleneck']),
+		expand("results/human_wgsim_{selsim}_S{S}/replicate{rep}_wavelet_results.RData",selsim=['sel1-1000','sel1-10','sel900-1000'],S=['1'], rep=np.arange(20)), 
+		expand("results/human_wgsim_sel1-1000_S0.4/replicate{rep}_wavelet_results.RData",rep=np.arange(20)), 
+
+#		expand("results/human_wgsim_{sim}/replicate{rep}_wavelet_results.RData", sim = ["neutral_equilibrium","neutral_bottleneck","sel1-1000","sel1-10","sel900-1000"], rep = np.arange(10))
+
+# ===== rules for simulations with periodic recombination =====
+
+rule periodic_recomb_sims:
+	input:
+	output:
+		"results/periodic_recomb_{sim}/replicate{rep}.trees" 
+	shell:
+		"slim -d seed={wildcards.rep} -d N=10000 code/periodic_recomb_{wildcards.sim}.slim"	
+
+rule periodic_recomb_all_sims:
+	input:
+		expand('results/periodic_recomb_{sim}/replicate{rep}.trees', sim = ['sel_constant', 'sel_reverses'], rep=np.arange(10))
+
+rule periodic_recomb_ancestry:
+	input:
+		"results/periodic_recomb_{sim}/replicate{rep}.trees"
+	output:
+		"results/periodic_recomb_{sim}/replicate{rep}_ancestry.txt"
+	shell:
+		"python code/derived-allele-freq-general.py {input} 1 2 3 4 5 10 25 50 100 250 500 1000 > {output}"
+
+rule periodic_recomb_combine_ancestry:
+	input:
+		expand("results/periodic_recomb_{{sim}}/replicate{rep}_ancestry.txt", rep = np.arange(10))
+	output:
+		"results/periodic_recomb_{sim}/ancestry_master.txt"
+	shell:
+		"cat {input} > {output}"
+
+rule all_periodic_recomb_ancestry:
+	input:
+		expand("results/periodic_recomb_{sim}/ancestry_master.txt", sim = ['sel_constant', 'sel_reverses'])
+
+# ===== allele frq based statistic sims =====
+
+rule snp_stat_const_rec_neutral_sim:
+	input:
+	output:
+		"results/snp_stat_const_rec/replicate{rep}.trees"
+	shell:
+		"slim -d seed={wildcards.rep} -d N=100000 code/snp_stat_const_rec.slim"
+
+rule make_variable_rec_map:
+	input:
+	output:
+		"variable_rec_map_slim.txt",
+		"variable_rec_map_msprime.txt"
+	shell:
+		"Rscript --vanilla code/make_variable_rec_map.R"
+
+rule snp_stat_variable_rec_sel_sim:
+	input:
+		"variable_rec_map_slim.txt"
+	output:
+		"results/snp_stat_variable_rec_sel/replicate{rep}.trees"
+	shell:
+		"slim -d seed={wildcards.rep} -d N=10000 code/snp_stat_variable_rec_sel.slim"
+
+rule snp_stat_variable_rec_neutral_sim:
+	input:
+		"variable_rec_map_slim.txt"
+	output:
+		"results/snp_stat_variable_rec_neutral/replicate{rep}.trees"
+	shell:
+		"slim -d seed={wildcards.rep} -d N=10000 code/snp_stat_variable_rec_neutral.slim"
+
+rule all_snp_stat_variable_rec_sims:
+	input:
+		expand("results/snp_stat_variable_rec_{sim}/replicate{rep}.trees", sim = ['sel', 'neutral'], rep = np.arange(10))
+
+rule snp_stat_const_rec_ancestry:
+	input:
+		"results/snp_stat_const_rec/replicate{rep}.trees"
+	output:
+		expand("results/snp_stat_const_rec/replicate{{rep}}_{data}.txt", data=["haps","frqs","ancestry"])
+	shell:
+		"python code/snp_stat_const_rec.py {input} 10000 10" #2nd argument is diploid size, 3rd argument is number of haplotypes to output
+
+rule all_snp_stat_const_rec_ancestry:
+	input:
+		expand('results/snp_stat_const_rec/replicate{rep}_{data}.txt', data=['haps', 'frqs', 'ancestry'], rep=np.arange(10))
+
+rule snp_stat_variable_rec_ancestry:
+	input:
+		trees="results/snp_stat_variable_rec_{sim}/replicate{rep}.trees",
+		recmap="variable_rec_map_msprime.txt"
+	output:
+		"results/snp_stat_variable_rec_{sim}/replicate{rep}_frqs.txt"
+	shell:
+		"python code/snp_stat_variable_rec.py {input.trees} 10000 10"
+
+rule snp_stat_const_rec_wavelets:
+	input:
+		frqs="results/snp_stat_const_rec/replicate{rep}_frqs.txt", 
+		haps="results/snp_stat_const_rec/replicate{rep}_haps.txt"
+	output:
+		"results/snp_stat_const_rec/replicate{rep}_wv_results.RData"
+	shell: # first argument to R script is the number of haplotypes output, should match the output from the previous rule that outputs ancestry
+		"""
+		Rscript --vanilla code/admix_snp_stat.R 10 {input.haps} {input.frqs}
+		"""
+
+rule snp_stat_variable_rec_wavelets:
+	input:
+		frqs="results/snp_stat_variable_rec_{sim}/replicate{rep}_frqs.txt",
+		recmap="variable_rec_map_slim.txt"
+	output:
+		"results/snp_stat_variable_rec_{sim}/replicate{rep}_wv_results.txt"
+	shell:
+		"Rscript --vanilla code/snp_stat_variable_rec.R {input.frqs} {input.recmap} {wildcards.sim} > {output}"
+
+rule snp_stat_variable_rec_all_wavelet_results:
+	input:
+		expand("results/snp_stat_variable_rec_{sim}/replicate{rep}_wv_results.txt",sim = ['sel', 'neutral'], rep = np.arange(10))
+	output:
+		"results/snp_stat_variable_rec_sel/all_wv_results_sel_v_neutral.txt"
+	shell:
+		"cat {input} > {output}"
+
+# ========
+
+
+rule dwt_on_haps:
+	input:
+		"results/equilibrium_n500/{rep_gen}_allHaps.txt"
+	output:
+		"results/equilibrium_n500/{rep_gen}_variances-table.txt"
+	shell:
+		"Rscript --vanilla code/all-variances-table.R {input} {wildcards.rep_gen} {output}"
+
+
+#rule aggregate_mean_ancestry:
+#	input:
+#		input = expand("results/{{sim}}/replicate{rep}_{gen}_ancestry.txt", rep=reps,gen=gens)
+#	output:
+#		output="results/{sim}/ancestry_master.txt"
+#	shell:
+#		"""
+#        cat {input} > results/{wildcards.sim}/ancestry_master.txt
+#        """
+
+rule aggregate_mean_ancestry_swordtail:
+	input:
+		expand("results/swordtail_neutral/swordtail_replicate{rep}_{gen}_N{N}_ancestry.txt", rep=reps, gen=gens_swordtail,N=swordtail_N)
+	output:
+		output="results/swordtail_neutral/ancestry_master.txt"
+	shell:
+		"""
+        cat {input} > {output}
+        """
+
+rule aggregate_variance_tables:
+	input:
+		expand("results/equilibrium_n500/replicate{rep}_{gen}_variances-table.txt", rep=reps,gen=gens)
+	output:
+		"results/equilibrium_n500/all-variances-master.txt"
+	shell:
+		"Rscript --vanilla code/rbind_variance_tables.R {output} {input}"
