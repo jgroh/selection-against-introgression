@@ -30,14 +30,29 @@ dcode_interp[chr!="chr1", Morgan_dist := c(0.5, Morgan_dist[2:nrow(.SD)]), by = 
 dcode_interp[, chr := factor(chr, levels = paste0('chr', 1:22))]
 setkey(dcode_interp, chr)
 
-#ggplot(dcode_interp, aes(x=pos, y = Morgan_dist)) + geom_point()
 
+# ----- calculate per locus contribution to r bar
+L_all <- nrow(dcode_interp)
+
+for(i in 1:L_all){
+  chrom <- dcode_interp[i, chr]
+  Morgan_dist_same_chrom <- abs(dcode_interp[i, cM/100] - dcode_interp[chr == chrom][, cM/100])
+  rijs_same_chrom <- (1/2) * ( 1 - exp(-2*abs(Morgan_dist_same_chrom)))
+  ri_same_chrom_component <- (1/L_all^2)*sum(rijs_same_chrom)
+  
+  L_diff_chrom <- L_all - nrow(dcode_interp[chr == chrom])
+  ri_diff_chrom_component <- (1/L_all^2)*(0.5)*L_diff_chrom
+  dcode_interp[i, r_bar_i := ri_same_chrom_component + ri_diff_chrom_component][]
+}
+
+
+# ----- output 
 fwrite(dcode_interp[, .(Morgan_dist)],
        file = "hg38_wg_slim_recmap.txt",
        quote=F, sep = "\t",
        col.names = F)
 
-fwrite(dcode_interp[, .(chr, pos, cM, Morgan_dist)],
+fwrite(dcode_interp[, .(chr, pos, cM, Morgan_dist, r_bar_i)],
        file = "hg38_wg_slim_recmap_verbose.txt",
        quote=F, sep = "\t",
        col.names = F)
