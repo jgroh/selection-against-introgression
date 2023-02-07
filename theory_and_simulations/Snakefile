@@ -10,7 +10,7 @@ swordtail_N = 1000
 	
 # ===== rules for simulations of human genome  =======
 
-rule make_recmap_slim:
+rule make_recmap_slim: # this includes calculation of per locus contribution to rbar whicih takes a while
 	input:
 		"aau1043_datas3" # sex-averaged recomb map from Halldorsson et al 2019
 	output:
@@ -18,7 +18,7 @@ rule make_recmap_slim:
 		"hg38_wg_slim_recmap_verbose.txt",
 		"hg38_chr_lengths.txt",
 	shell:
-		"Rscript --vanilla make_hg38_wg_slim_recmap.R"
+		"Rscript --vanilla code/make_hg38_wg_slim_recmap.R"
 
 rule human_wgsims:
 	input:
