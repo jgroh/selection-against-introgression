@@ -1,4 +1,5 @@
 library(data.table)
+setDTthreads(threads = 3)
 #source("~/workspace/gnomwav/R/multi_modwts.R")
 #source("~/workspace/gnomwav/R/correlation_decomp.R")
 
@@ -51,9 +52,9 @@ f <- function(x, y, dir){
   setnames(interp2, c("x", "y"), c("Morgan", "id2_snp_stat"))
   interp <- merge(interp1, interp2, by = c("chromo", "Morgan"))
   
-  wavcor <- interp[, cov_tbl(data=.SD, chromosome = 'chromo', signals = c('id1_snp_stat', 'id2_snp_stat'))]
-  wavcor[, level := factor(level, levels = c(paste0('d', 1:15), 's14', 's15', 'chromo'))]
-  wavcor[, ID1 := x][, ID2 := y][]
+  wavcov <- interp[, cov_tbl(data=.SD, chromosome = 'chromo', signals = c('id1_snp_stat', 'id2_snp_stat'))]
+  wavcov[, level := factor(level, levels = c(paste0('d', 1:15), 's14', 's15', 'chromo'))]
+  wavcov[, ID1 := x][, ID2 := y][]
 }
 
 covs <- pairs[, f(x=ID1, y=ID2), by = seq_len(nrow(pairs))]

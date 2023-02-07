@@ -1,4 +1,5 @@
 library(data.table)
+setDTthreads(threads=3)
 #source("~/workspace/gnomwav/R/multi_modwts.R")
 #source("~/workspace/gnomwav/R/correlation_decomp.R")
 
