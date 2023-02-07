@@ -1,0 +1,49 @@
+initialize() {
+
+if (exists("slimgui"))
+	{
+		rates = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/swordtail_TOTO_ACUA/swordtail_SNP_recMap_slim_rhoCap0.005.txt");
+		defineConstant("seed", 1);
+		defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/datasets/swordtail_TOTO_ACUA/neutral_sims");
+		defineConstant("N", 1000);
+	} else
+	{	
+		rates = readFile("/Users/brogroh/selection-against-introgression/datasets/swordtail_TOTO_ACUA/swordtail_SNP_recMap_slim_rhoCap0.005.txt");
+		defineConstant("outPath", "neutral_sims");
+
+	}
+	
+	initializeTreeSeq();
+	defineConstant("L", 613171);//171); 
+	
+	defineConstant("alpha", 0.5);//initial mixing proportion 
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0);
+	m1.convertToSubstitution = F;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, L-1);
+	
+	initializeRecombinationRate(asFloat(rates), 1:(L-1));
+	
+
+}
+
+1 early() {
+	sim.addSubpop("p0", N);
+	sim.addSubpop("p1",1);
+	p0.setMigrationRates(p1, alpha);
+
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);	
+}
+1 late() {p1.setSubpopulationSize(0);}
+
+// output
+
+98 late() { // 96 generations of recomb out of F1s
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //
+	}
+
+122 late() { // 120 generations of recomb out of F1s
+	sim.treeSeqOutput(outPath + "/replicate" + seed + ".trees"); 
+	}
+

@@ -1,75 +1,121 @@
 import numpy as np
-chrs = np.arange(1, 23)
+chrs = [str(x) for x in range(1,23)]
+chrs.append("X")
 units = ["physical", "genetic"]
+assembly = ['19', '38'] # genome assemblies
+thresh = ['thresh', 'nothresh']
+
 # analyses common to both units. note gene density analysis differs between physical and genetic
-wvlt_analyses = ["wv","wc_freq_rec","wc_freq_gd","wc_rec_gd","lm", "wc_freq_B"]
+#
+wvlt_analyses = ["wv","wc_calls", "wc_freq_log10rec","wc_freq_rec","wc_freq_cds","wc_rec_cds", "wc_freq_cdsM","lm", "wc_freq_B"]
 
 rule all:
 	input:
-		expand("archaic_freqs/chr{chrom}_frq_{unit}_windows.txt", chrom = chrs, unit = units),
-		expand("gene_density_{unit}_windows.txt", unit = units),
-		expand("wavelet_results/{analysis}_{unit}.txt", analysis = wvlt_analyses, unit=units),
-		"wavelet_results/wc_freq_gdr_physical.txt"
+		expand("wavelet_results/{analysis}_{unit}_hg{n}_{thresh}.txt", analysis = wvlt_analyses, unit=units, n=assembly, thresh=thresh)
 
-rule get_freq:
+rule all_wavelet_inputs:
+	input:
+		expand("{unit}_windows_hg{n}.bed", unit = units, n = assembly), 
+		expand("archaic_freqs_hg{n}/chr{chrom}_frq_{unit}_windows.txt", n = assembly, chrom = chrs, unit = units),
+		expand("{unit}_windows_hg{n}.bed", unit = units, n = assembly), 
+		expand("gene_density_{unit}_windows_hg{n}.txt", unit = units, n = assembly), 
+		expand("B_vals_{unit}_windows_hg{n}.txt", unit = units, n = assembly),
+	
+
+rule average_stein_freqs:
 	input:
 	output:
-		expand("archaic_freqs/chr{{chr}}_frq_{unit}_windows.txt",unit=units)
+		"Steinrucken_etal_2018_data/March2018/CEU_lax_chr{chr}/chr{chr}_frqs.txt"
+	shell:
+		"Rscript --vanilla average_stein_freqs.R {wildcards.chr}"
+
+rule get_freq_hg38:
+	input:
+		skov_fragments="Skov_etal_2020_data/41586_2020_2225_MOESM3_ESM.txt",
+		sank_calls="Sankararaman_etal_2014_data/summaries.release/CEU.hapmap/summaries/chr-{chr}.thresh-90.length-0.00.gz",
+		sank_snps="Sankararaman_etal_2014_data/sankHg19ToHg38Snps.bed", # produced with liftOver
+		stein_calls="Steinrucken_etal_2018_data/March2018/CEU_lax_chr{chr}/chr{chr}_frqs.txt",
+		stein_snps="Steinrucken_etal_2018_data/March2018/steinHg19ToHg38Snps.bed",
+		recmap="Halldorsson_etal_2019_data/aau1043_datas3"
+	output:
+		expand("archaic_freqs_hg38/chr{{chr}}_frq_{unit}_windows.txt",unit=units)
 	shell:
 		"""
-		Rscript --vanilla archaic_freq_1chrom.R {wildcards.chr} \
-				Neanderthal_files/41586_2020_2225_MOESM3_ESM.txt \
-				recomb-hg38/genetic_map_GRCh38_merged.tab
+		Rscript --vanilla archaic_freq_1chrom_hg38.R {wildcards.chr} \
+				{input.skov_fragments} \
+				{input.sank_calls} \
+				{input.sank_snps} \
+				{input.stein_calls} \
+				{input.stein_snps} \
+				{input.recmap} 
 		"""
 
-rule make_window_beds:
+rule get_freq_hg19:
 	input:
+		sank_calls="Sankararaman_etal_2014_data/summaries.release/CEU.hapmap/summaries/chr-{chr}.thresh-90.length-0.00.gz",
+		stein_calls="Steinrucken_etal_2018_data/March2018/CEU_lax_chr{chr}/chr{chr}_frqs.txt",
+		skov_fragments="Skov_etal_2020_data/41586_2020_2225_MOESM3_ESM.txt",
+		skov_loc="Skov_etal_2020_data/Skov_fragments_hg19.bed"
 	output:
-		"homo_{unit}_windows.bed"
+		expand("archaic_freqs_hg19/chr{{chr}}_frq_{unit}_windows.txt",unit=units)
 	shell:
 		"""
-		Rscript --vanilla homo_make_{wildcards.unit}_windows_bed.R | sort -k1,1 -k2,2n > {output}
+		Rscript --vanilla archaic_freq_1chrom_hg19.R {wildcards.chr} \
+				{input.sank_calls} \
+				{input.stein_calls} \
+				{input.skov_fragments} \
+				{input.skov_loc}
+		"""		
+
+rule make_window_beds: # genetic windows also output Morgan distance to be able to merge with frequency files
+	input:
+		"make_{unit}_windows_bed_hg{n}.R"
+	output:
+		"{unit}_windows_hg{n}.bed"
+	shell:
+		"""
+		Rscript --vanilla make_{wildcards.unit}_windows_bed_hg{wildcards.n}.R | sort -k1,1 -k2,2n > {output}
 		"""
 
 rule gtf_to_bed:
 	input:
-		"hg38.knownGene.gtf"	
+		"hg{n}.knownGene.gtf"	# obtained from USCS genome browser
 	output:
-		"hg38.knownGene.bed"
+		"hg{n}_CDS.bed"
 	shell:
-		"gtf2bed < {input} > {output}"
+		"gtf2bed < {input} | grep 'CDS' | sort -k1,1 -k2,2n > {output}"
 
 rule calculate_gene_density_physical:
 	input:
-		A="homo_physical_windows.bed",
-		B="hg38.knownGene.bed"
+		A="physical_windows_hg{n}.bed",
+		B="hg{n}_CDS.bed"
 	output:
-		out="gene_density_physical_windows.txt",
-	shell:
+		out="gene_density_physical_windows_hg{n}.txt",
+	shell: # this gets the number of coding base pairs per window
 		"""
-		bedtools coverage -a {input.A} -b {input.B} | cut -f1-3,7 |\
+		bedtools coverage -a {input.A} -b {input.B} | cut -f1-3,5 |\
 		sort -k1,1 -k2,2n > {output.out}
 		"""
 
 rule calculate_gene_density_genetic:
 	input:
-		A="homo_genetic_windows.bed",
-		B="hg38.knownGene.bed"
+		A="genetic_windows_hg{n}.bed",
+		B="hg{n}_CDS.bed"
 	output:
-		out="gene_density_genetic_windows.txt",
+		out="gene_density_genetic_windows_hg{n}.txt",
 	shell:
+		# for genetic windows kept Morgan for id so there's an extra col in output
 		"""
-		# for genetic windows kept Morgan for id so there's an extra col in output, also we take # of coding bp instead of density
 		bedtools coverage -a {input.A} -b {input.B} | cut -f1-4,6 |\
 		sort -k1,1 -k2,2n > {output.out}
 		"""
 
 rule windowed_B_values:	
 	input:
-		A="homo_{unit}_windows.bed",
-		B="B_values/hg38/bstat_hg38_v2_sorted.txt"
+		A="{unit}_windows_hg{n}.bed",
+		B="B_values/hg{n}/bstat_hg{n}_v2_sorted.txt"
 	output:
-		"B_vals_{unit}_windows.txt"
+		"B_vals_{unit}_windows_hg{n}.txt"
 	shell:
 		"""
 		bedmap --echo --delim "\t" --wmean --sci {input.A} {input.B} > {output}
@@ -77,11 +123,12 @@ rule windowed_B_values:
 
 rule run_wavelets:
 	input:
-		"gene_density_{unit}_windows.txt",
-		expand("archaic_freqs/chr{chr}_frq_{{unit}}_windows.txt",chr=chrs,unit=units)	
+		"gene_density_{unit}_windows_hg{n}.txt",
+		expand("archaic_freqs_hg{n}/chr{chr}_frq_{{unit}}_windows.txt",chr=chrs,unit=units, n=assembly)	
 	output:
-		"wavelet_results/{analysis}_{unit}.txt"
+		"wavelet_results/{analysis}_{unit}_hg{n}_{thresh}.txt"
 	shell:
 		"""
-		Rscript --vanilla wavelet_analyses.R {wildcards.unit} {wildcards.analysis}
+		Rscript --vanilla wavelet_analyses.R {wildcards.unit} {wildcards.analysis} hg{wildcards.n} {wildcards.thresh}
 		"""
+

@@ -19,15 +19,15 @@ if(Sys.getenv("RSTUDIO") == "1"){
   
 } else {
   
-  #source("/Users/brogroh/gnomwav/R/multi_modwts.R")
-  #source("/Users/brogroh/gnomwav/R/variance_decomp.R")
-  #source("/Users/brogroh/gnomwav/R/correlation_decomp.R")
-  #source("/Users/brogroh/gnomwav/R/theory.R")
+  source("/Users/brogroh/gnomwav/R/multi_modwts.R")
+  source("/Users/brogroh/gnomwav/R/variance_decomp.R")
+  source("/Users/brogroh/gnomwav/R/correlation_decomp.R")
+  source("/Users/brogroh/gnomwav/R/theory.R")
   
-  source("~/workspace/gnomwav/R/multi_modwts.R")
-  source("~/workspace/gnomwav/R/variance_decomp.R")
-  source("~/workspace/gnomwav/R/theory.R")
-  source("~/workspace/gnomwav/R/correlation_decomp.R")
+ # source("~/workspace/gnomwav/R/multi_modwts.R")
+ # source("~/workspace/gnomwav/R/variance_decomp.R")
+ # source("~/workspace/gnomwav/R/theory.R")
+ # source("~/workspace/gnomwav/R/correlation_decomp.R")
   args <- commandArgs(trailingOnly = TRUE)
   n.sample <- as.numeric(args[1])
   ancestry <- fread(args[2],col.names = c("gen", "rep", "id", "left", "right", "source"))
@@ -274,7 +274,7 @@ all_wv_haps <- all_wv_haps[, .(mean_wv.h_hap = mean(variance.h_hap)), by = .(rep
 #   geom_point(data = wvthry1.14, aes(y = propvar), color = 'red')
   
 
-# ===== Wavelet Variance of sample mean snp statistic (N=10) ======
+# ===== Wavelet Variance of sample mean snp statistic ======
 
 # reformat in order to compute mean
 haps_interp0[, id2 := paste0('id', id), by = .(rep, gen, pop, id)]

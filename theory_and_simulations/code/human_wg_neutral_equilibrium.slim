@@ -3,19 +3,19 @@
 initialize() {
 	if (exists("slimgui"))
 	{
-		defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/human_chr1_neutral/");
+		defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/human_wgsim_neutral_equilibrium/");
 		defineConstant("seed", 0);
 		defineConstant("N", 1000);
 
-		rates = readFile("/Users/jeff/workspace/selection-against-introgression/datasets/human/hg38_chr1_slim_recmap.txt");
+		rates = readFile("/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/hg38_wg_slim_recmap.txt");
 	} else
 	{	
-		defineConstant("outPath", "results/human_chr1_neutral/");
-		rates = readFile("/Users/Jeff/workspace/selection-against-introgression/datasets/human/hg38_chr1_slim_recmap.txt");
+		defineConstant("outPath", "results/human_wgsim_neutral_equilibrium/");
+		rates = readFile("/Users/brogroh/selection-against-introgression/theory_and_simulations/hg38_wg_slim_recmap.txt");
 	}
 	
 	initializeTreeSeq();
-	defineConstant("L", 255801);
+	defineConstant("L", 2753656);
 	defineConstant("N1", 1);
 	defineConstant("s", 0.4);
 	defineConstant("alpha", 0.5);
@@ -34,9 +34,6 @@ initialize() {
 1 early() {
 	sim.addSubpop("p0", N);
 	sim.addSubpop("p1", N1); 
-	
-	// the donor population carries 100 deleterious loci 
-	p1.individuals.genomes.addNewMutation(m1, 0, asInteger(seq(0, L-1, by = L/100))); 
 
 	p0.setMigrationRates(p1,alpha);
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
@@ -44,27 +41,28 @@ initialize() {
 
 1 late() {p1.setSubpopulationSize(0);}
 
-//calculate fitness
-//1:1000 late() {
-//	inds = p0.individuals;
-//	introgressed = inds.countOfMutationsOfType(m1);
-	// an individual homozygous for all 100 deleterious loci experiences a fitness reduction of 0.4
-//	inds.fitnessScaling = 1.0 - (introgressed/(200))*s;
-//}
-
 
 // output: gen 3 late are F2 offspring
 3 late() {
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //
 }
-
+4 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //
+}
+7 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //
+}
 12 late() {
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //
 }
-
+52 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //
+}
 102 late() {
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //
 }
-
+502 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //
+}
 1002 late() {
 	sim.treeSeqOutput(outPath + "/replicate" + seed + ".trees"); }

@@ -1,5 +1,5 @@
 library(data.table)
-library(ggplot2)
+#library(ggplot2)
 options(scipen=999)
 
 # Make bed file of recombination per bp recombination rates for X. birchmanni genome =====
@@ -35,8 +35,9 @@ recombBed <- rbindlist(
 
 # what portion of the genome is above the threshold? 1.6%
 #sum(recombBed[median_2Ner >= 0.005, end-start])/sum(recombBed[, end-start])
-recombBed[median_2Ner >= 0.005, median_2Ner := 0.005]
 #hist(log(recombBed[,rep(median_2Ner, end-start)]))
+# apply threshold to recomb values
+recombBed[median_2Ner >= 0.005, median_2Ner := 0.005]
 
 # ggplot(recombBed, aes(log10(median_2Ner), weight = end-start)) + 
 #   geom_histogram(bins=100) + facet_wrap(~chr) + 
@@ -53,7 +54,7 @@ chrGenLen[, Morgan := cM/100]
 z <- lm(totalRho ~ 0 + Morgan, data = chrGenLen) # force intercept through zero
 #with(chrGenLen, plot(totalRho ~ Morgan))
 
-summary(z)
+#summary(z)
 Ne2 <- z$coefficients[1]
 
 # divide Rho values by 2Ne to get r
