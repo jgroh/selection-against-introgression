@@ -3,6 +3,7 @@ chrs = [str(x) for x in range(1,23)]
 chrs.append("X")
 units = ["physical", "genetic"]
 assembly = ['19', '38'] # genome assemblies
+thresh = ['thresh', 'nothresh']
 
 # analyses common to both units. note gene density analysis differs between physical and genetic
 #
@@ -10,7 +11,7 @@ wvlt_analyses = ["wv","wc_calls", "wc_freq_log10rec","wc_freq_rec","wc_freq_cds"
 
 rule all:
 	input:
-		expand("wavelet_results/{analysis}_{unit}_hg{n}.txt", analysis = wvlt_analyses, unit=units, n=assembly),
+		expand("wavelet_results/{analysis}_{unit}_hg{n}_{thresh}.txt", analysis = wvlt_analyses, unit=units, n=assembly, thresh=thresh)
 
 rule all_wavelet_inputs:
 	input:
@@ -20,6 +21,14 @@ rule all_wavelet_inputs:
 		expand("gene_density_{unit}_windows_hg{n}.txt", unit = units, n = assembly), 
 		expand("B_vals_{unit}_windows_hg{n}.txt", unit = units, n = assembly),
 	
+
+rule average_stein_freqs:
+	input:
+	output:
+		"Steinrucken_etal_2018_data/March2018/CEU_lax_chr{chr}/chr{chr}_frqs.txt"
+	shell:
+		"Rscript --vanilla average_stein_freqs.R {wildcards.chr}"
+
 rule get_freq_hg38:
 	input:
 		skov_fragments="Skov_etal_2020_data/41586_2020_2225_MOESM3_ESM.txt",
@@ -117,9 +126,9 @@ rule run_wavelets:
 		"gene_density_{unit}_windows_hg{n}.txt",
 		expand("archaic_freqs_hg{n}/chr{chr}_frq_{{unit}}_windows.txt",chr=chrs,unit=units, n=assembly)	
 	output:
-		"wavelet_results/{analysis}_{unit}_hg{n}.txt"
+		"wavelet_results/{analysis}_{unit}_hg{n}_{thresh}.txt"
 	shell:
 		"""
-		Rscript --vanilla wavelet_analyses.R {wildcards.unit} {wildcards.analysis} hg{wildcards.n}
+		Rscript --vanilla wavelet_analyses.R {wildcards.unit} {wildcards.analysis} hg{wildcards.n} {wildcards.thresh}
 		"""
 
