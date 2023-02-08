@@ -9,10 +9,10 @@ setnames(map, c("chr", "pos", "cM", "Morgan_dist", "rbar_i"))
 map[,chr := as.numeric(gsub("chr", "", chr))]
 setkey(map, chr, pos)
 
-fwrite(map[, Morgan_dist], 
+fwrite(map[, .(Morgan_dist)], 
        file = "hg38_wg_slim_recmap.txt", quote = F, sep = "\t", col.names = F)
 
-fwrite(map[, .(chr, pos, cM/100, Morgan_dist, rbar_i)], 
+fwrite(map[, .(chr, pos, Morgan = cM/100, Morgan_dist, rbar_i)], 
        file = "hg38_wg_slim_recmap_verbose.txt.gz", quote = F, sep = "\t", col.names = T)
 
 fwrite(map[, .(len = max(cM)/100), by = chr][, .(len)], 
