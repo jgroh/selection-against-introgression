@@ -8,7 +8,7 @@ if(interactive()){
   source("/Users/jeff/workspace/gnomwav/R/correlation_decomp.R")
   source("/Users/jeff/workspace/gnomwav/R/multi_modwts.R")
   source("/Users/jeff/workspace/gnomwav/R/variance_decomp.R")
-  frq <- fread('results/human_wgsim_sel1-10_S1/replicate1_frqs.txt.gz', col.names = c("rep","gen","frq"))
+  frq <- fread('results/human_wgsim_sel900-1000_S1//replicate9_frqs.txt.gz', col.names = c("rep","gen","frq"))
   map <- fread("hg38_wg_slim_recmap_verbose.txt.gz", col.names = c("chr", 'pos_bp', 'Morgan', 'r', "rbar_i"))
   
 } else{
