@@ -1,5 +1,5 @@
 library(data.table)
-library(ggplot2)
+#library(ggplot2)
 
 chromosome <- commandArgs(trailingOnly = T)[1]
 
@@ -101,9 +101,9 @@ anubis_frqM[, r := (end_Morgan - start_Morgan)/(end-start)]
 
 # ===== output
 
-fwrite(anubis_50kb, file = paste0("anubis_freqs/chr", chromosome, "_50kb_windows.txt"), 
+fwrite(anubis_50kb, file = paste0("anubis_freqs/chr", chromosome, "_50kb_windows.txt.gz"), 
        col.names = T, row.names = F, quote = F, sep = "\t")
-fwrite(anubis_frqM, file = paste0("anubis_freqs/chr", chromosome, "_genetic_windows.txt"), 
+fwrite(anubis_frqM, file = paste0("anubis_freqs/chr", chromosome, "_genetic_windows.txt.gz"), 
        col.names = T, row.names = F, quote = F, sep = "\t")
 
 
