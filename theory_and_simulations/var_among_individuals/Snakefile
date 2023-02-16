@@ -1,0 +1,31 @@
+import numpy as np
+
+gens = [1,10,100,1000]
+
+# ===== rules for producing neutral simulation results ======
+rule all_neutral_wv:
+	input:
+		expand("results/neutral_sims/{sim}/alpha{alpha}_replicate{rep}_wavelet_results.RData", rep=np.arange(30), alpha = [0.005, 0.05, 0.5], sim = ['equilibrium'])
+
+rule neutral_sims: 
+	input:
+	output:
+		temp("results/neutral_sims/{sim}/alpha{alpha}_replicate{rep}.trees") #trees file includes remembered individuals from various gens
+	shell:
+		"slim -d seed={wildcards.rep} -d N=100 -d alpha={wildcards.alpha} code/{wildcards.sim}.slim"
+
+rule ancestry_neutral_sims: # calculates ancestry fractions for the neutral sims
+	input:
+		"results/neutral_sims/{sim}/alpha{alpha}_replicate{rep}.trees"
+	output:
+		"results/neutral_sims/{sim}/alpha{alpha}_replicate{rep}_hap_ancestry.txt"
+	shell:
+		"python code/hap_ancestry.py {input} 100 100"
+
+rule wavelet_analyses_neutral_sims:
+	input:
+		"results/neutral_sims/{sim}/alpha{alpha}_replicate{rep}_hap_ancestry.txt"
+	output:
+		"results/neutral_sims/{sim}/alpha{alpha}_replicate{rep}_wavelet_results.RData"
+	shell:
+		"Rscript --vanilla code/wavelet_analyses_hap_ancestry.R 100 {input}" 
