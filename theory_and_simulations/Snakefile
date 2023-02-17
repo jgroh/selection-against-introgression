@@ -37,15 +37,15 @@ rule human_wgsims:
 		slim -d seed={wildcards.rep} -d N=10000 code/human_wg_{wildcards.sim}.slim
 		"""
 
-rule human_chr1_sims:
+rule human_chr22_sims:
 	input:
-		"hg38_chr1_slim_recmap.txt"
+		"hg38_chr22_slim_recmap.txt"
 	output:
-		"results/human_chr1_{sim}/replicate{rep.slim}/
+		"results/human_chr22_{sim}/replicate{rep.slim}/
 	shell:
 		"""
-		mkdir -p results/human_chr_{wildcards.sim}/
-		slim -d seed={wildcards.rep} -d N=10000 code/human_chr1_{wildcards.sim}.slim
+		mkdir -p results/human_chr22_{wildcards.sim}/
+		slim -d seed={wildcards.rep} -d N=10000 code/human_chr22_{wildcards.sim}.slim
 		"""
 
 rule all_human_wgsims:
@@ -55,9 +55,9 @@ rule all_human_wgsims:
 
 rule output_human_chrom_ancestry:
 	input:
-		"results/human_wgsim_{sim}/replicate{rep}.trees"
+		"results/human_{sim}/replicate{rep}.trees"
 	output:
-		"results/human_wgsim_{sim}/replicate{rep}_frqs.txt.gz"
+		"results/human_{sim}/replicate{rep}_frqs.txt.gz"
 	shell:
 		"python code/ancestry-multigen.py {input} | gzip > {output}"
 
