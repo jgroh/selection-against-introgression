@@ -9,6 +9,12 @@ setnames(map, c("chr", "pos", "cM", "Morgan_dist", "rbar_i"))
 map[,chr := as.numeric(gsub("chr", "", chr))]
 setkey(map, chr, pos)
 
+fwrite(map[chr==22, .(Morgan_dist)], 
+       file = "hg38_chr22_slim_recmap.txt", quote = F, sep = "\t", col.names = F)
+
+fwrite(map[chr==22, .(chr, pos, Morgan = cM/100, Morgan_dist, rbar_i)], 
+       file = "hg38_chr22_slim_recmap_verbose.txt.gz", quote = F, sep = "\t", col.names = T)
+
 fwrite(map[, .(Morgan_dist)], 
        file = "hg38_wg_slim_recmap.txt", quote = F, sep = "\t", col.names = F)
 
