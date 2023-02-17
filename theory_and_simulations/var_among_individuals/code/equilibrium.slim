@@ -11,13 +11,11 @@ initialize() {
 	}
 	
 	initializeTreeSeq();
-	//defineConstant("genomeSize", 1e8);
-	defineConstant("genomeSize", 67108864);
+	defineConstant("genomeSize", asInteger(2^26));
 	initializeMutationRate(0);
 	initializeMutationType("m1", 0.5, "f", 0);
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, genomeSize-1);
-//	defineConstant("baseRate", 1e-8);
 	defineConstant("baseRate", 1/2^26);
 	initializeRecombinationRate(baseRate);
 	
@@ -30,38 +28,41 @@ initialize() {
 	sim.addSubpop("p1", N);
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //these individuals are accessed using ts.samples( time = max output generation + N) in tskit
 
-	community.rescheduleScriptBlock(s1, start=N, end=N); // migration begins when expected Fst=0.2. Individuals in p2 at generation N should be a mix of parental types
-	community.rescheduleScriptBlock(s2, start=N, end=N); // migration ends
+	community.rescheduleScriptBlock(s1, start=2, end=2); // migration begins in gen 2 (this is arbitrary, adapted from script where migration begins in gen N to correspond to an expected Fst value. Individuals in p2 at generation 2 should be a mix of parental types
+	community.rescheduleScriptBlock(s2, start=2, end=2); // migration ends
 	
-	community.rescheduleScriptBlock(s3, start=N+2, end=N+2); // F2s. Corresponding to 1 generation in the theory
-	community.rescheduleScriptBlock(s4, start=N+11, end=N+11); // 10 generations from F1
-	community.rescheduleScriptBlock(s5, start=N+101, end=N+101); // 100 generations from F1
-	community.rescheduleScriptBlock(s6, start=N+1001, end=N+1001); // 1000 generations from F1
+	community.rescheduleScriptBlock(s3, start=2+1, end=2+2); // F1s. Corresponding to 0 generation in the theory
+	community.rescheduleScriptBlock(s4, start=2+2, end=2+2); // F2s. Corresponding to 1 generation in the theory
+	community.rescheduleScriptBlock(s5, start=2+11, end=2+11); // 10 generations from F1
+	community.rescheduleScriptBlock(s6, start=2+101, end=2+101); // 100 generations from F1
+	community.rescheduleScriptBlock(s7, start=2+1001, end=2+1001); // 1000 generations from F1
 
 }
 
-// expected Fst=0.2 when N=T
 s1 1e6 early() {
 	sim.addSubpop("p2", N);
-	p2.setMigrationRates(c(p0,p1), c(alpha, 1-alpha));
+	p2.setMigrationRates(c(p0,p1), c(1-alpha, alpha));
 }
 
 s2 1e6 late() {
-	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //these individuals are accessed as time = max output gen (1001) in tskit. These are *pure parental* type individuals contained in the admixed population. 
 	p2.setMigrationRates(c(p0, p1), c(0.0, 0.0));
 }
 
 s3 1e6 late() {
-	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //these individuals are accessed as time = (1 + max output gen (1001)) in tskit. These are F1 individuals contained in the admixed population. 
 }
 
 s4 1e6 late() {
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
 }
+
 s5 1e6 late() {
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
 }
+s6 1e6 late() {
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+}
 
-s6 1e6 late(){
+s7 1e6 late(){
 	sim.treeSeqOutput(outPath + "/alpha" + alpha + "_replicate" + seed + ".trees");
 }
