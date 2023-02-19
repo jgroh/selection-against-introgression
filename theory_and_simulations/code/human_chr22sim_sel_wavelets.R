@@ -3,7 +3,7 @@ library(data.table)
 library(cubature)
 library(wCorr)
 
-vif(interactive()){
+if(interactive()){
   setwd("/Users/Jeff/workspace/selection-against-introgression/theory_and_simulations/")
   source("/Users/jeff/workspace/gnomwav/R/correlation_decomp.R")
   source("/Users/jeff/workspace/gnomwav/R/multi_modwts.R")
