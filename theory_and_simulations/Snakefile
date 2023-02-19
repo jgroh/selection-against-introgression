@@ -8,9 +8,9 @@ chrs = [str(x) for x in range(1,23)]
 rule all_human_wgsim_wavelet_results:
 	input:
 #		expand("results/human_wgsim_neutral_{sim}_no_interp/replicate{rep}_wavelet_results.txt", rep = np.arange(10), sim = ['equilibrium','bottleneck']),
-#		expand("results/human_{gnom}_{selgens}_S{S}/replicate{rep}_wavelet_results.RData", gnom= ['chr22sim', 'wgsim'], selgens=['sel1-1000','sel1-10','sel900-1000'],S=['1'], rep=np.arange(20)), 
-		expand("results/human_{gnom}_{selgens}_S{S}/replicate{rep}_wavelet_results.RData", gnom= ['chr22sim'], selgens=['sel1-1000','sel1-10','sel900-1000'],S=['1'], rep=np.arange(20)), 
-		expand("results/human_chr22sim_neutral_equilibrium/replicate{rep}_wavelet_results.RData", rep=np.arange(20)), 
+		expand("results/human_{gnom}_{selgens}_S{S}/replicate{rep}_wavelet_results.RData", gnom= ['wgsim'], selgens=['sel1-1000','sel1-10','sel900-1000'],S=['1'], rep=np.arange(20)), 
+#		expand("results/human_{gnom}_{selgens}_S{S}/replicate{rep}_wavelet_results.RData", gnom= ['chr22sim'], selgens=['sel1-1000','sel1-10','sel900-1000'],S=['1'], rep=np.arange(20)), 
+#		expand("results/human_chr22sim_neutral_equilibrium/replicate{rep}_wavelet_results.RData", rep=np.arange(20)), 
 #		expand("results/human_wgsim_sel1-1000_S0.4/replicate{rep}_wavelet_results.RData",rep=np.arange(20)),
 
 rule slim_recmap_chr: #do by chromosome as calc of rbar_i takes a while, combine in next step
