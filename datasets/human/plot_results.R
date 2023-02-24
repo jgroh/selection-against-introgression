@@ -6,7 +6,7 @@ library(ggpubr)
 library(cubature)
 
 setwd("~/workspace/selection-against-introgression/datasets/human/")
-source("~/workspace/gnomwav/R/theory.R")
+library(gnomwav)
 
 wc_calls_listy <- list()
 wc_calls_files <- list.files("wavelet_results", pattern = "wc_calls*", full.names=T)
@@ -121,12 +121,12 @@ lapply(
 # ===== Compare calls =====
 
 # ---- physical (assembly makes little difference)
-ggplot(wc_calls[!grepl("s", level, fixed = T) & units == 'physical' & assembly == 'hg19' & thresh == 'thresh'], aes(x = level, y = cor_n, color = study)) + 
+ggplot(wc_calls[!grepl("s", level, fixed = T) & units == 'physical' & assembly == 'hg38' & thresh == 'thresh' & method == 'pearson'], aes(x = level, y = cor_n, color = study)) + 
   #geom_point(size = 2.2, aes(shape = thresh)) + 
   geom_point(size = 2.2) + 
   
   #geom_line(data = wc_calls[grepl("d", level, fixed = T) & units == 'physical' & assembly == 'hg19'], aes(group = interaction(study, thresh), linetype = thresh)) +
-  geom_line(data = wc_calls[grepl("d", level, fixed = T) & units == 'physical' & assembly == 'hg19' & thresh == 'thresh'], aes(group = study)) +
+  geom_line(data = wc_calls[grepl("d", level, fixed = T) & units == 'physical' & assembly == 'hg38' & thresh == 'thresh' & method == 'pearson'], aes(group = study)) +
   
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), 'scl', "chr"), 
@@ -135,7 +135,9 @@ ggplot(wc_calls[!grepl("s", level, fixed = T) & units == 'physical' & assembly =
        color = "Comparison", 
        y = "Correlation") + 
   #scale_color_manual(values = c("#19CEBF", "#EFCA2F", "#E87DE0")) +
-  scale_color_brewer(type = 'qual', palette = 'Accent') +
+  #scale_color_brewer(type = 'qual', palette = 'Set2') +
+  scale_color_manual(values = c("maroon", "darkturquoise", "goldenrod")) +
+  
   theme(aspect.ratio = 1, 
         axis.title = element_text(size = 15),
         axis.text.y = element_text(size = 12),
@@ -144,9 +146,15 @@ ggplot(wc_calls[!grepl("s", level, fixed = T) & units == 'physical' & assembly =
   geom_segment(aes(x = 0, xend = 17.05, y = -Inf, yend = -Inf), color = 'black') 
 
 # ---- genetic
-ggplot(wc_calls[!grepl("s", level, fixed = T) & units == 'genetic' & assembly == 'hg19'], aes(x = level, y = cor_n, color = study)) + 
-  geom_point(size = 2.2, aes(shape = thresh)) + 
-  geom_line(data = wc_calls[grepl("d", level, fixed = T) & units == 'genetic' & assembly == 'hg19'], aes(group = interaction(study, thresh), linetype = thresh)) +
+ggplot(wc_calls[!grepl("s", level, fixed = T) & units == 'genetic' & 
+                  assembly == 'hg38' & 
+                  method == 'pearson' & 
+                  thresh == 'thresh'], aes(x = level, y = cor_n, color = study)) + 
+  geom_point(size = 2.2) + 
+  geom_line(data = wc_calls[grepl("d", level, fixed = T) & units == 'genetic' & 
+                              assembly == 'hg38' & method == 'pearson' &
+                              thresh == 'thresh'], 
+            aes(group = study)) +
   
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), 'scl', 'chr'), 
@@ -155,7 +163,7 @@ ggplot(wc_calls[!grepl("s", level, fixed = T) & units == 'genetic' & assembly ==
        color = "Comparison",
        y = "Correlation") + 
   #scale_color_manual(values = c("#19CEBF", "#EFCA2F", "#E87DE0")) +
-  scale_color_brewer(type = 'qual', palette = 'Accent') +
+  scale_color_manual(values = c("maroon", "darkturquoise", "goldenrod")) +
   theme(aspect.ratio = 1, 
         axis.title = element_text(size = 15),
         axis.text.y = element_text(size = 12),
@@ -177,7 +185,7 @@ wv_physical_collapsed <- rbind(wv[grepl('s', level, fixed=T) & units == 'physica
                                            propvar.skov_freq = sum(propvar.skov_freq),
                                            propvar.sank_freq = sum(propvar.sank_freq),
                                            propvar.stein_freq = sum(propvar.stein_freq)), by= .(assembly, thresh)], 
-                              wv[!grepl('s', level, fixed=T) & units == 'physical' & assembly == 'hg19', 
+                              wv[!grepl('s', level, fixed=T) & units == 'physical', 
                                          .(level, variance.skov_freq, propvar.skov_freq, 
                                            variance.sank_freq, propvar.sank_freq, 
                                            variance.stein_freq, propvar.stein_freq), by = .(assembly, thresh)]
@@ -188,7 +196,7 @@ wv_physical_collapsed <- melt(wv_physical_collapsed, measure.vars = c("variance.
      variable.name = "study", value.name = "variance")
 wv_physical_collapsed[, study := gsub("_freq", "", gsub("variance.","",study))]
 
-ggplot(wv_physical_collapsed[assembly == 'hg19'], 
+ggplot(wv_physical_collapsed[assembly == 'hg38'], 
        aes(x = level, y = variance, color = study)) + 
   theme_classic() + 
   geom_point(size = 2.2, aes(shape = thresh)) +
@@ -209,7 +217,7 @@ ggplot(wv_physical_collapsed[assembly == 'hg19'],
 
 # ===== wavelet variance, genetic units =====
 
-wvtheory <- wavelet_variance_equilbrium(n.pop=2000, n.sample = 2000, unit.dist = 2^-16, level = 1:17, alpha = 0.01, gen = 2000)
+wvtheory <- wavelet_variance_equilibrium(n.pop=2000, n.sample = 2000, unit.dist = 2^-16, level = 1:17, alpha = 0.01, gen = 2000)
 setnames(wvtheory, "variance", "variance.freq")
 wvtheory[, propvar.freq := variance.freq/sum(variance.freq)]
 wvtheory[, data := "theory"]
@@ -217,9 +225,6 @@ wvtheory[, level := paste0("d", level)]
 wvtheory[, level := factor(level, levels = c(paste0("d", 1:17), 'scl', 'chr'))] 
 
 # reformat data for plotting
-lineData_genetic_hg19 <- wv_genetic_hg19[grepl("d", level, fixed = T)]
-
-
 wv_genetic_collapsed <- rbind(wv[grepl('s', level, fixed=T) & units == 'genetic', 
                                   .(level = 'scl', 
                                     variance.skov_freq = sum(variance.skov_freq), 
@@ -232,7 +237,7 @@ wv_genetic_collapsed <- rbind(wv[grepl('s', level, fixed=T) & units == 'genetic'
                                     variance.sank_freq.jack.se = NA, 
                                     variance.stein_freq.jack.se = NA), 
                                  by= .(assembly, thresh)], 
-                               wv[!grepl('s', level, fixed=T) & units == 'genetic' & assembly == 'hg19', 
+                               wv[!grepl('s', level, fixed=T) & units == 'genetic', 
                                   .(level, variance.skov_freq, propvar.skov_freq, 
                                     variance.sank_freq, propvar.sank_freq, 
                                     variance.stein_freq, propvar.stein_freq, variance.skov_freq.jack.se, 
@@ -265,13 +270,14 @@ wv_genetic_collapsed_se[, study := gsub("_freq.jack.se", "", gsub("variance.", "
 wv_genetic_plot_data <- merge(merge(wv_genetic_collapsed_variances, wv_genetic_collapsed_propvars), wv_genetic_collapsed_se)
 wv_genetic_plot_data[, se.scld := se/sum(variance), by = study]
 
+# for all studies combined
 ggplot(wv_genetic_plot_data[], 
        #aes(x = level, y = variance.freq, group = 1)) + 
        aes(x = level, y = propvar, color = study)) + 
   geom_point(size = 2, aes(shape = thresh)) + 
   scale_color_manual(values = c("#19CEBF", "#EFCA2F", "#E87DE0")) +  
-  geom_line(data = wvtheory, aes(x = level, y = propvar.freq), group = 1, color = "black", size = 1) +
-  geom_point(size = 2) +
+  geom_line(data = wvtheory, aes(x = level, y = propvar.freq), group = 1, color = "black", linewidth = 1) +
+  #geom_point(size = 2) +
   geom_line(data=wv_genetic_plot_data[grepl('d', level, fixed=T)], linewidth = 1, 
             aes(group = interaction(study, thresh), linetype = thresh)) +
   #geom_errorbar(aes(ymin=propvar - 1.96*se.scld, ymax=propvar+1.96*se.scld)) +
@@ -287,25 +293,53 @@ ggplot(wv_genetic_plot_data[],
   #geom_line(data = wvtheory, aes(x = level, y = propvar.freq), group = 1, color = 'red') +
   theme(aspect.ratio = 1,
         text = element_text(size=15),
-        axis.ticks.x = element_line(size=1),
+        axis.ticks.x = element_line(linewidth=1),
         axis.line.x = element_blank(),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
         axis.text.y = element_text(size=12),
         axis.title.y = element_text(hjust=.4,margin=margin(r=10))) 
 
 
+# show just skov
+ggplot(wv_genetic_plot_data[study == 'skov' & assembly == 'hg19'], 
+       aes(x = level, y = propvar)) + 
+  geom_point(size = 2) + 
+  geom_line(data = wvtheory, aes(x = level, y = propvar.freq), group = 1, color = "gray", linewidth = 1) +
+  geom_point(size = 2) +
+  geom_line(data=wv_genetic_plot_data[grepl('d', level, fixed=T) & study == 'skov' & assembly == 'hg19'], linewidth = 1) +
+  geom_errorbar(aes(ymin=propvar - 1.96*se.scld, ymax=propvar+1.96*se.scld)) +
+  
+  labs(color = "") +
+  theme_classic() + 
+  scale_x_discrete(breaks = c(paste0("d", 1:17), 'scl', 'chr'), 
+                   labels = c(as.character(-16:0), 'scl', 'chrom')) + 
+  labs(x = expression(Scale: log[2] (Morgan)), 
+       #y = "Variance") + 
+       y = "Proportion of variance") + 
+  geom_segment(aes(x = 0, xend = 17.05, y = -Inf, yend = -Inf), color = 'black')  +
+  theme(aspect.ratio = 1,
+        text = element_text(size=15),
+        axis.ticks.x = element_line(linewidth=1),
+        axis.line.x = element_blank(),
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
+        axis.text.y = element_text(size=12),
+        axis.title.y = element_text(hjust=.4,margin=margin(r=10))) 
+
 # ===== Correlations =====
 
 # ---- freq vs rec, physical map
 
-
-p1 <- ggplot(wc_freq_rec[!grepl('s',level,fixed=T) & units == 'physical' & assembly == 'hg19' & study == 'stein'], 
-             aes(x = level, y = cor_n)) + 
+ggplot(wc_freq_rec[!grepl('s',level,fixed=T) & 
+                           units == 'physical' & 
+                           assembly == 'hg38' & 
+                           method == 'pearson' &
+                           thresh == 'thresh'], 
+             aes(x = level, y = cor_n, color = study)) + 
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
   #geom_point(size=2, color = "#329a9c") + 
   geom_point(size=2, aes(shape = thresh)) + 
 
-  #scale_color_manual(values = c("#19CEBF", "#EFCA2F", "#E87DE0")) +  
+  scale_color_manual(values = c("#19CEBF", "#EFCA2F", "#E87DE0")) +  
 
   #geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1) + 
   #geom_point(size=2 ) + 
@@ -328,14 +362,19 @@ p1 <- ggplot(wc_freq_rec[!grepl('s',level,fixed=T) & units == 'physical' & assem
       plot.title = element_text(hjust = -.1)) 
 
 
-p1
+
 
 
 
 
 # ---- freq vs log10rec, physical map
 
-p1.1 <- ggplot(wc_freq_log10rec[!grepl('s',level,fixed=T) & units == 'physical' & assembly == 'hg19' & thresh == 'thresh'], aes(x = level, y = cor_n, color = study)) + 
+ggplot(wc_freq_log10rec[!grepl('s',level,fixed=T) & 
+                                  units == 'physical' & 
+                                  assembly == 'hg38' & 
+                                  thresh == 'thresh' & 
+                                  method == 'spearman'], 
+               aes(x = level, y = cor_n, color = study)) + 
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
   #geom_point(size=2, color = "#329a9c") + 
   geom_point(size=2, aes(shape = thresh)) + 
@@ -362,17 +401,21 @@ p1.1 <- ggplot(wc_freq_log10rec[!grepl('s',level,fixed=T) & units == 'physical' 
         plot.title = element_text(hjust = -.1)) 
 
 
-p1.1
+# ---- freq vs cds, physical map
 
 
-p2 <- ggplot(wc_freq_cds[!grepl('s',level,fixed=T) & units == 'physical' & assembly == 'hg19' & thresh == 'thresh'], aes(x = level, y = cor_n, color = study)) + 
+ggplot(wc_freq_cds[!grepl('s',level,fixed=T) & 
+                     units == 'physical' & 
+                     assembly == 'hg38' & 
+                     thresh == 'thresh' & 
+                     method == 'pearson'], aes(x = level, y = cor_n, color = study)) + 
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
   #geom_point(size=2, color = "#329a9c") + 
-  geom_point(size=2, aes(shape = thresh)) + 
+  geom_point(size=2) + 
   scale_color_manual(values = c("#19CEBF", "#EFCA2F", "#E87DE0")) +  
   
   #geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1) + 
-  geom_point(size=2, aes(shape = thresh)) + 
+  geom_point(size=2) + 
   
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), "chr"), 
@@ -392,9 +435,12 @@ p2 <- ggplot(wc_freq_cds[!grepl('s',level,fixed=T) & units == 'physical' & assem
         plot.title = element_text(hjust = -.1)) 
 
 
-p2
+# ---- rec vs cds, physical map
 
-p3 <- ggplot(wc_rec_cds[!grepl('s',level,fixed=T) & units == 'physical' & assembly == 'hg19' & thresh == 'thresh' & study == 'skov'], aes(x = level, y = cor_n)) + 
+ggplot(wc_rec_cds[!grepl('s',level,fixed=T) & units == 'physical' & 
+                    assembly == 'hg19' & 
+                    thresh == 'thresh' &
+                    method == 'pearson'], aes(x = level, y = cor_n)) + 
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
   #geom_point(size=2, color = "#329a9c") + 
   geom_point(size=2) + 
@@ -420,7 +466,6 @@ p3 <- ggplot(wc_rec_cds[!grepl('s',level,fixed=T) & units == 'physical' & assemb
         plot.title = element_text(hjust = -.1)) 
 
 
-p3
 
 
 p4 <- ggplot(wc_freq_B[!grepl('s',level,fixed=T) & units == 'physical' & assembly == 'hg19' & thresh == 'thresh' ], aes(x = level, y = cor_n)) + 

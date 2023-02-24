@@ -1,13 +1,11 @@
 library(data.table)
-library(waveslim)
+library(gnomwav)
 
 if(interactive()){
-  source("~/workspace/gnomwav/R/multi_modwts.R")
-  source("~/workspace/gnomwav/R/variance_decomp.R")
-  source("~/workspace/gnomwav/R/correlation_decomp.R")
+  
   windows <- 'physical'
   analysis <- 'wv'
-  assembly <- 'hg19'
+  assembly <- 'hg38'
   thresh <- 'thresh'
 
 } else{

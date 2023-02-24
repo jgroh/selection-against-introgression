@@ -27,7 +27,7 @@ gnomG <- merge(gnomG, dem, by = "id")
 
 if(interactive()){
   gnomP <- gnomP[id %in% c("AMB_001", "AMB_202", "AMB_044", "AMB_002", "AMB_003") & chrom %in% paste0("chr", 15:20)]
-  gnomG <- gnomG[id %in% c("AMB_001", "AMB_202", "AMB_044") & chrom %in% paste0("chr", 15:20)]
+  gnomG <- gnomG[id %in% c("AMB_001", "AMB_202", "AMB_044","AMB_002", "AMB_003") & chrom %in% paste0("chr", 15:20)]
 }
 
 # ===== Wavelet Variances =====
@@ -55,37 +55,56 @@ wv_ind_all <- rbind(wv_ind_P, wv_ind_G)
 
 # ===== calculate mean anubis frequencies ===== 
 
+# ------ average frq in all individuals
 
-# -- average frq in all individuals
-anubis_frq_all <- gnomP[, .(anubis_frq = mean(anubis),
+# physical map
+anubis_frq_allP <- gnomP[, .(anubis_frq = mean(anubis),
                         r = mean(r)), 
                         by = .(chrom, start, end)]
-anubis_frq_all[, group := 'all']
+anubis_frq_allP[, group := 'all']
+anubis_frq_allP[, units := '50kb']
 
-# -- by hybrid status
-anubis_frq_hyb_status <- gnomP[, .(anubis_frq = mean(anubis),
-                              r = mean(r)), 
-                          by = .(chrom, start, end, hybrid_status)]
-setnames(anubis_frq_hyb_status, "hybrid_status", "group")
+# genetic map
+anubis_frq_allG <- gnomG[, .(anubis_frq = mean(anubis),
+                             r = mean(r)), 
+                         by = .(chrom, start, end)]
+anubis_frq_allG[, group := 'all']
+anubis_frq_allG[, units := 'genetic']
+anubis_frq_all <- rbind(anubis_frq_allP, anubis_frq_allG)
 
-# -- by anubis quintile
+# ------- by anubis quintile
+# physical map
 gnomP[, anubis_qntl := cut(genome_wide_anubis_ancestry,
                            breaks = quantile(genome_wide_anubis_ancestry, probs = 0:5/5),
                            labels = FALSE, include.lowest = TRUE) ]
-anubis_frq_anubis_qntl <- gnomP[, .(anubis_frq = mean(anubis),
+anubis_frq_anubis_qntlP <- gnomP[, .(anubis_frq = mean(anubis),
                                       r = mean(r)), 
                                   by = .(chrom, start, end, anubis_qntl)]
-anubis_frq_anubis_qntl[, anubis_qntl := paste0("qntl", anubis_qntl)]
-setnames(anubis_frq_anubis_qntl, "anubis_qntl", "group")
+anubis_frq_anubis_qntlP[, anubis_qntl := paste0("qntl", anubis_qntl)]
+setnames(anubis_frq_anubis_qntlP, "anubis_qntl", "group")
+anubis_frq_anubis_qntlP[, units := '50kb']
+
+# genetic map
+gnomG[, anubis_qntl := cut(genome_wide_anubis_ancestry,
+                           breaks = quantile(genome_wide_anubis_ancestry, probs = 0:5/5),
+                           labels = FALSE, include.lowest = TRUE) ]
+
+anubis_frq_anubis_qntlG <- gnomG[, .(anubis_frq = mean(anubis),
+                                     r = mean(r)), 
+                                 by = .(chrom, start, end, anubis_qntl)]
+anubis_frq_anubis_qntlG[, anubis_qntl := paste0("qntl", anubis_qntl)]
+setnames(anubis_frq_anubis_qntlG, "anubis_qntl", "group")
+anubis_frq_anubis_qntlG[, units := 'genetic']
+
+anubis_frq_anubis_qntl <- rbind(anubis_frq_anubis_qntlP, anubis_frq_anubis_qntlG)
 
 # combine
-anubis_frqs_by_grp <- rbind(anubis_frq_all, anubis_frq_hyb_status, anubis_frq_anubis_qntl)
+anubis_frqs_by_grp <- rbind(anubis_frq_all, anubis_frq_anubis_qntl)
 
 
 # ===== wavelet correlations =====
 cor_frq_rec <- anubis_frqs_by_grp[, gnom_cor_decomp(.SD, chromosome = "chrom",
-                                                    signals = c("anubis_frq", "r")), by = group]
-cor_frq_rec[, units := "50kb"]
+                                                    signals = c("anubis_frq", "r")), by = .(units, group)]
 
 # ----- wavelet correlation anubis freq, B values
 load("VilgalysFogel_Amboseli_admixture-main/VilgalysFogel_main_data_file.250kb_windows.RData")
