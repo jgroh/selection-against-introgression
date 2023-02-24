@@ -2,16 +2,12 @@ library(data.table)
 library(gnomwav)
 
 if(interactive()){
-  
   windows <- 'physical'
   analysis <- 'wv'
   assembly <- 'hg38'
   thresh <- 'thresh'
 
 } else{
-  source("/Users/brogroh/gnomwav/R/multi_modwts.R")
-  source("/Users/brogroh/gnomwav/R/variance_decomp.R")
-  source("/Users/brogroh/gnomwav/R/correlation_decomp.R")
   args <- commandArgs(trailingOnly = TRUE)
   windows <- args[1]
   analysis <- args[2]
