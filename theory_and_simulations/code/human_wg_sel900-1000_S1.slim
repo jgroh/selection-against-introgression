@@ -10,16 +10,17 @@ initialize() {
 	} else
 	{	
 		defineConstant("outPath", "results/human_wgsim_sel900-1000_S1/");
-		rates = readFile("/Users/brogroh/selection-against-introgression/theory_and_simulations/hg38_wg_slim_recmap.txt");
+//		rates = readFile("/Users/brogroh/selection-against-introgression/theory_and_simulations/hg38_wg_slim_recmap.txt");
+		rates = readFile("/home/jgroh/selection-against-introgression/theory_and_simulations/hg38_wg_slim_recmap.txt");
 	}
 	
 	
 	initializeTreeSeq();
-	defineConstant("L", 2753656);
+	defineConstant("L", 55088);
 	defineConstant("N1", 1);
 	defineConstant("s", 1);
 	defineConstant("alpha", 0.5);
-	defineConstant("x", 4000);
+	defineConstant("x", 10000);
 
 	initializeMutationRate(0);
 	initializeMutationType("m1", 0.5, "f", 0.0);

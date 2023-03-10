@@ -34,16 +34,19 @@ rule make_slim_recmap:
 		"Rscript --vanilla combine_hg38_wg_slim_recmap.R"
 
 rule human_wgsims:
-	input:
-		"hg38_wg_slim_recmap.txt",
-		"hg38_chr_lengths.txt"
-	output:
-		temp("results/human_wgsim_{sim}/replicate{rep}.trees")
-	shell:
-		"""
-		mkdir -p results/human_wgsim_{wildcards.sim}/
-		slim -d seed={wildcards.rep} -d N=10000 code/human_wg_{wildcards.sim}.slim
-		"""
+  input:
+    "hg38_wg_slim_recmap.txt",
+    "hg38_chr_lengths.txt"
+  output:
+    temp("results/human_wgsim_{sim}/replicate{rep}.trees")
+  resources:
+    runtime = lambda wildcards, attempt: attempt * 24 * 60,
+    mem_mb = lambda wildcards, attempt: attempt * 20000,
+  shell:
+    """
+    mkdir -p results/human_wgsim_{wildcards.sim}/
+    slim -d seed={wildcards.rep} -d N=10000 code/human_wg_{wildcards.sim}.slim
+    """
 
 rule human_chr22_sims:
 	input:
@@ -97,13 +100,16 @@ rule human_wgsim_neutral_wavelets_no_interp:
 		"Rscript --vanilla code/human_wgsim_neutral_wv_no_interp.R {input.frqs} {input.chrlengths}"
 		
 rule human_wgsim_sel_wavelets:
-	input:
-		frqs="results/human_wgsim_sel{sim}/replicate{rep}_frqs.txt.gz",
-		recmap="hg38_wg_slim_recmap_verbose.txt.gz"
-	output:
-		"results/human_wgsim_sel{sim}/replicate{rep}_wavelet_results.RData"
-	shell:
-		"Rscript --vanilla code/human_wgsim_sel_wavelets.R {input.frqs} {input.recmap}"
+  input:
+    frqs="results/human_wgsim_sel{sim}/replicate{rep}_frqs.txt.gz",
+    recmap="hg38_wg_slim_recmap_verbose.txt.gz"
+  output:
+    "results/human_wgsim_sel{sim}/replicate{rep}_wavelet_results.RData"
+  resources:
+    runtime = lambda wildcards, attempt: attempt * 24 * 60,
+    mem_mb = lambda wildcards, attempt: attempt * 20000,
+  shell:
+    "Rscript --vanilla code/human_wgsim_sel_wavelets.R {input.frqs} {input.recmap}"
 
 rule human_chr22_neutral_wavelets:
 	input:
