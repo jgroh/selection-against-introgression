@@ -6,7 +6,7 @@ library(waveslim)
 args <- commandArgs(trailingOnly = TRUE)
 year <- args[1]
 
-scaffFiles <- dir(paste0("ACUA_",year),full.names=T)
+scaffFiles <- dir(paste0("ACUA_",year), pattern = "ScyDAA6*",full.names=T)
 scaffs <- basename(file_path_sans_ext(scaffFiles))
 
 # each file has the same object name for the scaffold 
@@ -15,16 +15,12 @@ loadFrom=function(file, name){e=new.env();load(file,env=e);e[[name]]}
 
 # combine data into one file for the year
 gnom <- rbindlist(lapply(as.list(scaffFiles), 
-                          function(x){loadFrom(x, "chrom1")}))
-gnom[, pop_mean_minor_parent := 1 - pop_mean]
-gnom[, ind_minor_parent := 1 - ind_frq]
+                          function(x){loadFrom(x, "chromAnc50kb")}))
+gnom[, minPrntAnc := 1 - meanFreq]
 
-# correlation on individuals
-# ind_cor <- gnom[, cor(r, ind_minor_parent), by = .(ID)]
-# setnames(ind_cor, "V1", "correlation")
+gnom[, mean(minPrntAnc)]
 
 # compute avg. minor parent frq and total correlation
-avgFrq <- gnom[ID==ID[1], mean(pop_mean_minor_parent)]
-totalCor <- gnom[ID==ID[1], cor(pop_mean_minor_parent, r)]
+avgFrq <- gnom[ID==ID[1], mean(minPrntAnc)]
 
-save(avgFrq, totalCor, file = paste0("ACUA_",year,"/avgFrq_totalCor.RData"))
+save(avgFrq, file = paste0("ACUA_",year,"/avgFrq.txt"))

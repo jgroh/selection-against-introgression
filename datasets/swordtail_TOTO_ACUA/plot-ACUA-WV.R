@@ -4,6 +4,9 @@ library(gridExtra)
 library(grid)
 library(cubature)
 source("~/workspace/gnomwav/R/theory.R")
+library(showtext)
+font_add_google("Nanum Gothic")
+showtext_auto()
 
 setwd("~/workspace/selection-against-introgression/datasets/swordtail_TOTO_ACUA/")
 
@@ -20,8 +23,9 @@ acua2013var <- data.table(loadFrom("ACUA_2013/wavelet_results.RData", "wavvar"))
 acua2015var <- data.table(loadFrom("ACUA_2015/wavelet_results.RData", "wavvar")); acua2015var[,year := "2015"]
 acua2018var <- data.table(loadFrom("ACUA_2018/wavelet_results.RData", "wavvar")); acua2018var[,year := "2018"]
 wavvar <- rbindlist(list(acua2006var,acua2008var,acua2013var,acua2015var,acua2018var))
+
 wavvarm <- melt(wavvar, id.vars = c("units", "year","level"))
-wavvarm[, level := factor(level, levels = c(paste0("d", 1:15), "s12", "s13", "s14", "s15", "chr"))]
+wavvarm[, level := factor(level, levels = c(paste0("d", 1:11), "s8", "s9", "s11", "chr"))]
 
 
 acua2006wc <- data.table(loadFrom("ACUA_2006/wavelet_results.RData", "wavcor")); acua2006wc[,year := "2006"]
@@ -39,15 +43,16 @@ acua2018rs <- data.table(loadFrom("ACUA_2018/wavelet_results.RData", "rsqrd")); 
 rsqrd <- rbindlist(list(acua2006rs,acua2008rs,acua2013rs,acua2015rs,acua2018rs))
 
 
-# ==== wav var
+# ==== Power spectrum =====
 
+# collapse scaling variances into one category
 wavvarm_collapsed  <- rbind(wavvarm[grepl('s',level,fixed=T),
                                     .(level = 'scl', value = sum(value)),
                                     by = .(units,year,variable)],
                             wavvarm[!grepl('s',level,fixed=T), .(units,year,variable,level,value)]
 )
 
-# ----- genetic map
+# ----- plot on genetic map
 wavvarm_collapsedG <- wavvarm_collapsed[units == 'genetic']
 wavvarm_collapsedG[, level := droplevels(wavvarm_collapsedG$level)]
 wavvarm_collapsedG[, level := factor(level, levels = c(paste0("d", 1:13), "scl", "chr"))]
@@ -55,7 +60,7 @@ wavvarm_collapsedG[, level := factor(level, levels = c(paste0("d", 1:13), "scl",
 lineDataG <- wavvarm_collapsedG[!level %in% c("scl", "chr")]
 
 
-wv <- wavvarm_collapsedG[variable == "variance.meanFreq"] %>%
+panel1 <- wavvarm_collapsedG[variable == "variance.meanFreq"] %>%
   ggplot(aes(x = level, y = value, group = year, color = year)) +
   geom_point(size=3) +
   geom_line(data = lineDataG[variable %in% c("variance.meanFreq")],
@@ -64,27 +69,27 @@ wv <- wavvarm_collapsedG[variable == "variance.meanFreq"] %>%
       #x = expression(Scale: log[2](kb)),
        y = "Variance",
        color = "Year", shape = "") +
-  scale_x_discrete(breaks = c(paste0("d",1:15),"s13","chr"), labels = c(as.character(-14:0),"scl", 'chrom')) +
+  scale_x_discrete(breaks = c(paste0("d",1:11),"scl","chr"), labels = c(as.character(-12:-2),"scl", 'chrom')) +
   #scale_x_discrete(breaks = c(paste0("d",1:15),"s13", "s14", "s15", "chr"), labels = c(as.character(0:14),"13 (scaling var)", "14 (scaling var)", "15 (scaling var)", "chromosome")) +
   scale_shape_discrete(labels = c("Mean ancestry", "Individual ancestry"))+
   theme_classic() +
   scale_colour_viridis_d(option = 'E') +
-  geom_segment(aes(x=.95,xend=13.05,y=-Inf,yend=-Inf),color="black")+
+  geom_segment(aes(x=.95,xend=11.05,y=-Inf,yend=-Inf),color="black")+
   theme(aspect.ratio = 1,
-        text = element_text(size=15),
+        text = element_text(size=15, family = 'Nanum Gothic'),
         axis.ticks.x = element_line(size=1),
         axis.line.x = element_blank(),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
         axis.text.y = element_text(size=12),
         axis.title.y = element_text(hjust=.4,margin=margin(r=10)))
 
-wv
+panel1
 
 # ----- compare to theory -----
 # generation time? 2 gens per year vs 3 gens per year
 g <- 2
 a <- 120
-wvtheory <- wavelet_variance_equilbrium(n.pop = 600, n.sample = 200, unit.dist = 2^-15, gen = c(a-12*g, a), level = 1:13, alpha = 0.5)
+wvtheory <- wavelet_variance_equilibrium(n.pop = 1000, n.sample = 100, unit.dist = 2^-12, gen = c(a-12*g, a), level = 1:11, alpha = 0.3)
 wvtheory[, year := as.character((1/g)*gen + (2018 - a/g))]
 wvtheory[, propvar := variance/sum(variance), by = .(year)]
 
@@ -164,17 +169,17 @@ wavcor_collapsedP[, level := factor(level, levels = c(paste0("d", 1:15), 'scl', 
 
 
 # --- freq, recomb ----
-wc_plot1 <- ggplot(wavcor_collapsedP[year == "2018" & vars == 'meanFreq_r'],
-                  aes(x = level, y = cor_jack, group = year))+ #, color = year)) +
+wc_plot1 <- ggplot(wavcor_collapsedP[vars == 'meanFreq_r' & year %in% 2018],
+                  aes(x = level, y = cor_n, group = year, color = year))+ #, color = year)) +
   geom_point(size = 2) +
-  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax=cor_jack + 1.96*cor_jack_se), width = 0, size=1)+
+  geom_errorbar(aes(ymin=cor_n-1.96*cor_jack_se, ymax=cor_n + 1.96*cor_jack_se), width = 0.5, size=1)+
   scale_x_discrete(breaks = c(paste0("d",1:15),"chr"), labels = c(as.character(0:14),"chrom")) +
   labs(#x = expression(Scale: log[2]("Morgan")),
-    x = expression(Scale: log[2]("1kb")),
+    x = expression(Scale: log[2]("kb")),
   y = "Correlation",
   title = "A") +
   geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
-
+  scale_color_viridis_d(option = 'E') +
   theme_classic() +
   theme(aspect.ratio = 1,
         text = element_text(size=15),
@@ -323,7 +328,7 @@ rsqrdG[, level := droplevels(level)]
 rsqrdG[, level := factor(level, c(paste0("d", 1:13), "chr"))]
 
 
-rsqrd_plot <- ggplot(rsqrdP[year == "2018" & model %in% 'r_cdsDensity'],
+rsqrd_plot <- ggplot(rsqrdP[year == '2018' & model %in% 'r'],
        aes(x = level, y = rsqrd_jack, group = year)) +
   geom_point(size=2) +
   geom_errorbar(aes(ymin = rsqrd_jack - 1.96*rsqrd_jack_se, ymax= rsqrd_jack + 1.96*rsqrd_jack_se), width = 0, size=1) +
@@ -348,8 +353,9 @@ rsqrd_plot <- ggplot(rsqrdP[year == "2018" & model %in% 'r_cdsDensity'],
 
 rsqrd_plot
 
+rsqrdG[, significant := ifelse(rsqrd_jack-1.96*rsqrd_jack_se > 0, 1, 0)]
 
-rsqrd_plot.1 <- ggplot(rsqrdG[year == "2018" & model == "r_cdsDensity"],
+rsqrd_plot.1 <- ggplot(rsqrdG[year == "2018" & model == "r" & significant],
                      aes(x = level, y = rsqrd_jack, group = year)) + #, color = year)) + # y = cor_meanFreq_log10r)) +
   geom_point(size=2) +
   geom_errorbar(aes(ymin = rsqrd_jack - 1.96*rsqrd_jack_se, ymax= rsqrd_jack + 1.96*rsqrd_jack_se), width = 0, size=1) +
@@ -375,15 +381,15 @@ rsqrd_plot.1
 # ===== Stacked barplot =====
 
 allwav <- merge(wavcor, wavvar, by  = c("units", "level", "year"))
-allwav[, contribution := cor_n.meanFreq_r*sqrt(propvar.meanFreq*propvar.r)]
+allwav[vars== 'meanFreq_r', contribution := cor_n*sqrt(propvar.meanFreq*propvar.r)]
 
 # collapse scaling
 allwav_collapsed <- rbind(
-  allwav[grepl('s',level,fixed=T), .(level = 'scl', contribution=sum(contribution)), by =.(units, year)],
-      allwav[!grepl('s',level,fixed=T), .(units, level, year, contribution)]
+  allwav[vars == 'meanFreq_r' & grepl('s',level,fixed=T), .(level = 'scl', contribution=sum(contribution)), by =.(units, year)],
+      allwav[vars == 'meanFreq_r' & !grepl('s',level,fixed=T), .(units, level, year, contribution)]
   )
 
-allwav_collapsed[, normcor := abs(contribution)/abs(sum(contribution)), by = .(units, year)]
+allwav_collapsed[, normcor := contribution/sum(contribution), by = .(units, year)]
 
 allwav_collapsedP <- allwav_collapsed[units == 'physical']
 allwav_collapsedP[, level := droplevels(level)]
@@ -416,6 +422,35 @@ cntrb_plot <- ggplot(allwav_collapsedP[year == "2018"]) +
         plot.title = element_text(hjust = -1))
 
 cntrb_plot
+
+
+ggplot(allwav_collapsedP, 
+       aes(x = level, y = normcor, color = year, group = year)) + 
+  geom_point() +  
+  geom_line(data= allwav_collapsedP[grepl('d', level, fixed=T)]) + 
+  scale_colour_viridis_d(option = 'E')  +
+  scale_x_discrete(breaks = c(paste0("d",1:15),"scl","chr"), labels = c(as.character(0:14),"scl", "chrom")) +
+  theme_classic() +
+  geom_segment(aes(x=.95,xend=15.05,y=-Inf,yend=-Inf),color="black")+
+  labs( x= expression(Scale: log[2](kb)), y = 'Normalized contribution\n to overall correlation') +
+  theme(aspect.ratio = 1,
+        text = element_text(size=15),
+        axis.line.x = element_blank(),
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
+        axis.text.y = element_text(size=12),
+        #axis.ticks.x = element_line(size=c(rep(1,17),0)),
+        axis.title.x = element_text(hjust=.4,margin=margin(t=-20)))
+  theme_classic() +
+  
+  theme(aspect.ratio = 1,
+        text = element_text(size=15),
+        axis.ticks.x = element_line(size=1),
+        axis.line.x = element_blank(),
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
+        axis.text.y = element_text(size=12),
+        axis.title.y = element_text(hjust=.4,margin=margin(r=10)),
+        plot.title = element_text(hjust = -.1))
+  
 
 
 detailcols.1 <- viridis_pal()(13)

@@ -136,9 +136,11 @@ ggplot(wc_calls[!grepl("s", level, fixed = T) & units == 'physical' & assembly =
        y = "Correlation") + 
   #scale_color_manual(values = c("#19CEBF", "#EFCA2F", "#E87DE0")) +
   #scale_color_brewer(type = 'qual', palette = 'Set2') +
-  scale_color_manual(values = c("maroon", "darkturquoise", "goldenrod")) +
+  #scale_color_manual(values = c("maroon", "darkturquoise", "goldenrod")) +
+  scale_color_manual(values = c("red", "dodgerblue", "forestgreen")) +
   
   theme(aspect.ratio = 1, 
+        axis.title.x = element_text(vjust = 4),
         axis.title = element_text(size = 15),
         axis.text.y = element_text(size = 12),
         axis.line.x = element_blank(),
@@ -159,13 +161,17 @@ ggplot(wc_calls[!grepl("s", level, fixed = T) & units == 'genetic' &
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), 'scl', 'chr'), 
                    labels = c(as.character(-16:0), 'scl', 'chrom')) + 
+  scale_y_continuous(limits = c(0,1)) +
   labs(x = expression(Scale: log[2] (Morgan)), 
        color = "Comparison",
        y = "Correlation") + 
   #scale_color_manual(values = c("#19CEBF", "#EFCA2F", "#E87DE0")) +
-  scale_color_manual(values = c("maroon", "darkturquoise", "goldenrod")) +
+  #scale_color_manual(values = c("red", "dodgerblue", "forestgreen")) +
+  
+  #scale_color_manual(values = c("maroon", "darkturquoise", "goldenrod")) +
   theme(aspect.ratio = 1, 
-        axis.title = element_text(size = 15),
+        legend.position = "none",
+        axis.title = element_text(size = 12),
         axis.text.y = element_text(size = 12),
         axis.line.x = element_blank(),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12)) +
@@ -271,16 +277,17 @@ wv_genetic_plot_data <- merge(merge(wv_genetic_collapsed_variances, wv_genetic_c
 wv_genetic_plot_data[, se.scld := se/sum(variance), by = study]
 
 # for all studies combined
-ggplot(wv_genetic_plot_data[], 
+ggplot(wv_genetic_plot_data[thresh == 'thresh' & assembly == 'hg38'], 
        #aes(x = level, y = variance.freq, group = 1)) + 
        aes(x = level, y = propvar, color = study)) + 
-  geom_point(size = 2, aes(shape = thresh)) + 
-  scale_color_manual(values = c("#19CEBF", "#EFCA2F", "#E87DE0")) +  
+  geom_point(size = 2) + 
+  scale_color_manual(values = c("maroon", "darkturquoise", "goldenrod")) +
+  
   geom_line(data = wvtheory, aes(x = level, y = propvar.freq), group = 1, color = "black", linewidth = 1) +
   #geom_point(size = 2) +
-  geom_line(data=wv_genetic_plot_data[grepl('d', level, fixed=T)], linewidth = 1, 
-            aes(group = interaction(study, thresh), linetype = thresh)) +
-  #geom_errorbar(aes(ymin=propvar - 1.96*se.scld, ymax=propvar+1.96*se.scld)) +
+  #geom_line(data=wv_genetic_plot_data[grepl('d', level, fixed=T) & assembly == 'hg38' & thresh == 'thresh'], linewidth = 1, 
+  #          aes(group = study)) +
+  geom_errorbar(aes(ymin=propvar - 1.96*se.scld, ymax=propvar+1.96*se.scld)) +
   
   labs(color = "") +
   theme_classic() + 
@@ -327,7 +334,7 @@ ggplot(wv_genetic_plot_data[study == 'skov' & assembly == 'hg19'],
 
 # ===== Correlations =====
 
-# ---- freq vs rec, physical map
+# ---- freq vs rec, physical map -----
 
 ggplot(wc_freq_rec[!grepl('s',level,fixed=T) & 
                            units == 'physical' & 
@@ -337,11 +344,11 @@ ggplot(wc_freq_rec[!grepl('s',level,fixed=T) &
              aes(x = level, y = cor_n, color = study)) + 
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
   #geom_point(size=2, color = "#329a9c") + 
-  geom_point(size=2, aes(shape = thresh)) + 
+  geom_point(size=2) + 
 
-  scale_color_manual(values = c("#19CEBF", "#EFCA2F", "#E87DE0")) +  
-
-  #geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1) + 
+  scale_color_manual(values = c("maroon", "darkturquoise", "goldenrod")) +
+  
+  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = .3, size = 1) + 
   #geom_point(size=2 ) + 
   
   theme_classic() + 
@@ -354,12 +361,81 @@ ggplot(wc_freq_rec[!grepl('s',level,fixed=T) &
   geom_segment(aes(x = 0, xend = 17, y = -Inf, yend = -Inf), color = 'black')  +
   theme(aspect.ratio = 1,
       text = element_text(size=15),
-      axis.ticks.x = element_line(size=1),
+      axis.ticks.x = element_line(linewidth=1),
       axis.line.x = element_blank(),
       axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
       axis.text.y = element_text(size=12),
       axis.title.y = element_text(hjust=.4,margin=margin(r=10)),
       plot.title = element_text(hjust = -.1)) 
+
+
+# ---- freq vs rec, genetic map
+
+ggplot(wc_freq_rec[!grepl('s',level,fixed=T) & 
+                     units == 'genetic' & 
+                     assembly == 'hg38' & 
+                     method == 'pearson' &
+                     thresh == 'thresh'], 
+       aes(x = level, y = cor_n, color = study)) + 
+  geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
+  #geom_point(size=2, color = "#329a9c") + 
+  geom_point(size=2, aes(shape = thresh)) + 
+  
+  scale_color_manual(values = c("maroon", "darkturquoise", "goldenrod")) +
+  
+  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1) + 
+  #geom_point(size=2 ) + 
+  
+  theme_classic() + 
+  #scale_x_discrete(breaks = c(paste0("d", 1:17), "chr"), 
+   #                labels = c(0:16, 'chrom')) +
+  #scale_y_continuous(limits = c(-.45,0.2)) +
+  labs(x = expression(Scale: log[2] (Morgan)), 
+       y = "Correlation",
+       title = "") + 
+  geom_segment(aes(x = 0, xend = 17, y = -Inf, yend = -Inf), color = 'black')  +
+  theme(aspect.ratio = 1,
+        text = element_text(size=15),
+        axis.ticks.x = element_line(linewidth=1),
+        axis.line.x = element_blank(),
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
+        axis.text.y = element_text(size=12),
+        axis.title.y = element_text(hjust=.4,margin=margin(r=10)),
+        plot.title = element_text(hjust = -.1)) 
+
+
+
+ggplot(wc_rec_cds[!grepl('s',level,fixed=T) & 
+                     units == 'physical' & 
+                     assembly == 'hg38' & 
+                     method == 'pearson' &
+                     thresh == 'thresh'], 
+       aes(x = level, y = cor_n, color = study)) + 
+  geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
+  #geom_point(size=2, color = "#329a9c") + 
+  geom_point(size=2, aes(shape = thresh)) + 
+  
+  scale_color_manual(values = c("maroon", "darkturquoise", "goldenrod")) +
+  
+  #geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1) + 
+  #geom_point(size=2 ) + 
+  
+  theme_classic() + 
+  #scale_x_discrete(breaks = c(paste0("d", 1:17), "chr"), 
+  #                labels = c(0:16, 'chrom')) +
+  #scale_y_continuous(limits = c(-.45,0.2)) +
+  labs(x = expression(Scale: log[2] (Morgan)), 
+       y = "Correlation",
+       title = "") + 
+  geom_segment(aes(x = 0, xend = 17, y = -Inf, yend = -Inf), color = 'black')  +
+  theme(aspect.ratio = 1,
+        text = element_text(size=15),
+        axis.ticks.x = element_line(linewidth=1),
+        axis.line.x = element_blank(),
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
+        axis.text.y = element_text(size=12),
+        axis.title.y = element_text(hjust=.4,margin=margin(r=10)),
+        plot.title = element_text(hjust = -.1)) 
 
 
 
@@ -373,7 +449,7 @@ ggplot(wc_freq_log10rec[!grepl('s',level,fixed=T) &
                                   units == 'physical' & 
                                   assembly == 'hg38' & 
                                   thresh == 'thresh' & 
-                                  method == 'spearman'], 
+                                  method == 'pearson'], 
                aes(x = level, y = cor_n, color = study)) + 
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
   #geom_point(size=2, color = "#329a9c") + 
@@ -412,9 +488,9 @@ ggplot(wc_freq_cds[!grepl('s',level,fixed=T) &
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
   #geom_point(size=2, color = "#329a9c") + 
   geom_point(size=2) + 
-  scale_color_manual(values = c("#19CEBF", "#EFCA2F", "#E87DE0")) +  
-  
-  #geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1) + 
+  scale_color_manual(values = c("maroon", "darkturquoise", "goldenrod")) +
+
+  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = .5, size = 1) + 
   geom_point(size=2) + 
   
   theme_classic() + 
@@ -438,10 +514,10 @@ ggplot(wc_freq_cds[!grepl('s',level,fixed=T) &
 # ---- rec vs cds, physical map
 
 ggplot(wc_rec_cds[!grepl('s',level,fixed=T) & units == 'physical' & 
-                    assembly == 'hg19' & 
+                    assembly == 'hg38' & 
                     thresh == 'thresh' &
                     method == 'pearson'], aes(x = level, y = cor_n)) + 
-  geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
+  #geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
   #geom_point(size=2, color = "#329a9c") + 
   geom_point(size=2) + 
 
@@ -467,14 +543,19 @@ ggplot(wc_rec_cds[!grepl('s',level,fixed=T) & units == 'physical' &
 
 
 
-
-p4 <- ggplot(wc_freq_B[!grepl('s',level,fixed=T) & units == 'physical' & assembly == 'hg19' & thresh == 'thresh' ], aes(x = level, y = cor_n)) + 
+# ----- freq vs B, physical map
+ggplot(wc_freq_B[!grepl('s',level,fixed=T) & units == 'physical' & 
+                   assembly == 'hg38' & 
+                   thresh == 'thresh' &
+                   method == 'pearson'], aes(x = level, y = cor_n)) + 
   geom_abline(slope = 0, intercept = 0, col = 'darkgrey') +
   #geom_point(size=2, color = "#329a9c") + 
   geom_point(size=2, aes(color = study)) + 
   
-  #geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se, ymax = cor_jack+1.96*cor_jack_se), width = 0, size = 1) + 
-
+  geom_errorbar(aes(ymin=cor_jack-1.96*cor_jack_se,
+                    ymax = cor_jack+1.96*cor_jack_se, color = study), width = .5, size = 1) + 
+  scale_color_manual(values = c("maroon", "darkturquoise", "goldenrod")) +
+  
   theme_classic() + 
   scale_x_discrete(breaks = c(paste0("d", 1:17), "chr"), 
                    labels = c(0:16, 'chrom')) +
@@ -493,7 +574,9 @@ p4 <- ggplot(wc_freq_B[!grepl('s',level,fixed=T) & units == 'physical' & assembl
         plot.title = element_text(hjust = -.1)) 
 
 
-p4
+
+
+
 
 library(ggallin)
 
@@ -523,7 +606,67 @@ p5 <- ggplot(wc_freq_cdsM[!grepl('s',level,fixed=T) & units == 'physical' & asse
         plot.title = element_text(hjust = -.1)) 
 
 
-p5
+# ===== Contribution to correlation 
+
+cntrb_dat <- merge(wv[units == 'physical' & 
+                        assembly == 'hg38' &
+                        thresh == 'thresh'],
+                   wc_freq_rec[units == 'physical' & 
+                                 assembly == 'hg38' &
+                                 thresh == 'thresh' & method == 'pearson'])
+
+
+
+cntrb_dat[method == 'pearson' & 
+            units == 'physical' &
+            assembly == 'hg38' &
+            thresh == 'thresh' & 
+            study == 'skov', 
+          cntrb := cor_n*sqrt(propvar.skov_freq*propvar.rec)]
+
+cntrb_dat[method == 'pearson' & 
+            units == 'physical' &
+            assembly == 'hg38' &
+            thresh == 'thresh' & 
+            study == 'sank', 
+          cntrb := cor_n*sqrt(propvar.sank_freq*propvar.rec)]
+
+cntrb_dat[method == 'pearson' & 
+            units == 'physical' &
+            assembly == 'hg38' &
+            thresh == 'thresh' & 
+            study == 'stein', 
+          cntrb := cor_n*sqrt(propvar.stein_freq*propvar.rec)]
+
+
+ggplot(cntrb_dat[method == 'pearson' & 
+                    assembly == 'hg38' & 
+                    thresh == 'thresh' & 
+                    units == 'physical'], 
+       aes(x = level, y = cntrb, color = study)) + geom_point()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
