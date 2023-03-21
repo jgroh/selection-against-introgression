@@ -495,16 +495,16 @@ panel2P <- ggplot(allwav_collapsedP,
 panel2P
 
 panel2G <- ggplot(allwav_collapsedG, 
-       aes(x = level, y = normcor, color = year, group = year)) + 
+       aes(x = level, y = contribution, color = year, group = year)) + 
   geom_point(size=2) +  
   geom_line(data= allwav_collapsedG[grepl('d', level, fixed=T)]) + 
   scale_colour_viridis_d(option = 'G')  +
   scale_x_discrete(breaks = c(paste0("d",1:11),"scl","chr"), labels = c(as.character(-12:-2),"scl", "chrom")) +
   theme_classic() +
-  scale_y_continuous(limits = c(-.01, 0.3), labels = c(0,10,20,30)) +
+  #scale_y_continuous(limits = c(-.01, 0.3), labels = c(0,10,20,30)) +
   geom_segment(aes(x=.95,xend=11.05,y=-Inf,yend=-Inf),color="black")+
   labs( x= expression(Scale: log[2](Morgan)), 
-        y = 'Percent contribution\nto overall correlation',
+        y = 'Contribution\nto overall correlation',
         title = 'B') +
   theme_classic() +
   theme(aspect.ratio = 1,

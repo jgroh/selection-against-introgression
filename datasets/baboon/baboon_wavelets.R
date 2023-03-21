@@ -113,5 +113,14 @@ baboon250 <- setDT(to_analyze)
 cor_frq_B <- baboon250[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("mean_ancestry", "B"))]
 
 
-save(wv_ind_all, wv_by_grp, cor_frq_rec, cor_frq_B, file = "baboon_wavelet_results.RData")
+
+
+# ===== R squared =====
+
+# ---- genetic units
+rsqrd <- anubis_frqs_by_grp[, modwt_lm_rsqrd(.SD, yvar = 'anubis_frq', xvars = 'r', chromosome = 'chrom'), by = .(units, group)]
+rsqrd[, model := "r"]
+
+
+save(wv_ind_all, wv_by_grp, cor_frq_rec, cor_frq_B, rsqrd, file = "baboon_wavelet_results.RData")
 
