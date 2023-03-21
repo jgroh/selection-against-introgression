@@ -70,9 +70,6 @@ anubis_frq_allG[, units := 'genetic']
 anubis_frq_all <- rbind(anubis_frq_allP, anubis_frq_allG)
 
 
-wv_mean <- anubis_frq_all[, gnom_var_decomp(.SD, chromosome = 'chrom', signals = 'anubis_frq'), by = units]
-
-
 # ------- freqs by anubis quintile -----
 # physical map
 gnomP[, anubis_qntl := cut(genome_wide_anubis_ancestry,
@@ -102,6 +99,8 @@ anubis_frq_anubis_qntl <- rbind(anubis_frq_anubis_qntlP, anubis_frq_anubis_qntlG
 # combine
 anubis_frqs_by_grp <- rbind(anubis_frq_all, anubis_frq_anubis_qntl)
 
+wv_by_grp <- anubis_frqs_by_grp[, gnom_var_decomp(.SD, chromosome = 'chrom', signals = 'anubis_frq'), by = .(units, group)]
+
 
 # ===== wavelet correlations =====
 cor_frq_rec <- anubis_frqs_by_grp[, gnom_cor_decomp(.SD, chromosome = "chrom",
@@ -114,5 +113,5 @@ baboon250 <- setDT(to_analyze)
 cor_frq_B <- baboon250[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("mean_ancestry", "B"))]
 
 
-save(wv_ind_all, wv_mean, cor_frq_rec, cor_frq_B, file = "baboon_wavelet_results.RData")
+save(wv_ind_all, wv_by_grp, cor_frq_rec, cor_frq_B, file = "baboon_wavelet_results.RData")
 
