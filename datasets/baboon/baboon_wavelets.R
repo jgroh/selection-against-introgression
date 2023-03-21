@@ -1,11 +1,10 @@
 library(data.table)
 library(wCorr)
 
+
 if(interactive()){
   setwd("~/workspace/selection-against-introgression/datasets/baboon/")
-  source("~/workspace/gnomwav/R/multi_modwts.R")
-  source("~/workspace/gnomwav/R/variance_decomp.R")
-  source("~/workspace/gnomwav/R/correlation_decomp.R")
+  library(gnomwav)
 } else{
   source("/Users/brogroh/gnomwav/R/multi_modwts.R")
   source("/Users/brogroh/gnomwav/R/variance_decomp.R")
@@ -32,7 +31,7 @@ if(interactive()){
 
 # ===== Wavelet Variances =====
 
-# ----- 50 kb windows
+# ----- 50 kb windows -----
 wv_ind_P <- gnomP[, gnom_var_decomp(.SD, chromosome = "chrom", signals = "anubis"), by = .(id, hybrid_status, genome_wide_anubis_ancestry)]
 
 # for recombination, only need to do once
@@ -42,7 +41,7 @@ wv_ind_P[, units := '50kb']
 
 
 
-# ----- genetic windows
+# ----- genetic windows ------
 wv_ind_G <- gnomG[, gnom_var_decomp(.SD, chromosome = "chrom", signals = "anubis"), by = .(id, hybrid_status, genome_wide_anubis_ancestry)]
 
 # for recombination, only need to do once
@@ -53,9 +52,7 @@ wv_ind_G[, units := 'genetic']
 wv_ind_all <- rbind(wv_ind_P, wv_ind_G)
 
 
-# ===== calculate mean anubis frequencies ===== 
-
-# ------ average frq in all individuals
+# ------ mean freq using all individuals -----
 
 # physical map
 anubis_frq_allP <- gnomP[, .(anubis_frq = mean(anubis),
@@ -72,7 +69,11 @@ anubis_frq_allG[, group := 'all']
 anubis_frq_allG[, units := 'genetic']
 anubis_frq_all <- rbind(anubis_frq_allP, anubis_frq_allG)
 
-# ------- by anubis quintile
+
+wv_mean <- anubis_frq_all[, gnom_var_decomp(.SD, chromosome = 'chrom', signals = 'anubis_frq'), by = units]
+
+
+# ------- freqs by anubis quintile -----
 # physical map
 gnomP[, anubis_qntl := cut(genome_wide_anubis_ancestry,
                            breaks = quantile(genome_wide_anubis_ancestry, probs = 0:5/5),
@@ -113,5 +114,5 @@ baboon250 <- setDT(to_analyze)
 cor_frq_B <- baboon250[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("mean_ancestry", "B"))]
 
 
-save(wv_ind_all, cor_frq_rec, cor_frq_B, file = "baboon_wavelet_results.RData")
+save(wv_ind_all, wv_mean, cor_frq_rec, cor_frq_B, file = "baboon_wavelet_results.RData")
 
