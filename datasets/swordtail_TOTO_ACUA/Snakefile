@@ -9,7 +9,8 @@ ruleorder: interpolate_ancestry_single_chrom_2018 > interpolate_ancestry_single_
 rule all:
 	input:
 		expand("ACUA_{year}/wavelet_results.RData", year = years),
-		expand("neutral_sims/replicate{rep}_frqs.txt.gz", rep = np.arange(10))
+		expand("neutral_sims/replicate{rep}_frqs.txt.gz", rep = np.arange(10)),
+		expand("ACUA_{year}/avgFrq.txt", year = years)
 
 rule interpolate_ancestry_single_chrom:
 	input: 
@@ -101,13 +102,13 @@ rule combine_r_cds_beds:
 	shell:
 		"Rscript --vanilla merge_r_cds_beds.R {wildcards.units}"
 
-rule avgFrq_totalCor:
+rule avgFrq:
 	input:
 		expand("ACUA_{{year}}/{chr}.RData",chr=chrs)
 	output:
-		"ACUA_{year}/avgFrq_totalCor.RData"
+		"ACUA_{year}/avgFrq.txt"
 	shell:
-		"Rscript --vanilla avgFrq_totalCor.R {wildcards.year}"
+		"Rscript --vanilla avgFrq.R {wildcards.year}"
 
 rule combine_chrs_and_run_wavelets:
 	input:

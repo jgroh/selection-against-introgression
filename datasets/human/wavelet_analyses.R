@@ -1,5 +1,8 @@
 library(data.table)
-library(gnomwav)
+#library(gnomwav)
+library(waveslim)
+library(wCorr)
+
 
 if(interactive()){
   windows <- 'physical'
@@ -8,6 +11,10 @@ if(interactive()){
   thresh <- 'thresh'
 
 } else{
+
+  source("~/gnomwav/R/multi_modwts.R") 
+	source("~/gnomwav/R/variance_decomp.R")
+	source("~/gnomwav/R/correlation_decomp.R")
   args <- commandArgs(trailingOnly = TRUE)
   windows <- args[1]
   analysis <- args[2]
@@ -19,11 +26,12 @@ if(interactive()){
 # ===== read and format data =====
 
 cds_file <- paste0("gene_density_", windows, "_windows_", assembly, ".txt")
+Bvals_file <- paste0("B_vals_", windows, "_windows_", assembly, ".txt")
 
 if(windows == "physical"){
   # read cds files
   cds <- fread(cds_file, col.names = c("chr", "start", "end", "cds"))
-  cds[, pos := start + 500]
+  cds[, pos := start + 25e3]
   
   # read frequency files
   chr_files <- dir(path = paste0("archaic_freqs_", assembly, "/"), pattern = "chr.*_frq_physical_windows.txt", full.names=T)
@@ -34,8 +42,8 @@ if(windows == "physical"){
   gnom <- merge(gnom, cds,  by = c("chr", "pos"))
 
   # combine with B values (need to interpolate B values )
-  Bvals <- fread(paste0("B_vals_physical_windows_", assembly, ".txt"), col.names = c("chr", "start", "end", "B"))
-  Bvals[, pos := start + 500]
+  Bvals <- fread(Bvals_file, col.names = c("chr", "start", "end", "B"))
+  Bvals[, pos := start + 25e3]
   
   B_interp <- Bvals[chr != 'chrX', approx(x = pos, y = B, xout = pos, rule = 2), by = chr]
   setnames(B_interp, c("x", "y"), c("pos", "B"))
@@ -64,10 +72,10 @@ if(windows == "physical"){
   
 } else if (windows == "genetic"){
   # read gene density files
-  cds <- fread("gene_density_genetic_windows.txt", col.names = c("chr", "start", "end", "Morgan", "cds"))
+  cds <- fread(cds_file, col.names = c("chr", "start", "end", "Morgan", "cds"))
   
   # read frequency files
-  chr_files <- dir(path = "archaic_freqs_hg38/", pattern = "chr.*_frq_genetic_windows.txt", full.names=T)
+  chr_files <- dir(path = paste0("archaic_freqs_", assembly, "/"), pattern = "chr.*_frq_genetic_windows.txt", full.names=T)
   gnom <- rbindlist(lapply(chr_files, fread))
   
   # combine gd and freq files
@@ -75,7 +83,8 @@ if(windows == "physical"){
   gnom <- merge(cds, gnom, by = c("chr", "start", "end", "Morgan"))
   
   # Bvals
-  Bvals <- fread("B_vals_genetic_windows.txt", col.names = c("chr", "start", "end", "Morgan", "B"))
+  Bvals <- fread(Bvals_file, col.names = c("chr", "start", "end", "Morgan", "B"))
+  Bvals <- Bvals[chr != 'chrX'] # if X chrom is present will throw error since there are no values on the X 
   B_interp <- Bvals[, approx(x = Morgan, y = B, xout = Morgan, rule = 2), by = chr]
   setnames(B_interp, c("x", "y"), c("Morgan", "B"))
   gnom <- merge(gnom, B_interp, by = c("chr", "Morgan"))
@@ -165,6 +174,19 @@ if(analysis == "wc_freq_B"){
   fwrite(wc, file=outfile, sep = "\t", quote=F)
 }
 
+if(analysis == "wc_freq_B_chrs"){
+  wc_skov <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("skov_freq", "B"), rm.boundary = F), by = chr]
+  wc_skov[, study := "skov"]
+ 
+  wc_sank <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("sank_freq", "B"), rm.boundary = F), by = chr]
+  wc_sank[, study := "sank"]
+
+  wc_stein <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("stein_freq", "B"), rm.boundary = F), by = chr]
+  wc_stein[, study := "stein"]
+  
+  wc <- rbindlist(list(wc_skov, wc_sank, wc_stein))
+  fwrite(wc, file=outfile, sep = "\t", quote=F)
+}
 if(analysis == "wc_freq_rec"){
   wc_skov <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("skov_freq", "rec"), rm.boundary = F)]
   wc_skov[, study := "skov"]
@@ -179,6 +201,19 @@ if(analysis == "wc_freq_rec"){
   fwrite(wc, file=outfile, sep = "\t", quote=F)
 }
 
+if(analysis == "wc_freq_rec_chrs"){
+  wc_skov <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("skov_freq", "rec"), rm.boundary = F), by = chr]
+  wc_skov[, study := "skov"]
+  
+  wc_sank <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("sank_freq", "rec"), rm.boundary = F), by = chr]
+  wc_sank[, study := "sank"]
+  
+  wc_stein <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("stein_freq", "rec"), rm.boundary = F), by = chr]
+  wc_stein[, study := "stein"]
+  
+  wc <- rbindlist(list(wc_skov, wc_sank, wc_stein))
+  fwrite(wc, file=outfile, sep = "\t", quote=F)
+}
 if(analysis == "wc_freq_log10rec"){
   wc_skov <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("skov_freq", "log10rec"), rm.boundary = F)]
   wc_skov[, study := "skov"]
@@ -193,28 +228,28 @@ if(analysis == "wc_freq_log10rec"){
   fwrite(wc, file=outfile, sep = "\t", quote=F)
 }
 
-if(analysis == "wc_freq_cds"){
-  wc_skov <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("skov_freq", "cds"), rm.boundary = F)]
+if(analysis == "wc_freq_cds_chrs"){
+  wc_skov <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("skov_freq", "cds"), rm.boundary = F), by = chr]
   wc_skov[, study := "skov"]
   
-  wc_sank <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("sank_freq", "cds"), rm.boundary = F)]
+  wc_sank <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("sank_freq", "cds"), rm.boundary = F), by = chr]
   wc_sank[, study := "sank"]
   
-  wc_stein <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("stein_freq", "cds"), rm.boundary = F)]
+  wc_stein <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("stein_freq", "cds"), rm.boundary = F), by = chr]
   wc_stein[, study := "stein"]
   
   wc <- rbindlist(list(wc_skov, wc_sank, wc_stein))
   fwrite(wc, file=outfile, sep = "\t", quote=F)
 }
 
-if(analysis == "wc_freq_cdsM"){ # cds per Morgan
-  wc_skov <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("skov_freq", "cdsM"), rm.boundary = F)]
+if(analysis == "wc_freq_cdsM_chrs"){ # cds per Morgan
+  wc_skov <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("skov_freq", "cdsM"), rm.boundary = F), by = chr]
   wc_skov[, study := "skov"]
   
-  wc_sank <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("sank_freq", "cdsM"), rm.boundary = F)]
+  wc_sank <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("sank_freq", "cdsM"), rm.boundary = F), by = chr]
   wc_sank[, study := "sank"]
   
-  wc_stein <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("stein_freq", "cdsM"), rm.boundary = F)]
+  wc_stein <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("stein_freq", "cdsM"), rm.boundary = F), by = chr]
   wc_stein[, study := "stein"]
   
   wc <- rbindlist(list(wc_skov, wc_sank, wc_stein))
@@ -238,23 +273,23 @@ if(analysis == "wc_rec_cds"){
 # ===== Linear Model Analysis =====
 if(analysis == "lm"){
   
-  z1 <- modwt_lm_rsqrd(data = gnom, chromosome = "chr", yvar = "skov_freq", xvars = c("rec", "cds"))
-  z1[, study := "skov"][, model := "rec_cds"][]
+  z1 <- modwt_lm_rsqrd(data = gnom, chromosome = "chr", yvar = "skov_freq", xvars = c("log10rec"))
+  z1[, study := "skov"][, model := "log10rec"][]
   
-  z2 <- modwt_lm_rsqrd(data = gnom, chromosome = "chr", yvar = "sank_freq", xvars = c("rec", "cds"))
-  z2[, study := "sank"][, model := "rec_cds"][]
+  z2 <- modwt_lm_rsqrd(data = gnom, chromosome = "chr", yvar = "sank_freq", xvars = c("log10rec"))
+  z2[, study := "sank"][, model := "log10rec"][]
   
-  z3 <- modwt_lm_rsqrd(data = gnom, chromosome = "chr", yvar = "stein_freq", xvars = c("rec", "cds"))
-  z3[, study := "stein"][, model := "rec_cds"][]
+  z3 <- modwt_lm_rsqrd(data = gnom, chromosome = "chr", yvar = "stein_freq", xvars = c("log10rec"))
+  z3[, study := "stein"][, model := "log10rec"][]
   
   z1.1 <- modwt_lm_rsqrd(data = gnom, chromosome = "chr", yvar = "skov_freq", xvars = c("log10rec", "cds"))
-  z1.1[, study := "skov"][, model := "log10rec_cds_density"]
+  z1.1[, study := "skov"][, model := "log10rec_cds"]
   
   z2.1 <- modwt_lm_rsqrd(data = gnom, chromosome = "chr", yvar = "sank_freq", xvars = c("log10rec", "cds"))
-  z2.1[, study := "sank"][, model := "log10rec_cds_density"]
+  z2.1[, study := "sank"][, model := "log10rec_cds"]
   
   z3.1 <- modwt_lm_rsqrd(data = gnom, chromosome = "chr", yvar = "stein_freq", xvars = c("log10rec", "cds"))
-  z3.1[, study := "stein"][, model := "log10rec_cds_density"]
+  z3.1[, study := "stein"][, model := "log10rec_cds"]
   
   z <- rbindlist(list(z1,z2,z3,z1.1,z2.1,z3.1))
   fwrite(z, file=outfile, sep = "\t", quote=F)

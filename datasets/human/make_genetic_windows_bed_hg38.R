@@ -4,10 +4,10 @@ options(scipen=999)
 rmap <- fread("Halldorsson_etal_2019_data/aau1043_datas3")
 rmap[, Morgan := cM/100]
 
-bedM <- rmap[, .(Morgan = seq(min(Morgan), max(Morgan), by = 2^-16)), by = Chr]
+bedM <- rmap[, .(Morgan = seq(min(Morgan), max(Morgan), by = 2^-15)), by = Chr]
 
-bedM[, wstart := Morgan - 0.5*2^-16]
-bedM[, wend := wstart + 2^-16]
+bedM[, wstart := Morgan - 0.5*2^-15]
+bedM[, wend := wstart + 2^-15]
 
 bedM[, bp_start := round(approx(x = rmap[Chr == .BY, Morgan], 
                                 y = rmap[Chr == .BY, End], 
