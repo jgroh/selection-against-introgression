@@ -3,13 +3,13 @@
 initialize() {
 	if (exists("slimgui"))
 	{
-		defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/human_wgsim_sel900-1000/");
+		defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/human_wgsim_sel500-1000/");
 		defineConstant("seed", 0);
 		rates = readFile("/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/hg38_wg_slim_recmap.txt");
 		defineConstant("N", 10000);
 	} else
 	{	
-		defineConstant("outPath", "results/human_wgsim_sel900-1000_S1/");
+		defineConstant("outPath", "results/human_wgsim_sel500-1000_S1/");
 //		rates = readFile("/Users/brogroh/selection-against-introgression/theory_and_simulations/hg38_wg_slim_recmap.txt");
 		rates = readFile("/home/jgroh/selection-against-introgression/theory_and_simulations/hg38_wg_slim_recmap.txt");
 	}
@@ -48,7 +48,7 @@ initialize() {
 1 late() {p1.setSubpopulationSize(0);}
 
 //calculate fitness,
-902:1001 late() { 
+502:1001 late() { 
 	inds = p0.individuals;
 	introgressed = inds.countOfMutationsOfType(m1);
 	// an individual homozygous for all deleterious loci experiences a fitness reduction of 0.4
@@ -57,27 +57,6 @@ initialize() {
 
 
 // output: gen 3 late are F2 offspring
-3 late() {
-	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // these are F2s, corresponds to 1 generation under theory model (prior to selection)
-}
-
-4 late() {
-	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // these are F3 offspring
-}
-
-7 late() {
-	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // 
-}
-
-12 late() {
-	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //
-}
-52 late() {
-	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // 
-}
-102 late() {
-	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //
-}
 502 late() {
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //
 }
