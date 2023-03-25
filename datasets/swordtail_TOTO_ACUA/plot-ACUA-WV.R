@@ -65,6 +65,8 @@ panel1 <- wavvarm_collapsedG[variable == "variance.meanFreq"] %>%
   geom_point(size=2) +
   geom_line(data = lineDataG[variable %in% c("variance.meanFreq")],
             aes(group = year), size=1, key_glyph = 'point') +
+  geom_point(size=2) +
+  
   labs(x = expression(Scale: log[2](Morgans)),
       title = 'A',
        y = "Variance",
@@ -223,51 +225,153 @@ wavcor_collapsedP[, level := factor(level, levels = c(paste0("d", 1:15), 'scl', 
 # --- freq, recomb ----
 
 # physical map
-ggplot(wavcor_collapsedP[vars == 'meanFreq_r' & year == '2018'],
-                  aes(x = level, y = cor_n, group = year))+ #, color = year)) +
+ggplot(wavcor_collapsedP[vars == 'meanFreq_r' & year == '2006'],
+                  aes(x = level, y = cor_n))+ #, color = year)) +
   geom_point(size = 2) +
   geom_errorbar(aes(ymin=cor_n-1.96*cor_jack_se, ymax=cor_n + 1.96*cor_jack_se), width = 0.5, size=1)+
   scale_x_discrete(breaks = c(paste0("d",1:15),"chr"), labels = c(as.character(0:14),"chrom")) +
   labs(#x = expression(Scale: log[2]("Morgan")),
     x = expression(Scale: log[2](kb %*% 50)),
   y = "Correlation",
-  title = "A") +
+  title = "B") +
   geom_segment(aes(x=.95,xend=9.05,y=-Inf,yend=-Inf),color="black")+
   scale_color_viridis_d(option = 'E') +
   theme_classic() +
   theme(aspect.ratio = 1,
+        legend.position = c(0.15,0.8),
+        legend.key.size = unit(0.05, 'cm'),
+        legend.text = element_text(size = 11),
         text = element_text(size=15, family = "Nanum Gothic"),
         axis.ticks.x = element_line(size=1),
         axis.line.x = element_blank(),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
         axis.text.y = element_text(size=12),
         axis.title.y = element_text(hjust=.4,margin=margin(r=10)),
+        plot.title = element_text(hjust = -.1),
+        axis.title.x = element_text(size = 13, vjust = 4),
+  )
+
+# physical map
+wcP <- ggplot(wavcor_collapsedP[vars == 'meanFreq_r' & year == '2006'],
+       aes(x = level, y = cor_n)) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin=cor_n-1.96*cor_jack_se, ymax=cor_n + 1.96*cor_jack_se), width = 0.5, size=1)+
+ #geom_line(aes(group = year)) +
+  geom_point() +
+   scale_x_discrete(breaks = c(paste0("d",1:15),"chr"), labels = c(as.character(0:14),"chrom")) +
+  labs(#x = expression(Scale: log[2]("Morgan")),
+    x = expression(Scale: log[2](kb %*% 50)),
+    y = "Correlation",
+    title = "A") +
+  geom_segment(aes(x=.95,xend=9.05,y=-Inf,yend=-Inf),color="black")+
+  scale_color_viridis_d(option = 'G') +
+  theme_classic() +
+  theme(aspect.ratio = 1,
+        #legend.position = c(0.16,0.8),
+        #legend.key.size = unit(0.05, 'cm'),
+        #legend.text = element_text(size = 11),
+        text = element_text(size=15, family = "Nanum Gothic"),
+        axis.ticks.x = element_line(size=0.5),
+        axis.line.x = element_blank(),
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
+        axis.text.y = element_text(size=12),
+        axis.title.y = element_text(hjust=.4,margin=margin(r=10)),
         plot.title = element_text(hjust = -.1))
 
+wcP
+
+
 # genetic map
-ggplot(wavcor_collapsedG[year == "2018" & 
-                           vars == 'meanFreq_r'],
-                   aes(x = level, y = cor_n, group = year))+ #, color = year)) +
+wcG <- ggplot(wavcor_collapsedG[vars == 'meanFreq_r' & year == '2006'],
+                   aes(x = level, y = cor_n))+ #, color = year)) +
   geom_point(size = 2) +
-  geom_errorbar(aes(ymin=cor_n-1.96*cor_jack_se, ymax=cor_n + 1.96*cor_jack_se), width = 0, size=1)+
+  geom_line(linewidth=1) + 
+  geom_point(size=2) +
+  geom_errorbar(aes(ymin=cor_n-1.96*cor_jack_se, ymax=cor_n + 1.96*cor_jack_se), width = 0.5, size=1)+
   scale_x_discrete(breaks = c(paste0("d",1:11),"chr"), labels = c(as.character(-12:-2),"chrom")) +
   labs(x = expression(Scale: log[2]("Morgan")),
     y = "Correlation",
-    title = "A") +
+    title = "B") +
   geom_segment(aes(x=.95,xend=11.05,y=-Inf,yend=-Inf),color="black")+
+  scale_color_viridis_d(option = 'G') +
 
   theme_classic() +
   theme(aspect.ratio = 1,
+        legend.position = 'none',
+        #legend.position = c(0.15,0.8),
+        #legend.key.size = unit(0.05, 'cm'),
+        #legend.text = element_text(size = 11),
         text = element_text(size=15, family = "Nanum Gothic"),
-        axis.ticks.x = element_line(size=1),
+        axis.ticks.x = element_line(size=0.5),
         axis.line.x = element_blank(),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
         axis.text.y = element_text(size=12),
         axis.title.y = element_text(hjust=.4,margin=margin(r=10)),
         plot.title = element_text(hjust = -.1))
 
+wcG
+wcP
+
+# through time
+wc_tm_P <- ggplot(wavcor_collapsedP[vars == 'meanFreq_r'],
+                  aes(year, y = cor_n, group = level, color = level)) +
+  geom_point(size = 2) +
+  #geom_errorbar(aes(ymin=cor_n-1.96*cor_jack_se, ymax=cor_n + 1.96*cor_jack_se), width = 0.5, size=1)+
+  geom_line() +
+  geom_point() +
+  labs(color = expression(Scale: log[2](kg %*% 50)),
+       x = 'Year',
+       y = "Correlation",
+       title = "A") +
+  scale_color_manual(values = c(viridis_pal()(9), 'grey'), 
+                     labels = c(0:8, 'chr')) +
+  theme_classic() +
+  theme(aspect.ratio = 1,
+        #legend.position = c(0.16,0.8),
+        legend.key.size = unit(0.01, 'cm'),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
+        text = element_text(size=15, family = "Nanum Gothic"),
+        axis.ticks.x = element_line(size=0.5),
+        # axis.line.x = element_blank(),
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
+        axis.text.y = element_text(size=12),
+        axis.title.y = element_text(hjust=.4,margin=margin(r=10)),
+        axis.title.x = element_text(size = 13, vjust = -1),
+        plot.title = element_text(hjust = -.1))
+
+wc_tm_P
+
+wc_tm_G <- ggplot(wavcor_collapsedG[vars == 'meanFreq_r'],
+                  aes(year, y = cor_n, group = level, color = level)) +
+  geom_point(size = 2) +
+  #geom_errorbar(aes(ymin=cor_n-1.96*cor_jack_se, ymax=cor_n + 1.96*cor_jack_se), width = 0.5, size=1)+
+  geom_line() +
+  geom_point() +
+  labs(color = expression(Scale: log[2](Morgan)),
+       x = 'Year',
+       y = "Correlation",
+       title = "B") +
+  scale_color_manual(values = c(viridis_pal()(11), 'grey'), 
+                     labels = c(-12:-2, 'chr')) +
+  theme_classic() +
+  theme(aspect.ratio = 1,
+        #legend.position = c(0.16,0.8),
+        legend.key.size = unit(0.01, 'cm'),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
+        text = element_text(size=15, family = "Nanum Gothic"),
+        axis.ticks.x = element_line(size=0.5),
+        # axis.line.x = element_blank(),
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
+        axis.text.y = element_text(size=12),
+        axis.title.y = element_text(hjust=.4,margin=margin(r=10)),
+        axis.title.x = element_text(size = 13, vjust = -1),
+        plot.title = element_text(hjust = -.1))
 
 
+wc_tm_P 
+wc_tm_G
 
 # ----- mean freq, cds ----
 ggplot(wavcor_collapsedP[year == "2018" & vars == 'meanFreq_cds_density'],
@@ -400,8 +504,8 @@ rsqrd_plot
 
 rsqrdG[, significant := ifelse(rsqrd_jack-1.96*rsqrd_jack_se > 0, 1, 0)]
 
-panel3 <- ggplot(rsqrdG[year == '2006' & model == "r" 
-                              #& significant
+rsqrdG_plt <- ggplot(rsqrdG[year == '2006' & model == "r" 
+                              & significant
                               ],
                      aes(x = level, y = rsqrd_jack)) + #, color = year)) + # y = cor_meanFreq_log10r)) +
   geom_point(size=2) +
@@ -420,14 +524,30 @@ panel3 <- ggplot(rsqrdG[year == '2006' & model == "r"
         axis.text.y = element_text(size=12),
         axis.title.y = element_text(hjust=.4,margin=margin(r=10)),
         axis.title.x = element_text(size = 13, vjust = 4),
-        
-        plot.title = element_text(hjust = -.1)
-        )
+        plot.title = element_text(hjust = -.1))
+
+panel3 <- ggplot(rsqrdP[model == "r" & year == '2006'],
+                     aes(x = level, y = rsqrd_n)) + # y = cor_meanFreq_log10r)) +
+  geom_point(size=2) +
+  geom_errorbar(aes(ymin = rsqrd_jack - 1.96*rsqrd_jack_se, ymax= rsqrd_jack + 1.96*rsqrd_jack_se), width = 0, size=1) +
+  scale_x_discrete(breaks = c(paste0("d",1:9),"scl","chr"), labels = c(as.character(0:8),"scl", "chrom")) +
+  labs(x = expression(Scale: log[2](kb %*% 50)),
+       y = "R squared",
+       title= "C") +
+  theme_classic() +
+  geom_segment(aes(x=.95,xend=9.05,y=-Inf,yend=-Inf),color="black")+
+  theme(aspect.ratio = 1,
+        text = element_text(size=15, family = "Nanum Gothic"),
+        axis.ticks.x = element_line(size=0.5),
+        axis.line.x = element_blank(),
+        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
+        axis.text.y = element_text(size=12),
+        axis.title.y = element_text(hjust=.4,margin=margin(r=10)),
+        axis.title.x = element_text(size = 13, vjust = 4),
+        plot.title = element_text(hjust = -.1))
+
 
 panel3
-
-
-
 
 # ===== Contribution to correlation =====
 
@@ -475,22 +595,28 @@ ggplot(allwav_collapsedP[year == "2018"]) +
 
 panel2P <- ggplot(allwav_collapsedP, 
        aes(x = level, y = normcor, color = year, group = year)) + 
-  geom_point() +  
-  geom_line(data= allwav_collapsedP[grepl('d', level, fixed=T)]) + 
-  scale_colour_viridis_d(option = 'E')  +
-  scale_x_discrete(breaks = c(paste0("d",1:15),"scl","chr"), labels = c(as.character(0:14),"scl", "chrom")) +
+  geom_point(size=2) +  
+  geom_line(data= allwav_collapsedP[grepl('d', level, fixed=T)], linewidth = 1) + 
+  geom_point(size=2) +
+  scale_colour_viridis_d(option = 'G')  +
+  scale_x_discrete(breaks = c(paste0("d",1:9),"scl","chr"), labels = c(as.character(0:8),"scl", "chrom")) +
+  scale_y_continuous(limits = c(0, 0.3), breaks = c(0, 0.1, 0.2, 0.3), labels = c(0,10,20,30)) +
   theme_classic() +
   geom_segment(aes(x=.95,xend=9.05,y=-Inf,yend=-Inf),color="black")+
-  labs( x= expression(Scale: log[2](kb %*% 50)), y = 'Normalized contribution\n to overall correlation') +
+  labs( x= expression(Scale: log[2](kb %*% 50)),
+        y = 'Percent contribution\nto overall correlation',
+        title = 'B') +
   theme_classic() +
   theme(aspect.ratio = 1,
+        legend.position = 'none',
         text = element_text(size=15, family = "Nanum Gothic"),
         axis.ticks.x = element_line(size=0.5),
         axis.line.x = element_blank(),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
         axis.text.y = element_text(size=12),
         axis.title.y = element_text(hjust=.4,margin=margin(r=10)),
-        plot.title = element_text(hjust = -.1))
+        plot.title = element_text(hjust = -.1),
+        axis.title.x = element_text(size = 13, vjust = 4))
   
 panel2P
 
@@ -498,6 +624,8 @@ panel2G <- ggplot(allwav_collapsedG,
        aes(x = level, y = contribution, color = year, group = year)) + 
   geom_point(size=2) +  
   geom_line(data= allwav_collapsedG[grepl('d', level, fixed=T)]) + 
+  geom_point(size=2) +  
+  
   scale_colour_viridis_d(option = 'G')  +
   scale_x_discrete(breaks = c(paste0("d",1:11),"scl","chr"), labels = c(as.character(-12:-2),"scl", "chrom")) +
   theme_classic() +

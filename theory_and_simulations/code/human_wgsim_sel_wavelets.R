@@ -1,20 +1,15 @@
 library(data.table)
-#library(ggplot2)
-library(cubature)
-library(wCorr)
+library(gnomwav)
 
 if(interactive()){
   setwd("/Users/Jeff/workspace/selection-against-introgression/theory_and_simulations/")
-  source("/Users/jeff/workspace/gnomwav/R/correlation_decomp.R")
-  source("/Users/jeff/workspace/gnomwav/R/multi_modwts.R")
-  source("/Users/jeff/workspace/gnomwav/R/variance_decomp.R")
-  frq <- fread('results/human_wgsim_sel900-1000_S1//replicate9_frqs.txt.gz', col.names = c("rep","gen","frq"))
-  map <- fread("hg38_wg_slim_recmap_verbose.txt.gz", col.names = c("chr", 'pos_bp', 'Morgan', 'r', "rbar_i"))
+  
+  frq <- fread('results/human_wgsim_sel900-1000_S1_L1e3/replicate0_frqs.txt.gz', col.names = c("rep","gen","frq"))
+  map <- fread("hg38_wg_slim_recmap_1kb_verbose.txt.gz", col.names = c("chr", 'pos_bp', 'Morgan', 'r', "rbar_i"))
+  # don't use 1kb map for selection sims (use 50kb), this is just cuz this is the file I had
+  #map <- fread("hg38_wg_slim_recmap_verbose.txt.gz", col.names = c("chr", 'pos_bp', 'Morgan', 'r', "rbar_i"))
   
 } else{
-  source("/Users/brogroh/gnomwav/R/correlation_decomp.R")
-  source("/Users/brogroh/gnomwav/R/multi_modwts.R")
-  source("/Users/brogroh/gnomwav/R/variance_decomp.R")
   args <- commandArgs(trailingOnly = T)
   frq <- fread(args[1], col.names = c("rep", "gen", "frq"))
   map <- fread(args[2], col.names = c("chr", 'pos_bp', 'Morgan', 'r', "rbar_i"))
@@ -29,6 +24,11 @@ frq[, gen := gen - 2]
 # ----- format recombination map
 # change rec rates at starts of chromosomes (they were 0.5 for slim simulations)
 map[, r := c(r[2], r[2:nrow(.SD)]), by = chr]
+
+# log 10 of recomb
+map[, r_nozeros := r]
+map[r == 0, r_nozeros := map[r!=0, min(r)/2]]
+map[, log10r := log10(r_nozeros)]
 
 #ceiling(log2(map[, mean(Morgan_dist)]))
 #ceiling(log2(map[, median(Morgan_dist)]))
@@ -45,17 +45,21 @@ if(interactive()){
 #ceiling(log2(map[, mean(Morgan_dist)]))
 #ceiling(log2(map[, median(Morgan_dist)]))
 
-frq_interp <- frq[, approx(x = Morgan, y = frq, xout = seq(min(Morgan), max(Morgan), by = 2^-16)), by = .(rep, gen, chr)]
+frq_interp <- frq[, approx(x = Morgan, y = frq, xout = seq(min(Morgan), max(Morgan), by = 2^-12)), by = .(rep, gen, chr)]
 setnames(frq_interp, c("x","y"), c("Morgan","frq"))
 
-
-rec_interp <- map[, approx(x = Morgan, y = pos_bp, xout = seq(min(Morgan), max(Morgan), by = 2^-16)), by = chr]
+rec_interp <- map[, approx(x = Morgan, y = pos_bp, xout = seq(min(Morgan), max(Morgan), by = 2^-12)), by = chr]
 setnames(rec_interp, c("x","y"),c("Morgan","bp"))
-rec_interp[, r := 1/(bp-shift(bp))] # exact units don't matter for correlation purposes but it's Morgan/bp times a constant
-rec_interp[, r := c(r[2], r[2:nrow(rec_interp)])]
-#ggplot(rec_interp[seq(1, .N, by = 1000)], aes(x = Morgan, y = r)) + geom_point() + facet_wrap(~chr)
+rec_interp[, r := (2^-12)/(bp-shift(bp))] 
+rec_interp[, r := c(.SD[2, r], .SD[2:.N, r]), by = chr]
+#ggplot(rec_interp[seq(1, .N, by = 100)], aes(x = Morgan, y = r)) + geom_point() + facet_wrap(~chr)
 
-rbari_interp <- map[, approx(x = Morgan, y = rbar_i, xout = seq(min(Morgan), max(Morgan), by = 2^-16)), by = chr]
+# log transform
+rec_interp[, log10r := log10(r)]
+rec_interp[r == 0, log10r := log10(min(r)/2)]
+
+
+rbari_interp <- map[, approx(x = Morgan, y = rbar_i, xout = seq(min(Morgan), max(Morgan), by = 2^-12)), by = chr]
 setnames(rbari_interp, c("x","y"),c("Morgan","rbar_i"))
 
 # combine map on frqs on genetic map
@@ -72,6 +76,7 @@ meanfrq <- frq[, .(meanfrq = mean(frq)), by = .(rep, gen)]
 # physical units
 totalvarsP <- frq[,  .(totalvar.frq = var(frq), 
                        totalvar.r = var(r),
+                       totalvar.log10r = var(log10r),
                        totalvar.rbar_i = var(rbar_i)), by = .(rep, gen)]
 totalvarsP[, units := "physical"]
 #ggplot(sel_totalvarP, aes(x = log10(gen), y = totalvar.frq)) + geom_point()
@@ -79,6 +84,7 @@ totalvarsP[, units := "physical"]
 # genetic units
 totalvarsG <- frq_rec_interp[, .(totalvar.frq = var(frq), 
                                  totalvar.r = var(r),
+                                 totalvar.log10r = var(log10r),
                                  totalvar.rbar_i = var(rbar_i)), by = .(rep, gen)]
 totalvarsG[, units := "genetic"]
 
@@ -88,11 +94,13 @@ totalvars <- rbind(totalvarsP, totalvarsG)
 # ====== Total correlations =====
 
 totalcorP <- frq[, .(cor_frq_r = cor(r, frq),
+                     cor_frq_log10r = cor(frq, log10r),
                      cor_frq_rbar_i = cor(rbar_i, frq)), 
                  by = .(rep, gen)]
 totalcorP[, units := 'physical']
 
 totalcorG <- frq_rec_interp[, .(cor_frq_r = cor(r, frq),
+                                cor_frq_log10r = cor(frq, log10r),
                                 cor_frq_rbar_i = cor(rbar_i, frq)), 
                             by = .(rep, gen)]
 totalcorG[, units := 'genetic']
@@ -105,21 +113,21 @@ totalcors <- rbind(totalcorG, totalcorP)
 # ----- physical units -----
 
 # per chromosome
-# wv_frq_rec_P_chrs <- frq[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = F, signals = c("frq", "r", "rbar_i"), avg.over.chroms = F), by = .(rep, gen)]
+# wv_frq_rec_P_chrs <- frq[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = F, signals = c("frq", "r", "log10r", "rbar_i"), avg.over.chroms = F), by = .(rep, gen)]
 # wv_frq_rec_P_chrs[, units := "physical"]
 
 # averaging across chroms
-wv_frq_rec_P_wg <- frq[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = F, signals = c("frq", "r", "rbar_i"), avg.over.chroms = T), by = .(rep, gen)]
+wv_frq_rec_P_wg <- frq[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = F, signals = c("frq", "r", "log10r", "rbar_i"), avg.over.chroms = T), by = .(rep, gen)]
 wv_frq_rec_P_wg[, units := "physical"]
 
 # ----- genetic units -----
 
 # per chromosome
-# wv_frq_rec_G_chrs <- frq_rec_interp[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = F, signals = c("frq", "r", "rbar_i"), avg.over.chroms = F), by = .(rep, gen)]
+# wv_frq_rec_G_chrs <- frq_rec_interp[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = F, signals = c("frq", "r", "log10r", "rbar_i"), avg.over.chroms = F), by = .(rep, gen)]
 # wv_frq_rec_G_chrs[, units := "genetic"]
 
 # averaging across chroms
-wv_frq_rec_G_wg <- frq_rec_interp[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = F, signals = c("frq", "r", "rbar_i"), avg.over.chroms = T), by = .(rep, gen)]
+wv_frq_rec_G_wg <- frq_rec_interp[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = F, signals = c("frq", "r", "log10r", "rbar_i"), avg.over.chroms = T), by = .(rep, gen)]
 wv_frq_rec_G_wg[, units := "genetic"]
 
 #wv_frq_rec_chrs_all <- rbind(wv_frq_rec_P_chrs, wv_frq_rec_G_chrs)
@@ -146,10 +154,13 @@ wv_frq_rec_wg_all <- rbind(wv_frq_rec_P_wg, wv_frq_rec_G_wg)
 wavcorP_wg_r <- frq[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "r"), rm.boundary = F), by = .(rep, gen)]
 wavcorP_wg_r[, vars := "frq_r"]
 
+wavcorP_wg_log10r <- frq[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "log10r"), rm.boundary = F), by = .(rep, gen)]
+wavcorP_wg_log10r[, vars := "frq_log10r"]
+
 wavcorP_wg_rbar_i <- frq[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "rbar_i"), rm.boundary = F), by = .(rep, gen)]
 wavcorP_wg_rbar_i[, vars := "frq_rbar_i"]
 
-wavcorP_wg <- rbind(wavcorP_wg_r, wavcorP_wg_rbar_i)
+wavcorP_wg <- rbindlist(list(wavcorP_wg_r, wavcorP_wg_log10r, wavcorP_wg_rbar_i))
 wavcorP_wg[, units := "physical"]
 
 #ggplot(wavcorP_wg[vars=='frq_rbar_i'], aes(x = level, y = cor_n, color = method)) + geom_point() + facet_wrap(~gen)
@@ -170,10 +181,13 @@ wavcorP_wg[, units := "physical"]
 wavcorG_wg_r <- frq_rec_interp[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "r"), rm.boundary = F), by = .(rep, gen)]
 wavcorG_wg_r[, vars := "frq_r"]
 
+wavcorG_wg_log10r <- frq_rec_interp[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "log10r"), rm.boundary = F), by = .(rep, gen)]
+wavcorG_wg_log10r[, vars := "frq_log10r"]
+
 wavcorG_wg_rbar_i <- frq_rec_interp[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "rbar_i"), rm.boundary = F), by = .(rep, gen)]
 wavcorG_wg_rbar_i[, vars := "frq_rbar_i"]
 
-wavcorG_wg <- rbind(wavcorG_wg_r, wavcorG_wg_rbar_i)
+wavcorG_wg <- rbindlist(list(wavcorG_wg_r,wavcorG_wg_log10r, wavcorG_wg_rbar_i))
 wavcorG_wg[, units := "genetic"]
 
 
