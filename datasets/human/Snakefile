@@ -29,13 +29,62 @@ rule average_stein_freqs:
 	shell:
 		"Rscript --vanilla average_stein_freqs.R {wildcards.chr}"
 
+rule hg38ToHg19:
+	input:
+		fragments="Skov_etal_2020_data/41586_2020_2225_MOESM3_ESM.txt", # downloaded from Skov et al 2020 supp
+		chain="Skov_etal_2020_data/hg38ToHg19.over.chain" # downloaded from UCSC
+	output:
+		"Skov_etal_2020_data/Skov_fragments_hg19.bed"
+	shell: # the awk command prints the chromosome, start and end of each fragment, and a unique identifier column so that new mapped coordinates can be traced to old coordinates. The sed command removes the header. This gives the input to liftOver. 
+		""" 
+		awk '{print "chr" $1 "\t" $2 "\t" $3 "\t" $1"_"$2"_"$3"_"NR-1}' {intput.fragments} | sed '1d' > Skov_etal_2020_data/Skov_fragments.bed
+		liftOver Skov_etal_2020_data/Skov_fragments.bed {input.chain} {output} unMapped
+		"""
+
+rule Sank_snps_bed: # This will be input to liftOver
+	input:
+		snps=expand("Sankararaman_etal_2014_data/summaries.release/snp/chr-{chr}.snp.gz")
+	output:
+		"Sankararaman_etal_2014_data/hg19_snps.bed"
+	shell:
+		"""
+		gunzip -c {input} | awk '{print "chr"$2 "\t" $4-1 "\t" $4 "\t" "chr"$2"_"$4}' > {output}
+		"""
+rule sankHg19ToHg38:
+	input:
+		snps="Sankararaman_etal_2014_data/hg19_snps.bed",
+		chain="hg19ToHg38.over.chain" # downloaded from UCSC
+	output:
+		"sankHg19ToHg38Snps.bed"
+	shell:
+		"liftOver {input.snps} {intput.chain} {output} Sankararaman_etal_2014_data/unMapped"
+
+rule Stein_snps_bed: # this will be input to liftOver
+	input:
+		expand("Steinrucken_etal_2018_data/March2018/CEU_lax_chr{chr}/chr{chr}_frqs.txt"),
+	output:
+		"Steinrucken_etal_2018_data/March2018/steinHg19Snps.bed"
+	shell:
+		"""
+		cat {input} | awk '{print "chr"$1 "\t" $2-1 "\t" $2 "\t" "chr"$1"_"$2"}' > {output}
+		"""
+
+rule steinHg19ToHg38:
+	input:
+		chain="hg19ToHg38.over.chain" # downloaded from UCSC
+		bed="Steinrucken_etal_2018_data/March2018/steinHg19Snps.bed"
+	output:
+		"Steinrucken_etal_2018_data/March2018/steinHg19ToHg38Snps.bed"
+	shell:
+		"liftOver {input.bed} {input.chain} {output} Steinrucken_etal_2018_data/unMapped"
+
 rule get_freq_hg38:
 	input:
 		skov_fragments="Skov_etal_2020_data/41586_2020_2225_MOESM3_ESM.txt",
 		sank_calls="Sankararaman_etal_2014_data/summaries.release/CEU.hapmap/summaries/chr-{chr}.thresh-90.length-0.00.gz",
-		sank_snps="Sankararaman_etal_2014_data/sankHg19ToHg38Snps.bed", # produced with liftOver
+		sank_snps="Sankararaman_etal_2014_data/sankHg19ToHg38Snps.bed",
 		stein_calls="Steinrucken_etal_2018_data/March2018/CEU_lax_chr{chr}/chr{chr}_frqs.txt",
-		stein_snps="Steinrucken_etal_2018_data/March2018/steinHg19ToHg38Snps.bed",
+		stein_snps="Steinrucken_etal_2018_data/March2018/steinHg19ToHg38Snps.bed", 
 		recmap="Halldorsson_etal_2019_data/aau1043_datas3"
 	output:
 		expand("archaic_freqs_hg38/chr{{chr}}_frq_{unit}_windows.txt",unit=units)
