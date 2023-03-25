@@ -1,20 +1,13 @@
 library(data.table)
-#library(ggplot2)
-library(cubature)
-library(wCorr)
+library(gnomwav)
 
 if(interactive()){
   setwd("/Users/Jeff/workspace/selection-against-introgression/theory_and_simulations/")
-  source("/Users/jeff/workspace/gnomwav/R/correlation_decomp.R")
-  source("/Users/jeff/workspace/gnomwav/R/multi_modwts.R")
-  source("/Users/jeff/workspace/gnomwav/R/variance_decomp.R")
   frq <- fread('results/human_wgsim_sel900-1000_S1//replicate9_frqs.txt.gz', col.names = c("rep","gen","frq"))
   map <- fread("hg38_wg_slim_recmap_verbose.txt.gz", col.names = c("chr", 'pos_bp', 'Morgan', 'r', "rbar_i"))
   
 } else{
-  source("/Users/brogroh/gnomwav/R/correlation_decomp.R")
-  source("/Users/brogroh/gnomwav/R/multi_modwts.R")
-  source("/Users/brogroh/gnomwav/R/variance_decomp.R")
+
   args <- commandArgs(trailingOnly = T)
   frq <- fread(args[1], col.names = c("rep", "gen", "frq"))
   map <- fread(args[2], col.names = c("chr", 'pos_bp', 'Morgan', 'r', "rbar_i"))
@@ -45,17 +38,17 @@ if(interactive()){
 #ceiling(log2(map[, mean(Morgan_dist)]))
 #ceiling(log2(map[, median(Morgan_dist)]))
 
-frq_interp <- frq[, approx(x = Morgan, y = frq, xout = seq(min(Morgan), max(Morgan), by = 2^-16)), by = .(rep, gen, chr)]
+frq_interp <- frq[, approx(x = Morgan, y = frq, xout = seq(min(Morgan), max(Morgan), by = 2^-12)), by = .(rep, gen, chr)]
 setnames(frq_interp, c("x","y"), c("Morgan","frq"))
 
 
-rec_interp <- map[, approx(x = Morgan, y = pos_bp, xout = seq(min(Morgan), max(Morgan), by = 2^-16)), by = chr]
+rec_interp <- map[, approx(x = Morgan, y = pos_bp, xout = seq(min(Morgan), max(Morgan), by = 2^-12)), by = chr]
 setnames(rec_interp, c("x","y"),c("Morgan","bp"))
 rec_interp[, r := 1/(bp-shift(bp))] # exact units don't matter for correlation purposes but it's Morgan/bp times a constant
 rec_interp[, r := c(r[2], r[2:nrow(rec_interp)])]
 #ggplot(rec_interp[seq(1, .N, by = 1000)], aes(x = Morgan, y = r)) + geom_point() + facet_wrap(~chr)
 
-rbari_interp <- map[, approx(x = Morgan, y = rbar_i, xout = seq(min(Morgan), max(Morgan), by = 2^-16)), by = chr]
+rbari_interp <- map[, approx(x = Morgan, y = rbar_i, xout = seq(min(Morgan), max(Morgan), by = 2^-12)), by = chr]
 setnames(rbari_interp, c("x","y"),c("Morgan","rbar_i"))
 
 # combine map on frqs on genetic map

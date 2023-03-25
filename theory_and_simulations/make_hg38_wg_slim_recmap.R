@@ -16,10 +16,10 @@ setkey(dcode, Chr)
 # ===== Map1: realistic human rec map at evenly spaced physical positions =====
 
 # want evenly space physical positions, so that deleterious loci are evenly spaced on the physical map
-xout <- dcode[, seq(min(End), max(End), by = 1000)]
+xout <- dcode[, seq(min(End), max(End), by = 50e3)]
 
 # cm positions of evenly spaced bp positions
-dcode_interp <- dcode[, approx(x = End, y = cM, xout = seq(min(End), max(End), by = 1e3)), by = Chr]
+dcode_interp <- dcode[, approx(x = End, y = cM, xout = seq(min(End), max(End), by = 50e3)), by = Chr]
 setnames(dcode_interp, c("chr", "pos", "cM"))
 
 # calculate Morgan distances between adjacent SNPs
