@@ -3,11 +3,8 @@ library(gnomwav)
 
 if(interactive()){
   setwd("/Users/Jeff/workspace/selection-against-introgression/theory_and_simulations/")
-  
-  frq <- fread('results/human_wgsim_sel900-1000_S1_L1e3/replicate0_frqs.txt.gz', col.names = c("rep","gen","frq"))
-  map <- fread("hg38_wg_slim_recmap_1kb_verbose.txt.gz", col.names = c("chr", 'pos_bp', 'Morgan', 'r', "rbar_i"))
-  # don't use 1kb map for selection sims (use 50kb), this is just cuz this is the file I had
-  #map <- fread("hg38_wg_slim_recmap_verbose.txt.gz", col.names = c("chr", 'pos_bp', 'Morgan', 'r', "rbar_i"))
+  frq <- fread('results/human_wgsim_sel900-1000_S1//replicate9_frqs.txt.gz', col.names = c("rep","gen","frq"))
+  map <- fread("hg38_wg_slim_recmap_verbose.txt.gz", col.names = c("chr", 'pos_bp', 'Morgan', 'r', "rbar_i"))
   
 } else{
   args <- commandArgs(trailingOnly = T)

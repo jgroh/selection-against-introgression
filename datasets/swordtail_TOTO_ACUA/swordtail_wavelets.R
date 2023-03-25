@@ -3,6 +3,7 @@ library(data.table)
 library(tools)
 library(waveslim)
 library(stringi)
+library(wCorr)
 
 source("/Users/brogroh/gnomwav/R/correlation_decomp.R")
 source("/Users/brogroh/gnomwav/R/multi_modwts.R")
@@ -43,7 +44,7 @@ gnomG <- rbindlist(lapply(as.list(scaffFiles),
                   function(x){loadFrom(x, "chromAncInterpMorgan")}))
 
 gnomP <- rbindlist(lapply(as.list(scaffFiles),
-                             function(x){loadFrom(x, "chromAnc1kb")}))
+                             function(x){loadFrom(x, "chromAnc50kb")}))
 
 # For ACUA, minor parent is malinche
 gnomG[, indivFreq := 1 - indivFreq]
@@ -55,7 +56,7 @@ gnomP[, meanFreq := 1 - meanFreq]
 # merge ancestry data and genomic features data
 # due to how the ancestry tables were constructured, merge on different variables for physical and genetic units
 # for physical scale, merge on position
-p_features[, position := as.integer(start + 500)]
+p_features[, position := as.integer(start + 25e3)]
 gnomP <- merge(gnomP, p_features, by = c("chr", "position"))
 
 g_features[, end := c(end[1:(.N-1)], end[.N]-1), by = chr]

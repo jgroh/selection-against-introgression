@@ -3,23 +3,23 @@
 initialize() {
 	if (exists("slimgui"))
 	{
-		defineConstant("outPath", "/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/results/human_wgsim_sel900-1000/");
 		defineConstant("seed", 0);
 		rates = readFile("/Users/jeff/workspace/selection-against-introgression/theory_and_simulations/hg38_wg_slim_recmap.txt");
 		defineConstant("N", 10000);
 	} else
 	{	
-		defineConstant("outPath", "results/human_wgsim_sel900-1000_S1/");
-		rates = readFile("/Users/brogroh/selection-against-introgression/theory_and_simulations/hg38_wg_slim_recmap.txt");
+		defineConstant("outPath", "results/human_wgsim_selreverse/");
+//		rates = readFile("/Users/brogroh/selection-against-introgression/theory_and_simulations/hg38_wg_slim_recmap.txt");
+		rates = readFile("/home/jgroh/selection-against-introgression/theory_and_simulations/hg38_wg_slim_recmap.txt");
 	}
 	
 	
 	initializeTreeSeq();
-	defineConstant("L", 2753656);
+	defineConstant("L", 55088); // each locus corresponds to 50kb
 	defineConstant("N1", 1);
 	defineConstant("s", 1);
 	defineConstant("alpha", 0.5);
-	defineConstant("x", 4000);
+	defineConstant("x", 10000); //number of deleterious introgressing alleles
 
 	initializeMutationRate(0);
 	initializeMutationType("m1", 0.5, "f", 0.0);
@@ -46,30 +46,32 @@ initialize() {
 
 1 late() {p1.setSubpopulationSize(0);}
 
-//calculate fitness,
-902:1001 late() { 
+//calculate fitness
+3:102 late() {
 	inds = p0.individuals;
 	introgressed = inds.countOfMutationsOfType(m1);
 	// an individual homozygous for all deleterious loci experiences a fitness reduction of 0.4
 	inds.fitnessScaling = 1.0 - (introgressed/(2*x))*s;
 }
+103:1002 late() {
+	inds = p0.individuals;
+	introgressed = inds.countOfMutationsOfType(m1);
+	inds.fitnessScaling = 1.0 + (introgressed/(2*x))*s;
+}
 
 
 // output: gen 3 late are F2 offspring
 3 late() {
-	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // these are F2s, corresponds to 1 generation under theory model (prior to selection)
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // these are F2s, corresponds to 1 generation under theory model
 }
-
 4 late() {
-	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // these are F3 offspring
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // first generation where correlation should appear (F3 offspring)
 }
-
 7 late() {
-	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // 
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // gen 5
 }
-
 12 late() {
-	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); //
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // gen 10
 }
 52 late() {
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals); // 

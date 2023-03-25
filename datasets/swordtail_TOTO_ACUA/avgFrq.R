@@ -22,5 +22,4 @@ gnom[, mean(minPrntAnc)]
 
 # compute avg. minor parent frq and total correlation
 avgFrq <- gnom[ID==ID[1], mean(minPrntAnc)]
-
-save(avgFrq, file = paste0("ACUA_",year,"/avgFrq.txt"))
+fwrite(list(avgFrq), file = paste0("ACUA_",year,"/avgFrq.txt"), col.names=F, row.names=F, quote = F)

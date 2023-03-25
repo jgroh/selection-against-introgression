@@ -52,25 +52,25 @@ chrom[, indivFreq := (gen11 + 0.5*(1 - sum(gen11, gen22))), by = .(ID,chr,positi
 # 3. Interpolate ancestry at evenly space physical distances =====
 
 # midpoints of 1kb intervals. The first interval beginning at the first SNP position in the data
-xout <-  seq(min(chrom$position) + 500, max(chrom$position), by = 1000)
+xout <-  seq(min(chrom$position) + 25e3, max(chrom$position), by = 50e3)
 
 # do interpolation
-chromAnc1kb <- chrom[, approx(x = position, y = indivFreq, xout = xout, rule=1), by = .(chr, ID)]
-setnames(chromAnc1kb, c("x","y"), c("position", "indivFreq"))
+chromAnc50kb <- chrom[, approx(x = position, y = indivFreq, xout = xout, rule=1), by = .(chr, ID)]
+setnames(chromAnc50kb, c("x","y"), c("position", "indivFreq"))
 
 # average over individuals to get sample mean
-chromAnc1kb[, "meanFreq" := mean(indivFreq), by = .(chr, position)]
+chromAnc50kb[, "meanFreq" := mean(indivFreq), by = .(chr, position)]
 
 # distance to closest snp,
 pos_real <- chrom[ID==ID[1], .(position, id = "real")]
-pos_interp <- chromAnc1kb[ID==ID[1], .(position, id = "interp")]
+pos_interp <- chromAnc50kb[ID==ID[1], .(position, id = "interp")]
 
 pos_real[, marker := position]
 setattr(pos_real, "sorted", "position")  # let data.table know that w is sorted
 setkey(pos_real, position) # sorts the data
 dist_to_marker <- pos_real[J(pos_interp), roll = "nearest"][, .(position, dist_to_marker = abs(position-marker))]
 
-chromAnc1kb <- merge(chromAnc1kb, dist_to_marker, by = "position")
+chromAnc50kb <- merge(chromAnc50kb, dist_to_marker, by = "position")
 
 
 # plot thinned sample mean ancestry
@@ -85,10 +85,10 @@ chrom[, "Morgan" := MorganVec[position]]
 
 # check number of SNPs per Morgan
 # chrom[,length(unique(position))/max(Morgan)]
-# roughly across chromosomes there are 30,000 SNPs per Morgan. So if we interpolate to M*2^-14, this gives roughly 1-2 SNPs per interpolation window
+# roughly across chromosomes there are 30,000 SNPs per Morgan. So if we interpolate to M*2^-14, this would be on average 1-2 SNPs per interpolation window
 
-# midpoints of windows of length 2^-14 Morgans, left boundary of first window determined by leftmost SNP
-xoutMorgan <- seq(min(chrom$Morgan) + 2^-15, max(chrom$Morgan), by = 2^-14)
+# midpoints of windows of length 2^-12 Morgans, left boundary of first window determined by leftmost SNP
+xoutMorgan <- seq(min(chrom$Morgan) + 2^-13, max(chrom$Morgan), by = 2^-12)
 
 # interpolate individual ancestry at genetic coordinates
 chromAncInterpMorgan <- chrom[, approx(x = Morgan, 
@@ -116,7 +116,7 @@ chromAncInterpMorgan <- merge(chromAncInterpMorgan, dist_to_marker, by = "Morgan
 
 # 5. ===== Calculate Recombination Rate of genetic windows 
 # interpolate physical position at right endpoint of genetic windows
-xoutMorganRight <- xoutMorgan + 2^-15
+xoutMorganRight <- xoutMorgan + 2^-13
 
 
 # If the endpoint of the final window is beyond the Morgan position of the final SNP, take the SNP's position as the endpoint
@@ -139,7 +139,7 @@ chromBpInterp[, bp_span := c( min(end) - min(chrom$position), bp_span[-1]), by =
 
 # merge interpolated ancestry and bp size of windows
 # adjust Morgan values back to center of windows for the sake of merging the tables together
-chromBpInterp[, Morgan := Morgan - 2^-15]
+chromBpInterp[, Morgan := Morgan - 2^-13]
 
 # Since the final window is forced to end at the final SNP's genetic position, the above subtraction
 # is not correct for the final window, so just set it directly. 
@@ -160,8 +160,8 @@ if (year == 2018){
   # only need to do this for each chromosome once, so in one year
   # (these will need to be combined across chromosomes in a later step)
   
-  physical_windows_bed <- chromAnc1kb[ID==ID[1], .(chr, position)]
-  physical_windows_bed[, start := position - 500][, end := position + 500][, position := NULL][]
+  physical_windows_bed <- chromAnc50kb[ID==ID[1], .(chr, position)]
+  physical_windows_bed[, start := position - 25e3][, end := position + 25e3][, position := NULL][]
   
   if( max(physical_windows_bed$end) > max(chrom$position) ){
     physical_windows_bed[end == max(end), end :=  max(chrom$position) + 1]
@@ -182,4 +182,4 @@ if (year == 2018){
 
 # 5. Write out interpolated files =====
 
-save(chromAnc1kb, chromAncInterpMorgan, file = paste0("ACUA_", year, "/", chr, ".RData"))
+save(chromAnc50kb, chromAncInterpMorgan, file = paste0("ACUA_", year, "/", chr, ".RData"))

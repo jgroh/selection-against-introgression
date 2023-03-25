@@ -40,8 +40,8 @@ sank_calls[, freq_thresh := freq_thresh/170] # haploid sample size of CEU pop, s
 # ===== Skov frequency physical windows  =====
 
 # ----- method 1, weighted average of fragment frequencies -----
-windows <- data.table(chrom=as.character(chromosome), pos = seq(rmap[,min(End)], rmap[, max(End)], by = 1e3))
-windows[, start := pos - 500][, end := pos + 500]
+windows <- data.table(chrom=as.character(chromosome), pos = seq(rmap[,min(End)], rmap[, max(End)], by = 50e3))
+windows[, start := pos - 25e3][, end := pos + 25e3]
 
 
 # find all fragments that overlap grid windows
@@ -49,26 +49,26 @@ setkey(archaic, chrom, start, end)
 overlaps <- foverlaps(windows, archaic, by.x=c("chrom","start","end"), by.y=c("chrom","start","end"))
 
 # weight frequency by length of fragment overlap
-overlaps[, weighted_freq := freq*(pmin(end, i.end) - pmax(start, i.start))/1e3 , by=.(chrom,start,end)]
+overlaps[, weighted_freq := freq*(pmin(end, i.end) - pmax(start, i.start))/50e3 , by=.(chrom,start,end)]
 
 # windows with no overlap get frequency zero
 overlaps[is.na(freq), weighted_freq := 0]
 
 # sum weighted frequencies of fragments in each window
-frq1kb <- overlaps[, .(skov_freq = sum(weighted_freq)), by = .(chrom, i.start, pos, i.end)]
-setnames(frq1kb, c("i.start", "i.end"), c("start", "end"))
+frq50kb <- overlaps[, .(skov_freq = sum(weighted_freq)), by = .(chrom, i.start, pos, i.end)]
+setnames(frq50kb, c("i.start", "i.end"), c("start", "end"))
 
-frq1kb[, Morgan_end := approx(xout = frq1kb$end, x = rmap$End, y = rmap$Morgan)$y]
-frq1kb[, Morgan_start := approx(xout = frq1kb$start, x = rmap$End, y = rmap$Morgan)$y]
+frq50kb[, Morgan_end := approx(xout = frq50kb$end, x = rmap$End, y = rmap$Morgan)$y]
+frq50kb[, Morgan_start := approx(xout = frq50kb$start, x = rmap$End, y = rmap$Morgan)$y]
 
-frq1kb <- frq1kb[!is.na(Morgan_start) & !is.na(Morgan_end)]
-frq1kb[, rec := (Morgan_end-Morgan_start)/1e3]
+frq50kb <- frq50kb[!is.na(Morgan_start) & !is.na(Morgan_end)]
+frq50kb[, rec := (Morgan_end-Morgan_start)/50e3]
 
-frq1kb[, start := NULL][, end := NULL]
+frq50kb[, start := NULL][, end := NULL]
 
 # ---- method 2: count overlapping fragments at bp in center of window
-# frq1kb[, skov_freq2 := archaic[start < pos & end >= pos, sum(freq)], by = seq_len(nrow(frq1kb))][]
-# ggplot(frq1kb, aes(x = skov_freq, y = skov_freq2)) + geom_point()
+# frq50kb[, skov_freq2 := archaic[start < pos & end >= pos, sum(freq)], by = seq_len(nrow(frq50kb))][]
+# ggplot(frq50kb, aes(x = skov_freq, y = skov_freq2)) + geom_point()
 
 
 # ===== Skov allele frequency in genetic windows =====
@@ -78,11 +78,11 @@ frq1kb[, start := NULL][, end := NULL]
 # this is between 2^-16 and 2^-17
 # rmap[, mean(Morgan - shift(Morgan), na.rm=T)]
 
-windowsM <- data.table(chrom = as.character(chromosome), Morgan = rmap[, seq(min(Morgan), max(Morgan), by = 2^-16)])
+windowsM <- data.table(chrom = as.character(chromosome), Morgan = rmap[, seq(min(Morgan), max(Morgan), by = 2^-15)])
 windowsM[, 
-         start := round(approx(x = rmap$Morgan, y = rmap$End, xout = windowsM$Morgan - 2^-17)$y)][
+         start := round(approx(x = rmap$Morgan, y = rmap$End, xout = windowsM$Morgan - 2^-16)$y)][
            , pos := round(approx(x = rmap$Morgan, y = rmap$End, xout = windowsM$Morgan)$y)][
-             , end := round(approx(x = rmap$Morgan, y = rmap$End, xout = windowsM$Morgan + 2^-17)$y)
+             , end := round(approx(x = rmap$Morgan, y = rmap$End, xout = windowsM$Morgan + 2^-16)$y)
            ]
 windowsM <- windowsM[!is.na(start) & !is.na(end)]
 
@@ -100,16 +100,16 @@ overlapsM[is.na(freq), weighted_freq := 0]
 frqM <- overlapsM[, .(skov_freq = sum(weighted_freq)), by = .(chrom, Morgan, i.start, pos, i.end)]
 setnames(frqM, c("i.start", "i.end"), c("start", "end"))
 
-frqM[, rec := 2^-16/(end-start)]
+frqM[, rec := 2^-15/(end-start)]
 
 # alternate method
 # frqM[, skov_freq2 := archaic[start < pos & end >= pos, sum(freq)], by = seq_len(nrow(frqM))][]
 # ggplot(frqM, aes(x = skov_freq, y = skov_freq2)) + geom_point()
 
-#ggplot(frq1kb[, gnom_var_decomp(.SD, chromosome = NA, signals = "skov_freq")], aes(x = level, y = variance.skov_freq))+ geom_point()
+#ggplot(frq50kb[, gnom_var_decomp(.SD, chromosome = NA, signals = "skov_freq")], aes(x = level, y = variance.skov_freq))+ geom_point()
 # ggplot(frqM, aes(x = pos, y = skov_freq)) + geom_point()
 
-# ggplot(frq1kb, aes(x = pos)) + geom_point(aes(y = skov_freq)) + 
+# ggplot(frq50kb, aes(x = pos)) + geom_point(aes(y = skov_freq)) + 
 #  geom_point(data=frqM, aes(x = end, y = skov_freq, color = 'red'))
 
 
@@ -120,10 +120,10 @@ sank <- merge(sank_snps,
 sank[, start := NULL]
 setnames(sank, "end", "pos")
 
-frq1kb[, sank_freq_nothresh := approx(x = sank$pos, y = sank$sank_freq, xout = frq1kb$pos)$y]
-frq1kb[, sank_freq_thresh := approx(x = sank$pos, y = sank$sank_freq_thresh, xout = frq1kb$pos)$y]
+frq50kb[, sank_freq_nothresh := approx(x = sank$pos, y = sank$sank_freq, xout = frq50kb$pos)$y]
+frq50kb[, sank_freq_thresh := approx(x = sank$pos, y = sank$sank_freq_thresh, xout = frq50kb$pos)$y]
 
-#ggplot(frq1kb, aes(x = pos, y=skov_freq)) + geom_point() + geom_point(aes(x = pos, y= sank_freq, color = 'red'))
+#ggplot(frq50kb, aes(x = pos, y=skov_freq)) + geom_point() + geom_point(aes(x = pos, y= sank_freq, color = 'red'))
 
 frqM[, sank_freq_nothresh := approx(x = sank$pos, y = sank$sank_freq, xout = frqM$pos)$y]
 frqM[, sank_freq_thresh := approx(x = sank$pos, y = sank$sank_freq_thresh, xout = frqM$pos)$y]
@@ -139,19 +139,19 @@ setnames(stein_snps, "end", "pos")
 
 stein <- merge(stein_snps, stein_calls[, .(freq, freq_thresh, hg19_id)], by = 'hg19_id')
 
-frq1kb[, stein_freq_nothresh := approx(x = stein$pos, y = stein$freq, xout = frq1kb$pos)$y]
-frq1kb[, stein_freq_thresh := approx(x = stein$pos, y = stein$freq_thresh, xout = frq1kb$pos)$y]
+frq50kb[, stein_freq_nothresh := approx(x = stein$pos, y = stein$freq, xout = frq50kb$pos)$y]
+frq50kb[, stein_freq_thresh := approx(x = stein$pos, y = stein$freq_thresh, xout = frq50kb$pos)$y]
 
 frqM[, stein_freq_nothresh := approx(x = stein$pos, y = stein$freq, xout = frqM$pos)$y]
 frqM[, stein_freq_thresh := approx(x = stein$pos, y = stein$freq_thresh, xout = frqM$pos)$y]
 
 
-#ggplot(frq1kb, aes(x = pos, y = sank_freq)) + geom_point() + geom_point(aes(y = stein_freq), color = 'blue')
-#ggplot(frq1kb, aes(x = stein_freq, y = sank_freq)) + geom_point()
+#ggplot(frq50kb, aes(x = pos, y = sank_freq)) + geom_point() + geom_point(aes(y = stein_freq), color = 'blue')
+#ggplot(frq50kb, aes(x = stein_freq, y = sank_freq)) + geom_point()
 
 
 # === output ===== 
-fwrite(frq1kb, file = paste0("archaic_freqs_hg38/chr", chromosome, "_frq_physical_windows.txt"), quote = F, sep = "\t")
+fwrite(frq50kb, file = paste0("archaic_freqs_hg38/chr", chromosome, "_frq_physical_windows.txt"), quote = F, sep = "\t")
 fwrite(frqM, file = paste0("archaic_freqs_hg38/chr", chromosome, "_frq_genetic_windows.txt"), quote = F, sep = "\t")
 
 

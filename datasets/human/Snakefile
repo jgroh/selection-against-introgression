@@ -7,11 +7,13 @@ thresh = ['thresh', 'nothresh']
 
 # analyses common to both units. note gene density analysis differs between physical and genetic
 #
-wvlt_analyses = ["wv","wc_calls", "wc_freq_log10rec","wc_freq_rec","wc_freq_cds","wc_rec_cds", "wc_freq_cdsM","lm", "wc_freq_B"]
+wvlt_analyses = ["wv","wc_calls", "wc_freq_log10rec","wc_freq_rec","wc_freq_rec_chrs",
+					"wc_freq_cds","wc_freq_cds_chrs", "wc_rec_cds", "wc_freq_cdsM","wc_freq_cdsM_chrs",
+					 "lm", "wc_freq_B", "wc_freq_B_chrs"]
 
 rule all:
 	input:
-		expand("wavelet_results/{analysis}_{unit}_hg{n}_{thresh}.txt", analysis = wvlt_analyses, unit=units, n=assembly, thresh=thresh)
+		expand("wavelet_results/{analysis}_{unit}_hg{n}_{thresh}.txt", analysis = wvlt_analyses, unit=units, n=assembly, thresh='thresh')
 
 rule all_wavelet_inputs:
 	input:
@@ -43,7 +45,7 @@ rule hg38ToHg19:
 
 rule Sank_snps_bed: # This will be input to liftOver
 	input:
-		snps=expand("Sankararaman_etal_2014_data/summaries.release/snp/chr-{chr}.snp.gz")
+		snps=expand("Sankararaman_etal_2014_data/summaries.release/snp/chr-{chr}.snp.gz", chr=chrs)
 	output:
 		"Sankararaman_etal_2014_data/hg19_snps.bed"
 	shell:
@@ -61,7 +63,7 @@ rule sankHg19ToHg38:
 
 rule Stein_snps_bed: # this will be input to liftOver
 	input:
-		expand("Steinrucken_etal_2018_data/March2018/CEU_lax_chr{chr}/chr{chr}_frqs.txt"),
+		expand("Steinrucken_etal_2018_data/March2018/CEU_lax_chr{chr}/chr{chr}_frqs.txt", chr=chrs),
 	output:
 		"Steinrucken_etal_2018_data/March2018/steinHg19Snps.bed"
 	shell:
@@ -71,7 +73,7 @@ rule Stein_snps_bed: # this will be input to liftOver
 
 rule steinHg19ToHg38:
 	input:
-		chain="hg19ToHg38.over.chain" # downloaded from UCSC
+		chain="hg19ToHg38.over.chain", # downloaded from UCSC
 		bed="Steinrucken_etal_2018_data/March2018/steinHg19Snps.bed"
 	output:
 		"Steinrucken_etal_2018_data/March2018/steinHg19ToHg38Snps.bed"
@@ -173,6 +175,7 @@ rule windowed_B_values:
 rule run_wavelets:
 	input:
 		"gene_density_{unit}_windows_hg{n}.txt",
+		"B_vals_{unit}_windows_hg{n}.txt",
 		expand("archaic_freqs_hg{n}/chr{chr}_frq_{{unit}}_windows.txt",chr=chrs,unit=units, n=assembly)	
 	output:
 		"wavelet_results/{analysis}_{unit}_hg{n}_{thresh}.txt"
