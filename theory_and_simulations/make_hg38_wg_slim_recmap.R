@@ -42,7 +42,7 @@ dcode_interp1kb[, chr := gsub("chr", "", chr)]
 if(chromosome == 1){
   fwrite(dcode_interp1kb[, .(Morgan_dist_slim)], file = 'hg38_wg_slim_recmap_1kb.txt', 
          col.names = F, row.names = F, quote = F, sep = '\t')
-  fwrite(dcode_interp1kb[, .(chr, pos, Morgan = cM/100, Morgan_dist_slim)], file = 'hg38_wg_slim_recmap_verbose_1kb.txt', 
+  fwrite(dcode_interp1kb[, .(chr, pos, Morgan = cM/100, Morgan_dist_slim)], file = 'hg38_wg_slim_recmap_1kb_verbose.txt.gz', 
          col.names = T, row.names = F, quote = F, sep = '\t')
 }
 
