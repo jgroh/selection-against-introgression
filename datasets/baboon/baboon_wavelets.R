@@ -20,6 +20,11 @@ setnames(dem, "table_s1_id", "id")
 gnomP <- rbindlist(lapply(list.files("anubis_freqs/", pattern = "50kb", full.names=T), fread))
 gnomP <- merge(gnomP, dem, by = "id")
 
+fwrite(gnomP[id==id[1], .(start, end, r, chrom)], 
+       file = 'baboon_r_50kb.txt',
+       col.names = T, row.names = F, 
+       quote = F, sep = '\t')
+
 # read genetic window anubis freqs
 gnomG <- rbindlist(lapply(list.files("anubis_freqs/", pattern = "genetic", full.names=T), fread))
 gnomG <- merge(gnomG, dem, by = "id")

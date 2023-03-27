@@ -101,7 +101,7 @@ wavvar[units == 'genetic'] %>%
   geom_errorbar(data= wavvar[units == 'genetic' & !grepl('s', level)], 
                 aes(ymin= variance.meanFreq - 1.96*variance.meanFreq.jack.se, 
                     ymax = variance.meanFreq + 1.96*variance.meanFreq.jack.se),
-                linewidth=1, width = 0) +
+                linewidth=1, width = 0.5) +
   geom_line(data = wavvar[units == 'genetic' & grepl('d',level)],
             aes(group = year), size=1, key_glyph = 'point') +
   labs(x = expression(Scale: log[2](Morgans)),
@@ -111,7 +111,7 @@ wavvar[units == 'genetic'] %>%
   scale_x_discrete(breaks = c(paste0("d",1:11),"s11","chr"), labels = c(as.character(-12:-2),"scl", 'chrom')) +
   scale_shape_discrete(labels = c("Mean ancestry", "Individual ancestry"))+
   theme_classic() +
-  scale_colour_viridis_d(option = 'E') +
+  scale_colour_viridis_d(option = 'G') +
   scale_y_continuous(label= function(x) {ifelse(x==0, "0", gsub("\\-0", "\\-", scientific_format()(x)))} ) +
   geom_segment(aes(x=.95,xend=11.05,y=-Inf,yend=-Inf),color="black")+
   theme(aspect.ratio = 1,
@@ -225,7 +225,7 @@ wavcor_collapsedP[, level := factor(level, levels = c(paste0("d", 1:15), 'scl', 
 # --- freq, recomb ----
 
 # physical map
-ggplot(wavcor_collapsedP[vars == 'meanFreq_r' & year == '2006'],
+ggplot(wavcor_collapsedP[vars == 'meanFreq_log10r' & year == '2006'],
                   aes(x = level, y = cor_n))+ #, color = year)) +
   geom_point(size = 2) +
   geom_errorbar(aes(ymin=cor_n-1.96*cor_jack_se, ymax=cor_n + 1.96*cor_jack_se), width = 0.5, size=1)+

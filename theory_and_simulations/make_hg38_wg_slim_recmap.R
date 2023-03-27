@@ -13,7 +13,44 @@ setkey(dcode, Chr)
 # rates
 #ggplot(dcode, aes(x = Begin, y = cMperMb)) + geom_point()
 
-# ===== Map1: realistic human rec map at evenly spaced physical positions =====
+# ===== 1kb map, for neutral sims =====
+# want evenly space physical positions, so that deleterious loci are evenly spaced on the physical map
+xout1kb <- dcode[, seq(min(End), max(End), by = 1e3)]
+
+# cm positions of evenly spaced bp positions
+dcode_interp1kb <- dcode[, approx(x = End, y = cM, xout = seq(min(End), max(End), by = 1e3)), by = Chr]
+setnames(dcode_interp1kb, c("chr", "pos", "cM"))
+
+# calculate Morgan distances between adjacent SNPs
+# Morgan_dist_slim will give recombination probabilities for Slim 
+# (not bothering with map function as map lengths are so small )
+
+dcode_interp1kb[, Morgan_dist := (cM-shift(cM))/100, by = chr]
+
+# replace NA value at start of chroms
+dcode_interp1kb[, Morgan_dist := c(Morgan_dist[2], Morgan_dist[2:nrow(.SD)]), by = chr]
+
+# for slim:
+# for subsequent chromosomes, set rec rate to 0.5 at first position 
+dcode_interp1kb[, Morgan_dist_slim := Morgan_dist]
+dcode_interp1kb[chr!="chr1", Morgan_dist_slim := c(0.5, Morgan_dist_slim[2:nrow(.SD)]), by = chr]
+
+setkey(dcode_interp1kb, chr, pos)
+dcode_interp1kb[, chr := gsub("chr", "", chr)]
+
+
+if(chromosome == 1){
+  fwrite(dcode_interp1kb[, .(Morgan_dist_slim)], file = 'hg38_wg_slim_recmap_1kb.txt', 
+         col.names = F, row.names = F, quote = F, sep = '\t')
+  fwrite(dcode_interp1kb[, .(chr, pos, Morgan = cM/100, Morgan_dist_slim)], file = 'hg38_wg_slim_recmap_verbose_1kb.txt', 
+         col.names = T, row.names = F, quote = F, sep = '\t')
+}
+
+
+dcode_interp1kb[, .SD[1], by = chr]
+hg38_wg_slim_recmap_1kb.txt 
+
+# ===== 50kb map, used for selection sims and same resolution analysis of real data =====
 
 # want evenly space physical positions, so that deleterious loci are evenly spaced on the physical map
 xout <- dcode[, seq(min(End), max(End), by = 50e3)]
@@ -47,7 +84,6 @@ dcode_sub <- dcode_interp[chr == paste0("chr", chromosome)]
 
 L_all <- nrow(dcode_interp)
 L_diff_chrom <- L_all - nrow(dcode_sub)
-
 
 for(i in 1:nrow(dcode_sub)){
 
