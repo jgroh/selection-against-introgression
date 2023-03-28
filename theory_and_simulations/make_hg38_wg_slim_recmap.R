@@ -46,10 +46,6 @@ if(chromosome == 1){
          col.names = T, row.names = F, quote = F, sep = '\t')
 }
 
-
-dcode_interp1kb[, .SD[1], by = chr]
-hg38_wg_slim_recmap_1kb.txt 
-
 # ===== 50kb map, used for selection sims and same resolution analysis of real data =====
 
 # want evenly space physical positions, so that deleterious loci are evenly spaced on the physical map
