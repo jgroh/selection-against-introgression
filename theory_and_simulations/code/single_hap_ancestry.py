@@ -34,8 +34,8 @@ nodes_table = TableCollection.nodes
 for tm in times:
     gen = max(times) - tm
 
-    hapset = [np.random.choice(ts.samples(population=p, time = tm), k, replace=False) for p in 0]
-    ts2 = ts.simplify(samples=np.concatenate(hapset))
+    hapset = [np.random.choice(orig_ts.samples(population=p, time = tm), k, replace=False) for p in [0]]
+    ts2 = orig_ts.simplify(samples=np.concatenate(hapset))
     G = ts2.genotype_matrix()
     
     # true ancestry of haplotypes

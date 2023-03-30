@@ -110,21 +110,21 @@ totalcors <- rbind(totalcorG, totalcorP)
 # ----- physical units -----
 
 # per chromosome
-# wv_frq_rec_P_chrs <- frq[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = F, signals = c("frq", "r", "log10r", "rbar_i"), avg.over.chroms = F), by = .(rep, gen)]
+# wv_frq_rec_P_chrs <- frq[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = T, signals = c("frq", "r", "log10r", "rbar_i"), avg.over.chroms = F), by = .(rep, gen)]
 # wv_frq_rec_P_chrs[, units := "physical"]
 
 # averaging across chroms
-wv_frq_rec_P_wg <- frq[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = F, signals = c("frq", "r", "log10r", "rbar_i"), avg.over.chroms = T), by = .(rep, gen)]
+wv_frq_rec_P_wg <- frq[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = T, signals = c("frq", "r", "log10r", "rbar_i"), avg.over.chroms = T), by = .(rep, gen)]
 wv_frq_rec_P_wg[, units := "physical"]
 
 # ----- genetic units -----
 
 # per chromosome
-# wv_frq_rec_G_chrs <- frq_rec_interp[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = F, signals = c("frq", "r", "log10r", "rbar_i"), avg.over.chroms = F), by = .(rep, gen)]
+# wv_frq_rec_G_chrs <- frq_rec_interp[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = T, signals = c("frq", "r", "log10r", "rbar_i"), avg.over.chroms = F), by = .(rep, gen)]
 # wv_frq_rec_G_chrs[, units := "genetic"]
 
 # averaging across chroms
-wv_frq_rec_G_wg <- frq_rec_interp[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = F, signals = c("frq", "r", "log10r", "rbar_i"), avg.over.chroms = T), by = .(rep, gen)]
+wv_frq_rec_G_wg <- frq_rec_interp[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = T, signals = c("frq", "r", "log10r", "rbar_i"), avg.over.chroms = T), by = .(rep, gen)]
 wv_frq_rec_G_wg[, units := "genetic"]
 
 #wv_frq_rec_chrs_all <- rbind(wv_frq_rec_P_chrs, wv_frq_rec_G_chrs)
@@ -139,22 +139,22 @@ wv_frq_rec_wg_all <- rbind(wv_frq_rec_P_wg, wv_frq_rec_G_wg)
 # ----- physical map
 
 # per chromosome
-# wavcorP_chrs_r <- frq[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("frq", "r"), rm.boundary = F), by = .(rep, gen, chr)]
+# wavcorP_chrs_r <- frq[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("frq", "r"), rm.boundary = T), by = .(rep, gen, chr)]
 # wavcorP_chrs_r[, vars := "frq_r"]
-# wavcorP_chrs_rbar_i <- frq[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("frq", "rbar_i"), rm.boundary = F), by = .(rep, gen, chr)]
+# wavcorP_chrs_rbar_i <- frq[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("frq", "rbar_i"), rm.boundary = T), by = .(rep, gen, chr)]
 # wavcorP_chrs_rbar_i[, vars := "frq_rbar_i"]
 # wavcorP_chrs <- rbind(wavcorP_chrs_r, wavcorP_chrs_rbar_i)
 # wavcorP_chrs[, units := "physical"]
 # ggplot(wavcorP_chrs, aes(x = gen, y = cor, color = level, group = level)) + geom_line() + facet_wrap(~chr)
 
 # averaging across chroms
-wavcorP_wg_r <- frq[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "r"), rm.boundary = F), by = .(rep, gen)]
+wavcorP_wg_r <- frq[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "r"), rm.boundary = T), by = .(rep, gen)]
 wavcorP_wg_r[, vars := "frq_r"]
 
-wavcorP_wg_log10r <- frq[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "log10r"), rm.boundary = F), by = .(rep, gen)]
+wavcorP_wg_log10r <- frq[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "log10r"), rm.boundary = T), by = .(rep, gen)]
 wavcorP_wg_log10r[, vars := "frq_log10r"]
 
-wavcorP_wg_rbar_i <- frq[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "rbar_i"), rm.boundary = F), by = .(rep, gen)]
+wavcorP_wg_rbar_i <- frq[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "rbar_i"), rm.boundary = T), by = .(rep, gen)]
 wavcorP_wg_rbar_i[, vars := "frq_rbar_i"]
 
 wavcorP_wg <- rbindlist(list(wavcorP_wg_r, wavcorP_wg_log10r, wavcorP_wg_rbar_i))
@@ -165,23 +165,23 @@ wavcorP_wg[, units := "physical"]
 # ----- genetic map
 
 # per chromosome
-# wavcorG_chrs_r <- frq_rec_interp[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("frq", "r"), rm.boundary = F), by = .(rep, gen, chr)]
+# wavcorG_chrs_r <- frq_rec_interp[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("frq", "r"), rm.boundary = T), by = .(rep, gen, chr)]
 # wavcorG_chrs_r[, vars := "frq_r"]
 # 
-# wavcorG_chrs_rbar_i <- frq_rec_interp[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("frq", "rbar_i"), rm.boundary = F), by = .(rep, gen, chr)]
+# wavcorG_chrs_rbar_i <- frq_rec_interp[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("frq", "rbar_i"), rm.boundary = T), by = .(rep, gen, chr)]
 # wavcorG_chrs_rbar_i[, vars := "frq_rbar_i"]
 # 
 # wavcorG_chrs <- rbind(wavcorG_chrs_r, wavcorG_chrs_rbar_i)
 # wavcorG_chrs[, units := "genetic"]
 
 # averaging across chroms
-wavcorG_wg_r <- frq_rec_interp[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "r"), rm.boundary = F), by = .(rep, gen)]
+wavcorG_wg_r <- frq_rec_interp[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "r"), rm.boundary = T), by = .(rep, gen)]
 wavcorG_wg_r[, vars := "frq_r"]
 
-wavcorG_wg_log10r <- frq_rec_interp[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "log10r"), rm.boundary = F), by = .(rep, gen)]
+wavcorG_wg_log10r <- frq_rec_interp[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "log10r"), rm.boundary = T), by = .(rep, gen)]
 wavcorG_wg_log10r[, vars := "frq_log10r"]
 
-wavcorG_wg_rbar_i <- frq_rec_interp[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "rbar_i"), rm.boundary = F), by = .(rep, gen)]
+wavcorG_wg_rbar_i <- frq_rec_interp[, gnom_cor_decomp(.SD, chromosome = 'chr', signals = c("frq", "rbar_i"), rm.boundary = T), by = .(rep, gen)]
 wavcorG_wg_rbar_i[, vars := "frq_rbar_i"]
 
 wavcorG_wg <- rbindlist(list(wavcorG_wg_r,wavcorG_wg_log10r, wavcorG_wg_rbar_i))

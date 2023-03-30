@@ -65,17 +65,17 @@ totalvars <- rbind(totalvarsP, totalvarsG)
 # ===== Wavelet Variances =====
 
 # # ----- physical units -----
-# wv_frq_rec_P_chrs <- frq[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = F, signals = c("frq", "r"), avg.over.chroms = F), by = .(rep, gen)]
+# wv_frq_rec_P_chrs <- frq[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = T, signals = c("frq", "r"), avg.over.chroms = F), by = .(rep, gen)]
 # wv_frq_rec_P_chrs[, units := "physical"]
 # 
-# wv_frq_rec_P_wg <- frq[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = F, signals = c("frq", "r"), avg.over.chroms = T), by = .(rep, gen)]
+# wv_frq_rec_P_wg <- frq[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = T, signals = c("frq", "r"), avg.over.chroms = T), by = .(rep, gen)]
 # wv_frq_rec_P_wg[, units := "physical"]
 
 # ----- genetic units -----
-#wv_frq_rec_G_chrs <- frq_rec_interp[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = F, signals = c("frq", "r"), avg.over.chroms = F), by = .(rep, gen)]
+#wv_frq_rec_G_chrs <- frq_rec_interp[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = T, signals = c("frq", "r"), avg.over.chroms = F), by = .(rep, gen)]
 #wv_frq_rec_G_chrs[, units := "genetic"]
 
-wv_frq_rec_G_wg <- frq_rec_interp[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = F, signals = c("frq", "r"), avg.over.chroms = T), by = .(rep, gen)]
+wv_frq_rec_G_wg <- frq_rec_interp[, gnom_var_decomp(data=.SD, chromosome = 'chr', rm.boundary = T, signals = c("frq", "r"), avg.over.chroms = T), by = .(rep, gen)]
 wv_frq_rec_G_wg[, units := "genetic"]
 
 #wv_frq_rec_chrs_all <- rbind(wv_frq_rec_P_chrs, wv_frq_rec_G_chrs)
