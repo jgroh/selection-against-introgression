@@ -3,7 +3,7 @@ library(data.table)
 library(waveslim)
 library(wCorr)
 
-
+options(show.error.locations = TRUE)
 if(interactive()){
   windows <- 'physical'
   analysis <- 'wv'
@@ -12,9 +12,10 @@ if(interactive()){
 
 } else{
 
-  	source("~/gnomwav/R/multi_modwts.R") 
-	source("~/gnomwav/R/variance_decomp.R")
-	source("~/gnomwav/R/correlation_decomp.R")
+# source("~/gnomwav/R/multi_modwts.R") 
+#	source("~/gnomwav/R/variance_decomp.R")
+#	source("~/gnomwav/R/correlation_decomp.R")
+		library(gnomwav)
   	args <- commandArgs(trailingOnly = TRUE)
   	windows <- args[1]
   	analysis <- args[2]
@@ -27,7 +28,6 @@ if(interactive()){
 
 cds_file <- paste0("gene_density_", windows, "_windows_", assembly, ".txt")
 Bvals_file <- paste0("B_vals_", windows, "_windows_", assembly, ".txt")
-print(Bvals_file)
 
 if(windows == "physical"){
   # read cds files
@@ -230,7 +230,7 @@ if(analysis == "wc_freq_log10rec"){
   fwrite(wc, file=outfile, sep = "\t", quote=F)
 }
 
-if(analysis == "wc_freq_cds_chrs"){
+if(analysis == "wc_freq_cds"){
   wc_skov <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("skov_freq", "cds"), rm.boundary = T), by = chr]
   wc_skov[, study := "skov"]
   
@@ -244,7 +244,7 @@ if(analysis == "wc_freq_cds_chrs"){
   fwrite(wc, file=outfile, sep = "\t", quote=F)
 }
 
-if(analysis == "wc_freq_cdsM_chrs"){ # cds per Morgan
+if(analysis == "wc_freq_cdsM"){ # cds per Morgan
   wc_skov <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("skov_freq", "cdsM"), rm.boundary = T), by = chr]
   wc_skov[, study := "skov"]
   

@@ -64,11 +64,11 @@ panel1 <- wavvarm_collapsedG[variable == "variance.meanFreq"] %>%
   ggplot(aes(x = level, y = value, group = year, color = year)) +
   geom_point(size=2) +
   geom_line(data = lineDataG[variable %in% c("variance.meanFreq")],
-            aes(group = year), size=1, key_glyph = 'point') +
+            aes(group = year), linewidth=1, key_glyph = 'point') +
   geom_point(size=2) +
   
   labs(x = expression(Scale: log[2](Morgans)),
-      title = 'A',
+      title = 'a',
        y = "Variance",
        color = "Year", shape = "") +
   scale_x_discrete(breaks = c(paste0("d",1:11),"scl","chr"), labels = c(as.character(-12:-2),"scl", 'chrom')) +
@@ -79,21 +79,23 @@ panel1 <- wavvarm_collapsedG[variable == "variance.meanFreq"] %>%
   scale_y_continuous(label= function(x) {ifelse(x==0, "0", gsub("\\-0", "\\-", scientific_format()(x)))} ) +
   geom_segment(aes(x=.95,xend=11.05,y=-Inf,yend=-Inf),color="black")+
   theme(aspect.ratio = 1,
-        legend.position = c(0.15,0.8),
+        legend.position = c(.165,0.8),
+        legend.margin = margin(0,0,0,0),
         legend.key.size = unit(0.05, 'cm'),
         legend.text = element_text(size = 11),
-        text = element_text(size=15, family = 'Nanum Gothic'),
+        text = element_text(size=15, family = 'Montserrat'),
         axis.ticks.x = element_line(size=0.5),
         axis.line.x = element_blank(),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
         axis.text.y = element_text(size=12),
         axis.title.y = element_text(hjust=.4,margin=margin(r=10)),
         axis.title.x = element_text(size = 13, vjust = 4),
-        plot.title = element_text(hjust = -.1))
+        plot.title = element_text(hjust = -.1, size = 22, face = 'bold'))
 
 panel1
 
 
+# showing errorbars
 wavvar[units == 'genetic'] %>%
   ggplot(aes(x = level, y = variance.meanFreq, 
              group = year, color = year)) +
@@ -130,13 +132,6 @@ wavvar[units == 'genetic'] %>%
 
 
 
-
-
-
-
-
-
-
 # ----- compare to theory -----
 # generation time? 2 gens per year vs 3 gens per year
 g <- 3
@@ -146,23 +141,28 @@ wvtheory[, year := as.character((1/g)*gen + (2018 - a/g))]
 wvtheory[, propvar := variance/sum(variance), by = .(year)]
 wvtheory <- wvtheory[ (n.sample == 96 & year == 2006) | n.sample == 194 & year == 2018]
 
-wvdetail <- wavvarm_collapsedG[variable == "variance.meanFreq" & grepl('d', level, fixed=T)]
-wvdetail[, propvar := value/sum(value), by = year]
+wvdetail <- wavvar[grepl('d', level, fixed=T)]
+#wvdetail[, propvar := value/sum(value), by = year]
 
-wvdetail[year %in% c(2006,2018)] %>%
-  ggplot(aes(x = level, y = value, group = year, color = year)) +
-  geom_point(size=3) +
-  geom_line(aes(group = year), size=1.5) +
-  geom_line(data = wvtheory, aes(x = level, y = variance), lty=11, size=1.5) +
+wavvar[grepl('d', level, fixed=T) & year %in% c(2006,2018) & units == 'genetic'] %>%
+  ggplot(aes(x = level, y = variance.meanFreq, group = year, color = year)) +
+  geom_point(size=2) +
+  geom_errorbar(aes(ymin = variance.meanFreq - 1.96*variance.meanFreq.jack.se, 
+                    ymax = variance.meanFreq + 1.96*variance.meanFreq.jack.se),
+                width = 0.3, linewidth = 1) +
+  #scale_color_viridis_d(option = 'G') +
+  scale_color_manual(values = c('darkblue', 'lightblue')) +
+  
+  geom_line(data = wvtheory, aes(x = level, y = variance), lty=1, linewidth = 1, alpha = 0.5) +
   labs(x = expression(Scale: log[2](Morgans)),
-       y = "Proportion of variance",
+       y = "Variance",
        color = "Year", shape = "") +
   scale_x_discrete(breaks = c(paste0("d",1:11)), labels = c(as.character(-12:-2))) +
   theme_classic() +
   #geom_segment(aes(x=.95,xend=13.05,y=-Inf,yend=-Inf),color="black")+
   theme(aspect.ratio = 1,
-        text = element_text(size=15, family = "Nanum Gothic"),
-        axis.ticks.x = element_line(size=1),
+        legend.position = c(0.2, 0.8),
+        text = element_text(size=15, family = "Montserrat"),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
         axis.text.y = element_text(size=12),
         axis.title.y = element_text(hjust=.4,margin=margin(r=10)))
@@ -203,8 +203,6 @@ wavvarm_collapsedP[units == "physical" & variable == "variance.meanFreq"] %>%
 
 
 
-
-
 # ===== plot wav cors ====
 
 wavcor[, significant := ifelse(cor_jack - 1.96*cor_jack_se > 0, 1, 0)]
@@ -224,32 +222,6 @@ wavcor_collapsedP[, level := factor(level, levels = c(paste0("d", 1:15), 'scl', 
 
 # --- freq, recomb ----
 
-# physical map
-ggplot(wavcor_collapsedP[vars == 'meanFreq_log10r' & year == '2006'],
-                  aes(x = level, y = cor_n))+ #, color = year)) +
-  geom_point(size = 2) +
-  geom_errorbar(aes(ymin=cor_n-1.96*cor_jack_se, ymax=cor_n + 1.96*cor_jack_se), width = 0.5, size=1)+
-  scale_x_discrete(breaks = c(paste0("d",1:15),"chr"), labels = c(as.character(0:14),"chrom")) +
-  labs(#x = expression(Scale: log[2]("Morgan")),
-    x = expression(Scale: log[2](kb %*% 50)),
-  y = "Correlation",
-  title = "B") +
-  geom_segment(aes(x=.95,xend=9.05,y=-Inf,yend=-Inf),color="black")+
-  scale_color_viridis_d(option = 'E') +
-  theme_classic() +
-  theme(aspect.ratio = 1,
-        legend.position = c(0.15,0.8),
-        legend.key.size = unit(0.05, 'cm'),
-        legend.text = element_text(size = 11),
-        text = element_text(size=15, family = "Nanum Gothic"),
-        axis.ticks.x = element_line(size=1),
-        axis.line.x = element_blank(),
-        axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
-        axis.text.y = element_text(size=12),
-        axis.title.y = element_text(hjust=.4,margin=margin(r=10)),
-        plot.title = element_text(hjust = -.1),
-        axis.title.x = element_text(size = 13, vjust = 4),
-  )
 
 # physical map
 wcP <- ggplot(wavcor_collapsedP[vars == 'meanFreq_r' & year == '2006'],
@@ -282,11 +254,12 @@ wcP
 
 
 # genetic map
-wcG <- ggplot(wavcor_collapsedG[vars == 'meanFreq_r' & year == '2006'],
-                   aes(x = level, y = cor_n))+ #, color = year)) +
+wcG <- ggplot(wavcor_collapsedG[vars == 'meanFreq_r' & year %in% c('2006', '2018')],
+                   aes(x = level, y = cor_n, color = year)) +
   geom_point(size = 2) +
-  geom_line(linewidth=1) + 
+  geom_hline(yintercept = 0, linetype = 2, color = 'grey') +
   geom_point(size=2) +
+  
   geom_errorbar(aes(ymin=cor_n-1.96*cor_jack_se, ymax=cor_n + 1.96*cor_jack_se), width = 0.5, size=1)+
   scale_x_discrete(breaks = c(paste0("d",1:11),"chr"), labels = c(as.character(-12:-2),"chrom")) +
   labs(x = expression(Scale: log[2]("Morgan")),
@@ -294,6 +267,7 @@ wcG <- ggplot(wavcor_collapsedG[vars == 'meanFreq_r' & year == '2006'],
     title = "B") +
   geom_segment(aes(x=.95,xend=11.05,y=-Inf,yend=-Inf),color="black")+
   scale_color_viridis_d(option = 'G') +
+  geom_hline(yintercept = 0, linetype = 2, color = 'grey') +
 
   theme_classic() +
   theme(aspect.ratio = 1,
@@ -313,16 +287,16 @@ wcG
 wcP
 
 # through time
-wc_tm_P <- ggplot(wavcor_collapsedP[vars == 'meanFreq_r'],
+wc_tm_P <- ggplot(wavcor_collapsedP[vars == 'meanFreq_r' ],
                   aes(year, y = cor_n, group = level, color = level)) +
   geom_point(size = 2) +
   #geom_errorbar(aes(ymin=cor_n-1.96*cor_jack_se, ymax=cor_n + 1.96*cor_jack_se), width = 0.5, size=1)+
   geom_line() +
   geom_point() +
-  labs(color = expression(Scale: log[2](kg %*% 50)),
+  labs(color = expression(Scale: log[2](kb %*% 50)),
        x = 'Year',
        y = "Correlation",
-       title = "A") +
+       title = "a") +
   scale_color_manual(values = c(viridis_pal()(9), 'grey'), 
                      labels = c(0:8, 'chr')) +
   theme_classic() +
@@ -331,14 +305,14 @@ wc_tm_P <- ggplot(wavcor_collapsedP[vars == 'meanFreq_r'],
         legend.key.size = unit(0.01, 'cm'),
         legend.text = element_text(size = 10),
         legend.title = element_text(size = 12),
-        text = element_text(size=15, family = "Nanum Gothic"),
+        text = element_text(size=15, family = "Montserrat"),
         axis.ticks.x = element_line(size=0.5),
         # axis.line.x = element_blank(),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
         axis.text.y = element_text(size=12),
         axis.title.y = element_text(hjust=.4,margin=margin(r=10)),
         axis.title.x = element_text(size = 13, vjust = -1),
-        plot.title = element_text(hjust = -.1))
+        plot.title = element_text(hjust = -.1, face = 'bold'))
 
 wc_tm_P
 
@@ -351,7 +325,7 @@ wc_tm_G <- ggplot(wavcor_collapsedG[vars == 'meanFreq_r'],
   labs(color = expression(Scale: log[2](Morgan)),
        x = 'Year',
        y = "Correlation",
-       title = "B") +
+       title = "b") +
   scale_color_manual(values = c(viridis_pal()(11), 'grey'), 
                      labels = c(-12:-2, 'chr')) +
   theme_classic() +
@@ -360,14 +334,14 @@ wc_tm_G <- ggplot(wavcor_collapsedG[vars == 'meanFreq_r'],
         legend.key.size = unit(0.01, 'cm'),
         legend.text = element_text(size = 10),
         legend.title = element_text(size = 12),
-        text = element_text(size=15, family = "Nanum Gothic"),
+        text = element_text(size=15, family = "Montserrat"),
         axis.ticks.x = element_line(size=0.5),
         # axis.line.x = element_blank(),
         axis.text.x = element_text(angle=90,hjust=0.95,vjust=0.5,size=12),
         axis.text.y = element_text(size=12),
         axis.title.y = element_text(hjust=.4,margin=margin(r=10)),
         axis.title.x = element_text(size = 13, vjust = -1),
-        plot.title = element_text(hjust = -.1))
+        plot.title = element_text(hjust = -.1, face = 'bold'))
 
 
 wc_tm_P 
