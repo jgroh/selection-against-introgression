@@ -12,14 +12,14 @@ if(interactive()){
 
 } else{
 
-  source("~/gnomwav/R/multi_modwts.R") 
+  	source("~/gnomwav/R/multi_modwts.R") 
 	source("~/gnomwav/R/variance_decomp.R")
 	source("~/gnomwav/R/correlation_decomp.R")
-  args <- commandArgs(trailingOnly = TRUE)
-  windows <- args[1]
-  analysis <- args[2]
-  assembly <- args[3]
-  thresh <- args[4]
+  	args <- commandArgs(trailingOnly = TRUE)
+  	windows <- args[1]
+  	analysis <- args[2]
+  	assembly <- args[3]
+  	thresh <- args[4]
 }
 
 
@@ -27,6 +27,7 @@ if(interactive()){
 
 cds_file <- paste0("gene_density_", windows, "_windows_", assembly, ".txt")
 Bvals_file <- paste0("B_vals_", windows, "_windows_", assembly, ".txt")
+print(Bvals_file)
 
 if(windows == "physical"){
   # read cds files
@@ -36,7 +37,7 @@ if(windows == "physical"){
   # read frequency files
   chr_files <- dir(path = paste0("archaic_freqs_", assembly, "/"), pattern = "chr.*_frq_physical_windows.txt", full.names=T)
   gnom <- rbindlist(lapply(chr_files, fread))
-  
+
   # combine gd and freq files
   gnom[, chr := paste0("chr", chrom)]
   gnom <- merge(gnom, cds,  by = c("chr", "pos"))
@@ -47,11 +48,12 @@ if(windows == "physical"){
   
   B_interp <- Bvals[chr != 'chrX', approx(x = pos, y = B, xout = pos, rule = 2), by = chr]
   setnames(B_interp, c("x", "y"), c("pos", "B"))
+
   gnom <- merge(gnom, B_interp, by = c("chr", "pos"))
-  
+
   # log transform of recomb
   gnom[, log10rec := log10(rec)]
-  
+ 
   #ggplot(gnom[chr== 'chr20'], aes(x = pos, y = log10rec)) + geom_point()
   
   # interpolate to remove inf values
