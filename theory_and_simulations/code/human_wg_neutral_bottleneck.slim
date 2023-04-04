@@ -11,13 +11,12 @@ initialize() {
 	} else
 	{	
 		defineConstant("outPath", "results/human_wgsim_neutral_bottleneck/");
-		rates = readFile("/Users/brogroh/selection-against-introgression/theory_and_simulations/hg38_wg_slim_recmap.txt");
+		rates = readFile("hg38_wg_slim_recmap_1kb.txt");
 	}
 	
 	initializeTreeSeq();
-	defineConstant("L", 2753656);
+	defineConstant("L", asInteger(length(rates))+1);
 	defineConstant("N1", 1);
-	defineConstant("s", 0.4);
 	defineConstant("alpha", 0.5);
 
 	initializeMutationRate(0);
