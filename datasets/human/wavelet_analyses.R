@@ -12,10 +12,9 @@ if(interactive()){
 
 } else{
 
-# source("~/gnomwav/R/multi_modwts.R") 
-#	source("~/gnomwav/R/variance_decomp.R")
-#	source("~/gnomwav/R/correlation_decomp.R")
-		library(gnomwav)
+	source("~/gnomwav/R/multi_modwts.R") 
+	source("~/gnomwav/R/variance_decomp.R")
+	source("~/gnomwav/R/correlation_decomp.R")
   	args <- commandArgs(trailingOnly = TRUE)
   	windows <- args[1]
   	analysis <- args[2]
@@ -231,13 +230,13 @@ if(analysis == "wc_freq_log10rec"){
 }
 
 if(analysis == "wc_freq_cds"){
-  wc_skov <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("skov_freq", "cds"), rm.boundary = T), by = chr]
+  wc_skov <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("skov_freq", "cds"), rm.boundary = T)]
   wc_skov[, study := "skov"]
   
-  wc_sank <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("sank_freq", "cds"), rm.boundary = T), by = chr]
+  wc_sank <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("sank_freq", "cds"), rm.boundary = T)]
   wc_sank[, study := "sank"]
   
-  wc_stein <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("stein_freq", "cds"), rm.boundary = T), by = chr]
+  wc_stein <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("stein_freq", "cds"), rm.boundary = T)]
   wc_stein[, study := "stein"]
   
   wc <- rbindlist(list(wc_skov, wc_sank, wc_stein))
@@ -245,13 +244,13 @@ if(analysis == "wc_freq_cds"){
 }
 
 if(analysis == "wc_freq_cdsM"){ # cds per Morgan
-  wc_skov <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("skov_freq", "cdsM"), rm.boundary = T), by = chr]
+  wc_skov <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("skov_freq", "cdsM"), rm.boundary = T)]
   wc_skov[, study := "skov"]
   
-  wc_sank <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("sank_freq", "cdsM"), rm.boundary = T), by = chr]
+  wc_sank <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("sank_freq", "cdsM"), rm.boundary = T)]
   wc_sank[, study := "sank"]
   
-  wc_stein <- gnom[, gnom_cor_decomp(.SD, chromosome = NA, signals = c("stein_freq", "cdsM"), rm.boundary = T), by = chr]
+  wc_stein <- gnom[, gnom_cor_decomp(.SD, chromosome = "chr", signals = c("stein_freq", "cdsM"), rm.boundary = T)]
   wc_stein[, study := "stein"]
   
   wc <- rbindlist(list(wc_skov, wc_sank, wc_stein))

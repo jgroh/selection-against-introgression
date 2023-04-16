@@ -7,13 +7,13 @@ thresh = ['thresh', 'nothresh']
 
 # analyses common to both units. note gene density analysis differs between physical and genetic
 #
-wvlt_analyses = ["wv","wc_calls", "wc_freq_log10rec","wc_freq_rec","wc_freq_rec_chrs",
-					"wc_freq_cds","wc_freq_cds_chrs", "wc_rec_cds", "wc_freq_cdsM","wc_freq_cdsM_chrs",
-					 "lm", "wc_freq_B", "wc_freq_B_chrs"]
+wvlt_analyses = ["wv","wc_calls", "wc_freq_log10rec","wc_freq_rec",
+					"wc_freq_cds","wc_rec_cds", "wc_freq_cdsM",
+					 "lm", "wc_freq_B"]
 
 rule all:
 	input:
-		expand("wavelet_results/{analysis}_{unit}_hg{n}_{thresh}.txt", analysis = wvlt_analyses, unit=units, n=assembly, thresh='thresh')
+		expand("wavelet_results/{analysis}_{unit}_hg{n}_{thresh}.txt", analysis = wvlt_analyses, unit=units, n=assembly, thresh=['thresh', 'nothresh'])
 
 rule all_wavelet_inputs:
 	input:

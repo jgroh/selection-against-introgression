@@ -7,18 +7,21 @@ chrs = [str(x) for x in range(1,23)]
 ruleorder: slim_recmap_chr1 > slim_recmap_chr
 ruleorder: human_wgsim_neutral_wavelets_no_interp > human_wgsim_neutral_wavelets
 ruleorder: human_wgsims_selection_no_interp > human_wgsims_selection
+ruleorder: human_wgsims_neutral_equilibrium_gen2000 > human_wgsims_neutral
+ruleorder: human_wgsim_neutral_wavelets_50kb > human_wgsim_neutral_wavelets
 
 # ===== rules for simulations of human genome  =======
 
 rule all_human_wgsim_wavelet_results:
 	input:
+		expand("results/human_wgsim_neutral_equilibrium_gen2000/replicate{rep}_wavelet_results.RData", rep = np.arange(20))
 #		expand("results/human_wgsim_neutral_{sim}/replicate{rep}_wavelet_results.RData", rep = np.arange(20), sim = ['equilibrium','bottleneck']),
 #                expand("results/human_wgsim_neutral_{sim}/replicate{rep}_wavelet_results.txt", rep = np.arange(20), sim = ['equilibrium_no_interp', 'bottleneck_no_interp']),
-                expand("results/F2/replicate{rep}_hap_ancestry.txt", rep=np.arange(100)),
-		expand("results/human_{gnom}_{selgens}_S{S}/replicate{rep}_wavelet_results.RData", gnom= ['wgsim'], selgens=['sel1-1000','sel1-10','sel500-1000'],S=['1'], rep=np.arange(20)), 
-                expand("results/human_wgsim_selreverse/replicate{rep}_wavelet_results.RData",rep=np.arange(20)),
+#                expand("results/F2/replicate{rep}_hap_ancestry.txt", rep=np.arange(100)),
+#		expand("results/human_{gnom}_{selgens}_S{S}/replicate{rep}_wavelet_results.RData", gnom= ['wgsim'], selgens=['sel1-1000','sel1-10','sel500-1000'],S=['1'], rep=np.arange(20)), 
+#                expand("results/human_wgsim_selreverse/replicate{rep}_wavelet_results.RData",rep=np.arange(20)),
 #		expand("results/human_wgsim_sel1-1000_S{S}/replicate{rep}_wavelet_results.RData",rep=np.arange(20), S =['0.2', '0.4']),
-                expand("results/human_wgsim_sel1-1000_S1_no_interp/replicate{rep}_wavelet_results.RData",rep=np.arange(20))
+#                expand("results/human_wgsim_sel1-1000_S1_no_interp/replicate{rep}_wavelet_results.RData",rep=np.arange(20))
 
 rule slim_recmap_chr: #do by chromosome as calc of rbar_i takes a while, combine in next step
 	input:
@@ -61,6 +64,20 @@ rule human_wgsims_neutral:
     """
     mkdir -p results/human_wgsim_neutral_{wildcards.sim}/
     slim -d seed={wildcards.rep} -d N=10000 code/human_wg_neutral_{wildcards.sim}.slim
+    """
+
+rule human_wgsims_neutral_equilibrium_gen2000:
+  input:
+    "hg38_wg_slim_recmap.txt",
+  output:
+    "results/human_wgsim_neutral_equilibrium_gen2000/replicate{rep}.trees"
+  resources:
+    runtime = lambda wildcards, attempt: attempt * 24 * 60,
+    mem_mb = lambda wildcards, attempt: attempt * 20000,
+  shell:
+    """
+    mkdir -p results/human_wgsim_neutral_equilibrium_gen2000/
+    slim -d seed={wildcards.rep} -d N=10000 code/human_wg_neutral_equilibrium_gen2000.slim
     """
 
 rule human_wgsims_selection:
@@ -128,6 +145,15 @@ rule human_wgsim_neutral_wavelets_no_interp:
 		"results/human_wgsim_neutral_{sim}_no_interp/replicate{rep}_wavelet_results.txt"
 	shell:
 		"Rscript --vanilla code/human_wgsim_neutral_wv_no_interp.R {input.frqs} {input.chrlengths}"
+
+rule human_wgsim_neutral_wavelets_50kb:
+	input:
+		frqs="results/human_wgsim_neutral_equilibrium_gen2000/replicate{rep}_frqs.txt.gz",
+		recmap="hg38_wg_slim_recmap_verbose.txt.gz"
+	output:
+		"results/human_wgsim_neutral_equilibrium_gen2000/replicate{rep}_wavelet_results.RData"
+	shell:
+		"Rscript --vanilla code/human_wgsim_neutral_wavelets.R {input.frqs} {input.recmap}"
 		
 rule human_wgsim_sel_wavelets:
   input:

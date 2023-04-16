@@ -1,5 +1,10 @@
 library(data.table)
-library(gnomwav)
+#library(gnomwav)
+
+source("~/gnomwav/R/mutli_modwts.R")
+source("~/gnomwav/R/variance_decomp.R")
+source("~/gnomwav/R/correlation_decomp.R")
+
 
 if(interactive()){
   frq <- fread('results/human_wgsim_neutral_equilibrium/replicate0_frqs.txt', col.names = c("rep","gen","frq"))
