@@ -113,11 +113,12 @@ rule avgFrq:
 rule combine_chrs_and_run_wavelets:
 	input:
 		expand("ACUA_{{year}}/{chr}.RData",chr=chrs),
-		expand("xbir_r_cds_{units}_unit_windows.txt", units=["physical", "genetic"])
+		expand("xbir_r_cds_{units}_unit_windows.txt", units=["physical", "genetic"]),
+		"xbir10x_chrlengths.txt"
 	output:
 		"ACUA_{year}/wavelet_results.RData",
 	shell:
-		"Rscript --vanilla swordtail_wavelets.R {wildcards.year}"
+		"Rscript --vanilla swordtail_wavelets.R ACUA_{wildcards.year}"
 
 rule slim_rec_map:
 	input:
